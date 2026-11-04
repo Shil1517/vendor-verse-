@@ -6,7 +6,7 @@ One technical reference for the whole repository as it stands on 2026-11-04: wha
 
 A global B2B and B2C marketplace where customers find verified vendors, book services, request quotations (RFQ), place purchase orders and sign contracts. Web and mobile are **one product** (D-013): every Phase 1 feature exists on both with the same rules and wording.
 
-**Current state: there is no backend.** The repository contains two front-end mockups (`web/`, `mobile/`), a documentation set, an empty backend and infrastructure scaffold, and a docs checker script. All data in the apps is seed data held in the browser.
+**Current state: there is no deployed backend or applied database.** A TypeScript/NestJS auth/account implementation is in progress under `backend/`; PostgreSQL 16 SQL migration drafts cover users, roles, vendors, categories, and auth security controls. The mobile client technology remains open under O-13. The fixed OTP adapter is local/test only and does not deliver codes; production delivery, MFA, idempotency/audit plumbing, and policy values remain unconfigured. All data in the apps is still seed data held in the browser.
 
 | Item | Value |
 |---|---|
@@ -27,7 +27,7 @@ vendor-verse-/
 |   `-- tools/check_docs.py   consistency checker and phase-view generator
 |-- web/                      web mockup (React 19, Vite, Tailwind 4)
 |-- mobile/                   mobile mockup, rendered as a phone frame in the browser
-|-- backend/                  scaffold only (.gitkeep files); see section 8
+|-- backend/                  TypeScript/NestJS modular monolith, auth/account slice, SQL migrations
 |-- packages/                 api-contract has a draft auth contract; design-tokens and shared are empty
 |-- infra/                    docker, environments, observability; empty
 `-- tests/                    acceptance, contract, e2e, load; empty
@@ -123,7 +123,7 @@ Detail is in [06-architecture-and-structure.md](06-architecture-and-structure.md
 - **Data:** PostgreSQL 16 with PostGIS, Redis, OpenSearch as a read model, S3-compatible object storage.
 - **Cross-cutting rules:** JWT access plus rotating refresh tokens; `Idempotency-Key` on every write; correlation ID on every response and in the audit log; cursor pagination; RFC 9457 `problem+json` errors; money as integer minor units plus ISO currency; `is_public` computed, never stored; accepted terms and contract versions stored as immutable snapshots; a module reads another's data only through its public interface.
 - **Backend folders:** `modules/` (26 Phase 1 modules, e.g. auth, accounts, rbac, geo, taxonomy, vendors, verification, listings, search, bookings, rfq, orders, contracts, messaging, notifications, reviews, trust-cases, subscriptions, sponsored, invoices, agents, admin-ops, audit, files), `modules-phase2/` (payments, payouts-commission, teams, trade), `platform/` (http, idempotency, outbox, audit-hook, rate-limit, config), `workers/` (scheduler, search-indexer, notification-dispatch, file-scanner, retention), `integrations/` (sms, email, push, whatsapp, billing, kyc, maps, storage), `db/` (migrations, seeds).
-- **Status:** the language and framework, and the mobile client technology, are **not decided** (O-13). The backend scaffold is language-neutral and its module folders are `.gitkeep` placeholders. Authentication/account-mode, vendor-profile, and taxonomy APIs are draft contracts in [auth.openapi.yaml](../packages/api-contract/auth.openapi.yaml), [vendor.openapi.yaml](../packages/api-contract/vendor.openapi.yaml), and [taxonomy.openapi.yaml](../packages/api-contract/taxonomy.openapi.yaml); they do not mean the backend is implemented. Items called proposed are not commitments.
+- **Status:** TypeScript/NestJS is the decided backend stack (D-016); the mobile client technology remains open (O-13). The auth/account API implementation covers local/test OTP, sessions, and customer/vendor modes; production OTP delivery and privileged-role MFA are not implemented, and BUSINESS mode remains unavailable pending verified business-account persistence. Required OTP/token/rate-limit values have no code defaults. No database has been applied. API contracts are in [auth.openapi.yaml](../packages/api-contract/auth.openapi.yaml), [vendor.openapi.yaml](../packages/api-contract/vendor.openapi.yaml), and [taxonomy.openapi.yaml](../packages/api-contract/taxonomy.openapi.yaml); the product-wide logical model is [06-database-architecture-erd.md](../mobile/docs/deliverables/06-database-architecture-erd.md).
 
 ## 7. Build order and definition of done
 
@@ -135,7 +135,7 @@ A feature is done when: the spec row has one phase; the matrix maps its web and 
 
 | Gap | Effect | Where tracked |
 |---|---|---|
-| No backend, database, or authentication implementation | Everything is seed data in browser storage; [auth.openapi.yaml](../packages/api-contract/auth.openapi.yaml), [vendor.openapi.yaml](../packages/api-contract/vendor.openapi.yaml), and [taxonomy.openapi.yaml](../packages/api-contract/taxonomy.openapi.yaml) contain draft contracts only, and permissions in `authorization.js` are client-side only and not a security control | Section 6, O-13 |
+| No backend, database, or authentication implementation | Everything is seed data in browser storage; the OpenAPI contracts and [initial logical ERD](../mobile/docs/deliverables/06-database-architecture-erd.md) are drafts only, and permissions in `authorization.js` are client-side only and not a security control | Section 6, O-13 |
 | Backend language and mobile client technology undecided | Cannot start implementation | O-13 |
 | 13 features with OPEN phase (country packs, market activation checklist, contract suspend/resume, profile completeness, field visibility, saved searches, SEO landing pages, chat attachments and scanning, content screening, and others) | Not built, changed or removed until decided | O-04, O-05, O-08, O-09, and others |
 | Web admin screens held: Add vendor, Coupons | Kept as is pending ruling | O-01, O-02 |
@@ -160,6 +160,12 @@ A feature is done when: the spec row has one phase; the matrix maps its web and 
 
 | Date & time (YYYY-MM-DD HH:MM, local) | Updated by | Change | Reason |
 |---|---|---|---|
+| 2026-11-04 15:37 | Amit | Modified: auth/account implementation limitations | Call out unfinished platform idempotency/audit plumbing alongside the existing production auth blockers. |
+| 2026-11-04 15:27 | Amit | Modified: NestJS auth/account implementation status | Document the local/test-only boundary, unresolved production dependencies, and new auth migration without implying deploy readiness. |
+| 2026-11-04 15:24 | Amit | Modified: backend implementation status | Record the TypeScript/NestJS decision and explicit local/test-only authentication boundary without implying production readiness. |
+| 2026-11-04 15:12 | Amit | Modified: scoped SQL migration status | Document the authorized migration drafts accurately without suggesting the backend, database, or O-13 decision is complete. |
+| 2026-11-04 14:29 | Amit | Modified: product-wide ERD status reference | Reflect the expanded logical model while keeping the documented architecture proposals and unresolved technology decision intact. |
+| 2026-11-04 13:49 | Amit | Added: initial logical ERD status reference | Keep the technical inventory clear that the ERD is a draft and no database implementation exists. |
 | 2026-11-04 13:44 | Amit | Added: Phase 1 taxonomy API draft reference | Keep the technical inventory aligned with the public browse, category administration, and suggestion contract. |
 | 2026-11-04 13:37 | Amit | Added: F-VND-09 vendor profile API draft reference | Keep the technical inventory aligned with the new profile and trust contract. |
 | 2026-11-04 13:30 | Amit | Added: F-ACC-02 account mode API draft reference | Keep the technical inventory aligned with the identity and mode contract. |
