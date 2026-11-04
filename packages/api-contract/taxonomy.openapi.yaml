@@ -1,0 +1,1428 @@
+openapi: 3.1.0
+info:
+  title: VendorVerse Taxonomy API
+  version: 0.1.0
+  summary: Draft category and taxonomy API for browse, admin management, and suggestions.
+  description: |
+    Draft endpoints for browsing the active, market-eligible taxonomy;
+    Super Admin management of categories, subcategories, configuration and
+    lifecycle; and vendor category suggestions.
+
+    Category configuration is versioned. Existing bookings and accepted
+    quotations retain their agreed snapshots when taxonomy configuration
+    changes. Category retirement and merge preserve category identity and
+    history; categories are never hard-deleted by these endpoints.
+
+    Manufacturer placement in Phase 1 remains undecided by O-10. This contract
+    does not create or assign a manufacturer industry.
+  x-feature-ids:
+    - F-TAX-01
+    - F-TAX-02
+    - F-TAX-03
+    - F-TAX-04
+    - F-TAX-08
+  x-change-log:
+    - date-time: "2026-11-04 13:44"
+      updated-by: Amit
+      change: "Added: Phase 1 taxonomy and category API draft"
+      reason: "Define public taxonomy reads, Super Admin category management, versioned schemas, and vendor suggestions."
+servers:
+  - url: /v1
+    description: Versioned API base path
+tags:
+  - name: Taxonomy
+    description: Public industry, category, subcategory, and schema reads (F-TAX-01, F-TAX-08).
+  - name: Category Administration
+    description: Super Admin category and configuration management (F-TAX-02, F-TAX-03).
+  - name: Category Suggestions
+    description: Vendor proposals and admin review (F-TAX-04).
+paths:
+  /taxonomy/industries:
+    get:
+      operationId: listPublicIndustries
+      tags: [Taxonomy]
+      summary: List industries available in a market
+      description: |
+        Lists industries with at least one publicly browsable category in the
+        requested market. Industry names and their phase are sourced from the
+        feature register; this endpoint does not change phase scope.
+      parameters:
+        - $ref: "#/components/parameters/CountryCode"
+        - $ref: "#/components/parameters/RegionId"
+        - $ref: "#/components/parameters/CityId"
+      responses:
+        "200":
+          $ref: "#/components/responses/IndustryList"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+  /taxonomy/categories:
+    get:
+      operationId: listPublicCategories
+      tags: [Taxonomy]
+      summary: Browse publicly available categories and subcategories
+      description: |
+        Returns only Active categories available in the requested market.
+        A category is included when it has eligible listings in that market,
+        unless its Super Admin has enabled always-show. Draft, Restricted,
+        Retired, and otherwise unavailable categories are not returned.
+        An industry filter can narrow the result.
+      parameters:
+        - $ref: "#/components/parameters/CountryCode"
+        - $ref: "#/components/parameters/RegionId"
+        - $ref: "#/components/parameters/CityId"
+        - name: industryId
+          in: query
+          description: Limit results to an industry.
+          schema:
+            type: string
+      responses:
+        "200":
+          $ref: "#/components/responses/PublicCategoryList"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+  /taxonomy/categories/{categoryId}:
+    get:
+      operationId: getPublicCategory
+      tags: [Taxonomy]
+      summary: Get the active category and its form configuration
+      description: |
+        Returns the market-specific, active category projection used by
+        category browse and schema-driven forms. Attribute and RFQ schemas
+        describe fields and validation only; the server remains authoritative
+        for all validation, policy and booking-mode decisions. The same
+        market-eligibility and eligible-listing/always-show rule as the
+        category list applies.
+      parameters:
+        - $ref: "#/components/parameters/CategoryId"
+        - $ref: "#/components/parameters/CountryCode"
+        - $ref: "#/components/parameters/RegionId"
+        - $ref: "#/components/parameters/CityId"
+      responses:
+        "200":
+          $ref: "#/components/responses/PublicCategory"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/PublicCategoryNotFound"
+  /admin/taxonomy/categories:
+    get:
+      operationId: listAdminCategories
+      tags: [Category Administration]
+      summary: List categories for taxonomy administration
+      security:
+        - bearerAuth: []
+      x-required-role: SUPER_ADMIN
+      parameters:
+        - name: lifecycle
+          in: query
+          description: Filter by lifecycle state.
+          schema:
+            $ref: "#/components/schemas/CategoryLifecycle"
+        - name: industryId
+          in: query
+          schema:
+            type: string
+        - name: cursor
+          in: query
+          description: Opaque cursor from the preceding response.
+          schema:
+            type: string
+      responses:
+        "200":
+          $ref: "#/components/responses/AdminCategoryPage"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+    post:
+      operationId: createAdminCategory
+      tags: [Category Administration]
+      summary: Create a category in Draft state
+      security:
+        - bearerAuth: []
+      x-required-role: SUPER_ADMIN
+      x-audit: true
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CategoryCreate"
+      responses:
+        "201":
+          $ref: "#/components/responses/AdminCategory"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "409":
+          $ref: "#/components/responses/CategoryConflict"
+        "422":
+          $ref: "#/components/responses/UnprocessableContent"
+  /admin/taxonomy/categories/{categoryId}:
+    get:
+      operationId: getAdminCategory
+      tags: [Category Administration]
+      summary: Get a category and its current administrative configuration
+      security:
+        - bearerAuth: []
+      x-required-role: SUPER_ADMIN
+      parameters:
+        - $ref: "#/components/parameters/CategoryId"
+      responses:
+        "200":
+          $ref: "#/components/responses/AdminCategory"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/CategoryNotFound"
+    patch:
+      operationId: updateAdminCategory
+      tags: [Category Administration]
+      summary: Update category metadata or configuration
+      description: |
+        Applies a merge patch. Each effective configuration change creates a
+        new immutable category version; prior versions remain readable.
+        Lifecycle is changed only by the explicit publish, activate, restrict,
+        and retire operations. Changes do not rewrite snapshots held by
+        existing bookings or accepted quotations.
+      security:
+        - bearerAuth: []
+      x-required-role: SUPER_ADMIN
+      x-audit: true
+      parameters:
+        - $ref: "#/components/parameters/CategoryId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/merge-patch+json:
+            schema:
+              $ref: "#/components/schemas/CategoryPatch"
+      responses:
+        "200":
+          $ref: "#/components/responses/AdminCategory"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/CategoryNotFound"
+        "409":
+          $ref: "#/components/responses/CategoryConflict"
+        "422":
+          $ref: "#/components/responses/UnprocessableContent"
+  /admin/taxonomy/categories/{categoryId}/publish:
+    post:
+      operationId: publishCategory
+      tags: [Category Administration]
+      summary: Publish a Draft category
+      description: |
+        Activates a Draft category only after required category configuration
+        and market availability checks pass. Publishing is explicit and is
+        never triggered by category creation or suggestion approval.
+      security:
+        - bearerAuth: []
+      x-required-role: SUPER_ADMIN
+      x-audit: true
+      parameters:
+        - $ref: "#/components/parameters/CategoryId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LifecycleAction"
+      responses:
+        "200":
+          $ref: "#/components/responses/AdminCategory"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/CategoryNotFound"
+        "409":
+          $ref: "#/components/responses/CategoryConflict"
+        "422":
+          $ref: "#/components/responses/UnprocessableContent"
+  /admin/taxonomy/categories/{categoryId}/restrict:
+    post:
+      operationId: restrictCategory
+      tags: [Category Administration]
+      summary: Restrict an Active category
+      description: |
+        Moves an Active category to Restricted so it is excluded from public
+        taxonomy reads. This lifecycle action is separate from market-specific
+        availability configured on the category.
+      security:
+        - bearerAuth: []
+      x-required-role: SUPER_ADMIN
+      x-audit: true
+      parameters:
+        - $ref: "#/components/parameters/CategoryId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LifecycleAction"
+      responses:
+        "200":
+          $ref: "#/components/responses/AdminCategory"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/CategoryNotFound"
+        "409":
+          $ref: "#/components/responses/CategoryConflict"
+  /admin/taxonomy/categories/{categoryId}/activate:
+    post:
+      operationId: activateRestrictedCategory
+      tags: [Category Administration]
+      summary: Return a Restricted category to Active
+      description: |
+        Re-activates a Restricted category after its configuration and market
+        availability are revalidated. A Retired category cannot be reactivated.
+      security:
+        - bearerAuth: []
+      x-required-role: SUPER_ADMIN
+      x-audit: true
+      parameters:
+        - $ref: "#/components/parameters/CategoryId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LifecycleAction"
+      responses:
+        "200":
+          $ref: "#/components/responses/AdminCategory"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/CategoryNotFound"
+        "409":
+          $ref: "#/components/responses/CategoryConflict"
+  /admin/taxonomy/categories/{categoryId}/retire:
+    post:
+      operationId: retireCategory
+      tags: [Category Administration]
+      summary: Retire a category without deleting its history
+      security:
+        - bearerAuth: []
+      x-required-role: SUPER_ADMIN
+      x-audit: true
+      parameters:
+        - $ref: "#/components/parameters/CategoryId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LifecycleAction"
+      responses:
+        "200":
+          $ref: "#/components/responses/AdminCategory"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/CategoryNotFound"
+        "409":
+          $ref: "#/components/responses/CategoryConflict"
+  /admin/taxonomy/categories/{categoryId}/merge:
+    post:
+      operationId: mergeCategories
+      tags: [Category Administration]
+      summary: Merge a category into another category
+      description: |
+        Retires the source category and records its target category. It does
+        not delete either category or rewrite historical booking and accepted
+        quotation snapshots. The operation must validate that current
+        references can be handled before applying the merge.
+      security:
+        - bearerAuth: []
+      x-required-role: SUPER_ADMIN
+      x-audit: true
+      parameters:
+        - $ref: "#/components/parameters/CategoryId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CategoryMergeRequest"
+      responses:
+        "200":
+          $ref: "#/components/responses/AdminCategory"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/CategoryNotFound"
+        "409":
+          $ref: "#/components/responses/CategoryConflict"
+  /admin/taxonomy/industries/{industryId}/category-order:
+    put:
+      operationId: reorderIndustryCategories
+      tags: [Category Administration]
+      summary: Reorder categories within an industry
+      security:
+        - bearerAuth: []
+      x-required-role: SUPER_ADMIN
+      x-audit: true
+      parameters:
+        - name: industryId
+          in: path
+          required: true
+          schema:
+            type: string
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OrderedIds"
+      responses:
+        "204":
+          $ref: "#/components/responses/NoContent"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/IndustryNotFound"
+        "409":
+          $ref: "#/components/responses/CategoryConflict"
+  /admin/taxonomy/categories/{categoryId}/subcategories:
+    post:
+      operationId: createSubcategory
+      tags: [Category Administration]
+      summary: Add a subcategory
+      security:
+        - bearerAuth: []
+      x-required-role: SUPER_ADMIN
+      x-audit: true
+      parameters:
+        - $ref: "#/components/parameters/CategoryId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SubcategoryCreate"
+      responses:
+        "201":
+          $ref: "#/components/responses/AdminSubcategory"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/CategoryNotFound"
+        "409":
+          $ref: "#/components/responses/CategoryConflict"
+  /admin/taxonomy/subcategories/{subcategoryId}:
+    patch:
+      operationId: updateSubcategory
+      tags: [Category Administration]
+      summary: Rename or update a subcategory
+      security:
+        - bearerAuth: []
+      x-required-role: SUPER_ADMIN
+      x-audit: true
+      parameters:
+        - name: subcategoryId
+          in: path
+          required: true
+          schema:
+            type: string
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/merge-patch+json:
+            schema:
+              $ref: "#/components/schemas/SubcategoryPatch"
+      responses:
+        "200":
+          $ref: "#/components/responses/AdminSubcategory"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/SubcategoryNotFound"
+        "409":
+          $ref: "#/components/responses/CategoryConflict"
+  /admin/taxonomy/categories/{categoryId}/subcategory-order:
+    put:
+      operationId: reorderSubcategories
+      tags: [Category Administration]
+      summary: Reorder subcategories within a category
+      security:
+        - bearerAuth: []
+      x-required-role: SUPER_ADMIN
+      x-audit: true
+      parameters:
+        - $ref: "#/components/parameters/CategoryId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OrderedIds"
+      responses:
+        "204":
+          $ref: "#/components/responses/NoContent"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/CategoryNotFound"
+        "409":
+          $ref: "#/components/responses/CategoryConflict"
+  /admin/taxonomy/categories/{categoryId}/versions:
+    get:
+      operationId: listCategoryVersions
+      tags: [Category Administration]
+      summary: List immutable category configuration versions
+      security:
+        - bearerAuth: []
+      x-required-role: SUPER_ADMIN
+      parameters:
+        - $ref: "#/components/parameters/CategoryId"
+        - name: cursor
+          in: query
+          description: Opaque cursor from the preceding response.
+          schema:
+            type: string
+      responses:
+        "200":
+          $ref: "#/components/responses/CategoryVersionPage"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/CategoryNotFound"
+  /admin/taxonomy/categories/{categoryId}/versions/{version}:
+    get:
+      operationId: getCategoryVersion
+      tags: [Category Administration]
+      summary: Get an immutable category configuration version
+      security:
+        - bearerAuth: []
+      x-required-role: SUPER_ADMIN
+      parameters:
+        - $ref: "#/components/parameters/CategoryId"
+        - name: version
+          in: path
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+      responses:
+        "200":
+          $ref: "#/components/responses/CategoryVersion"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/CategoryVersionNotFound"
+  /taxonomy/suggestions:
+    post:
+      operationId: submitCategorySuggestion
+      tags: [Category Suggestions]
+      summary: Submit a vendor category suggestion
+      description: |
+        Records the authenticated vendor's proposal for admin review. The
+        vendor identity is derived from server-side ownership, not supplied in
+        the request. The vendor may continue to use the nearest approved
+        category. A suggestion never creates or publishes a category.
+      security:
+        - bearerAuth: []
+      x-authorization-policy: "Require an authenticated vendor identity and derive its vendor organization server-side; mode selection alone is not authorization."
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CategorySuggestionCreate"
+      responses:
+        "202":
+          $ref: "#/components/responses/CategorySuggestion"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/CategoryNotFound"
+  /admin/taxonomy/suggestions:
+    get:
+      operationId: listCategorySuggestions
+      tags: [Category Suggestions]
+      summary: List category suggestions for review
+      security:
+        - bearerAuth: []
+      x-required-role: SUPER_ADMIN
+      parameters:
+        - name: status
+          in: query
+          schema:
+            $ref: "#/components/schemas/SuggestionStatus"
+        - name: cursor
+          in: query
+          description: Opaque cursor from the preceding response.
+          schema:
+            type: string
+      responses:
+        "200":
+          $ref: "#/components/responses/CategorySuggestionPage"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+  /admin/taxonomy/suggestions/{suggestionId}/decision:
+    post:
+      operationId: decideCategorySuggestion
+      tags: [Category Suggestions]
+      summary: Accept or reject a category suggestion
+      description: |
+        Records an auditable decision with a reason. Accepting a suggestion
+        does not create, activate, or publish a category; category creation
+        and publication use their separate explicit operations.
+      security:
+        - bearerAuth: []
+      x-required-role: SUPER_ADMIN
+      x-audit: true
+      parameters:
+        - name: suggestionId
+          in: path
+          required: true
+          schema:
+            type: string
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CategorySuggestionDecision"
+      responses:
+        "200":
+          $ref: "#/components/responses/CategorySuggestion"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/SuggestionNotFound"
+        "409":
+          $ref: "#/components/responses/SuggestionConflict"
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  parameters:
+    CategoryId:
+      name: categoryId
+      in: path
+      required: true
+      description: Stable category identifier.
+      schema:
+        type: string
+    CountryCode:
+      name: countryCode
+      in: query
+      required: true
+      description: ISO 3166-1 alpha-2 country code for market eligibility.
+      schema:
+        type: string
+        pattern: "^[A-Z]{2}$"
+    RegionId:
+      name: regionId
+      in: query
+      description: Region identifier from the geography API.
+      schema:
+        type: string
+    CityId:
+      name: cityId
+      in: query
+      description: City identifier from the geography API.
+      schema:
+        type: string
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      description: Makes a retried mutation safe to repeat.
+      schema:
+        type: string
+  schemas:
+    CategoryLifecycle:
+      type: string
+      enum: [DRAFT, ACTIVE, RESTRICTED, RETIRED]
+    ProductPhase:
+      type: string
+      enum: [P1, P2, P3]
+    BookingMode:
+      type: string
+      enum: [DIRECT_BOOKING, REQUEST_AND_ACCEPT, RFQ]
+    AvailabilityModel:
+      type: string
+      enum: [TIME_SLOTS, CAPACITY, LEAD_TIME, NOT_LISTED]
+    VerificationLevel:
+      type: string
+      enum: [L0, L1, L2, L3]
+    LocalizedLabel:
+      type: object
+      description: Map of locale tags to localized text.
+      additionalProperties:
+        type: string
+    TaxonomyAlias:
+      type: object
+      additionalProperties: false
+      required: [value]
+      properties:
+        value:
+          type: string
+        locale:
+          type: [string, "null"]
+          description: BCP 47 locale tag when the alias is language-specific.
+    Industry:
+      type: object
+      additionalProperties: false
+      required: [industryId, name, phase]
+      properties:
+        industryId:
+          type: string
+        name:
+          type: string
+        localizedNames:
+          $ref: "#/components/schemas/LocalizedLabel"
+        phase:
+          $ref: "#/components/schemas/ProductPhase"
+    SubcategorySummary:
+      type: object
+      additionalProperties: false
+      required: [subcategoryId, name]
+      properties:
+        subcategoryId:
+          type: string
+        name:
+          type: string
+        localizedNames:
+          $ref: "#/components/schemas/LocalizedLabel"
+    PublicCategorySummary:
+      type: object
+      additionalProperties: false
+      required: [categoryId, industryId, name, version, subcategories]
+      properties:
+        categoryId:
+          type: string
+        industryId:
+          type: string
+        name:
+          type: string
+        localizedNames:
+          $ref: "#/components/schemas/LocalizedLabel"
+        aliases:
+          type: array
+          items:
+            $ref: "#/components/schemas/TaxonomyAlias"
+        version:
+          type: integer
+          minimum: 1
+        subcategories:
+          type: array
+          items:
+            $ref: "#/components/schemas/SubcategorySummary"
+    FieldSchema:
+      type: object
+      description: JSON Schema document describing category attribute fields and validation.
+      additionalProperties: true
+    CategoryConfiguration:
+      type: object
+      additionalProperties: false
+      properties:
+        bookingModes:
+          type: array
+          uniqueItems: true
+          items:
+            $ref: "#/components/schemas/BookingMode"
+        availabilityModels:
+          type: array
+          uniqueItems: true
+          items:
+            $ref: "#/components/schemas/AvailabilityModel"
+        attributeSchema:
+          $ref: "#/components/schemas/FieldSchema"
+        rfqSchema:
+          $ref: "#/components/schemas/FieldSchema"
+        verificationRules:
+          type: array
+          items:
+            $ref: "#/components/schemas/VerificationRule"
+        responseDeadlines:
+          type: array
+          items:
+            $ref: "#/components/schemas/ResponseDeadline"
+        cancellationPolicyId:
+          type: [string, "null"]
+          description: Reference to the applicable approved cancellation policy.
+        marketRules:
+          type: array
+          items:
+            $ref: "#/components/schemas/MarketRule"
+        subscriptionEntitlementIds:
+          type: array
+          items:
+            type: string
+        restrictedContentRules:
+          type: [object, "null"]
+          additionalProperties: true
+        contractEligibility:
+          type: [object, "null"]
+          additionalProperties: false
+          properties:
+            enabled:
+              type: boolean
+            approvedTemplateIds:
+              type: array
+              items:
+                type: string
+        supplierAttributes:
+          type: [object, "null"]
+          description: Schema-driven supplier/manufacturer attributes; placement of manufacturers remains subject to O-10.
+          additionalProperties: true
+    VerificationRule:
+      type: object
+      additionalProperties: false
+      required: [countryCode, minimumLevel]
+      properties:
+        countryCode:
+          type: string
+          pattern: "^[A-Z]{2}$"
+        minimumLevel:
+          $ref: "#/components/schemas/VerificationLevel"
+        evidenceTypeIds:
+          type: array
+          items:
+            type: string
+    ResponseDeadline:
+      type: object
+      additionalProperties: false
+      required: [bookingMode, durationSeconds]
+      properties:
+        bookingMode:
+          $ref: "#/components/schemas/BookingMode"
+        durationSeconds:
+          type: integer
+          minimum: 1
+          description: Category-configured duration; this contract sets no default or limit.
+    MarketRule:
+      type: object
+      additionalProperties: false
+      required: [countryCode, enabled]
+      properties:
+        countryCode:
+          type: string
+          pattern: "^[A-Z]{2}$"
+        regionId:
+          type: [string, "null"]
+        cityId:
+          type: [string, "null"]
+        enabled:
+          type: boolean
+        localizedName:
+          type: [string, "null"]
+        legalNotice:
+          type: [string, "null"]
+    CategoryCreate:
+      type: object
+      additionalProperties: false
+      required: [industryId, name]
+      properties:
+        industryId:
+          type: string
+        name:
+          type: string
+          minLength: 1
+        localizedNames:
+          $ref: "#/components/schemas/LocalizedLabel"
+        aliases:
+          type: array
+          items:
+            $ref: "#/components/schemas/TaxonomyAlias"
+        alwaysShow:
+          type: boolean
+          description: Include an Active category in public browse even when it has no eligible listings.
+          default: false
+        configuration:
+          $ref: "#/components/schemas/CategoryConfiguration"
+    CategoryPatch:
+      type: object
+      additionalProperties: false
+      minProperties: 1
+      properties:
+        industryId:
+          type: string
+        name:
+          type: string
+          minLength: 1
+        localizedNames:
+          $ref: "#/components/schemas/LocalizedLabel"
+        aliases:
+          type: array
+          items:
+            $ref: "#/components/schemas/TaxonomyAlias"
+        alwaysShow:
+          type: boolean
+        configuration:
+          $ref: "#/components/schemas/CategoryConfiguration"
+    AdminCategory:
+      type: object
+      additionalProperties: false
+      required: [categoryId, industryId, name, lifecycle, version, alwaysShow, configuration]
+      properties:
+        categoryId:
+          type: string
+        industryId:
+          type: string
+        name:
+          type: string
+        localizedNames:
+          $ref: "#/components/schemas/LocalizedLabel"
+        aliases:
+          type: array
+          items:
+            $ref: "#/components/schemas/TaxonomyAlias"
+        lifecycle:
+          $ref: "#/components/schemas/CategoryLifecycle"
+        version:
+          type: integer
+          minimum: 1
+        alwaysShow:
+          type: boolean
+        mergedIntoCategoryId:
+          type: [string, "null"]
+        configuration:
+          $ref: "#/components/schemas/CategoryConfiguration"
+    PublicCategory:
+      type: object
+      additionalProperties: false
+      required: [categoryId, industryId, name, version, subcategories, configuration]
+      properties:
+        categoryId:
+          type: string
+        industryId:
+          type: string
+        name:
+          type: string
+        localizedNames:
+          $ref: "#/components/schemas/LocalizedLabel"
+        aliases:
+          type: array
+          items:
+            $ref: "#/components/schemas/TaxonomyAlias"
+        version:
+          type: integer
+          minimum: 1
+        subcategories:
+          type: array
+          items:
+            $ref: "#/components/schemas/SubcategorySummary"
+        configuration:
+          type: object
+          additionalProperties: false
+          properties:
+            bookingModes:
+              type: array
+              items:
+                $ref: "#/components/schemas/BookingMode"
+            availabilityModels:
+              type: array
+              items:
+                $ref: "#/components/schemas/AvailabilityModel"
+            attributeSchema:
+              $ref: "#/components/schemas/FieldSchema"
+            rfqSchema:
+              $ref: "#/components/schemas/FieldSchema"
+    AdminCategoryPage:
+      type: object
+      additionalProperties: false
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/AdminCategory"
+        nextCursor:
+          type: [string, "null"]
+    PublicCategoryList:
+      type: object
+      additionalProperties: false
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/PublicCategorySummary"
+    IndustryList:
+      type: object
+      additionalProperties: false
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Industry"
+    LifecycleAction:
+      type: object
+      additionalProperties: false
+      required: [reason]
+      properties:
+        reason:
+          type: string
+          minLength: 1
+    CategoryMergeRequest:
+      type: object
+      additionalProperties: false
+      required: [targetCategoryId, reason]
+      properties:
+        targetCategoryId:
+          type: string
+        reason:
+          type: string
+          minLength: 1
+    OrderedIds:
+      type: object
+      additionalProperties: false
+      required: [orderedIds]
+      properties:
+        orderedIds:
+          type: array
+          items:
+            type: string
+          uniqueItems: true
+    SubcategoryCreate:
+      type: object
+      additionalProperties: false
+      required: [name]
+      properties:
+        name:
+          type: string
+          minLength: 1
+        localizedNames:
+          $ref: "#/components/schemas/LocalizedLabel"
+    SubcategoryPatch:
+      type: object
+      additionalProperties: false
+      minProperties: 1
+      properties:
+        name:
+          type: string
+          minLength: 1
+        localizedNames:
+          $ref: "#/components/schemas/LocalizedLabel"
+    AdminSubcategory:
+      type: object
+      additionalProperties: false
+      required: [subcategoryId, categoryId, name]
+      properties:
+        subcategoryId:
+          type: string
+        categoryId:
+          type: string
+        name:
+          type: string
+        localizedNames:
+          $ref: "#/components/schemas/LocalizedLabel"
+    SuggestionStatus:
+      type: string
+      enum: [PENDING_REVIEW, ACCEPTED, REJECTED]
+    CategorySuggestionCreate:
+      type: object
+      additionalProperties: false
+      required: [industryId, proposedName, rationale]
+      properties:
+        industryId:
+          type: string
+        nearestApprovedCategoryId:
+          type: [string, "null"]
+        proposedName:
+          type: string
+          minLength: 1
+        rationale:
+          type: string
+          minLength: 1
+        suggestedAttributes:
+          type: array
+          items:
+            type: string
+    CategorySuggestionDecision:
+      type: object
+      additionalProperties: false
+      required: [decision, reason]
+      properties:
+        decision:
+          type: string
+          enum: [ACCEPT, REJECT]
+        reason:
+          type: string
+          minLength: 1
+        relatedCategoryId:
+          type: [string, "null"]
+          description: Optional existing category when the decision is based on an equivalent category.
+    CategorySuggestion:
+      type: object
+      additionalProperties: false
+      required: [suggestionId, industryId, proposedName, rationale, status, createdAt]
+      properties:
+        suggestionId:
+          type: string
+        industryId:
+          type: string
+        nearestApprovedCategoryId:
+          type: [string, "null"]
+        proposedName:
+          type: string
+        rationale:
+          type: string
+        suggestedAttributes:
+          type: array
+          items:
+            type: string
+        status:
+          $ref: "#/components/schemas/SuggestionStatus"
+        decisionReason:
+          type: [string, "null"]
+        relatedCategoryId:
+          type: [string, "null"]
+        createdAt:
+          type: string
+          format: date-time
+    CategorySuggestionPage:
+      type: object
+      additionalProperties: false
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/CategorySuggestion"
+        nextCursor:
+          type: [string, "null"]
+    CategoryVersion:
+      type: object
+      additionalProperties: false
+      required: [categoryId, version, name, configuration, createdAt]
+      properties:
+        categoryId:
+          type: string
+        version:
+          type: integer
+          minimum: 1
+        name:
+          type: string
+        configuration:
+          $ref: "#/components/schemas/CategoryConfiguration"
+        createdAt:
+          type: string
+          format: date-time
+    CategoryVersionPage:
+      type: object
+      additionalProperties: false
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/CategoryVersion"
+        nextCursor:
+          type: [string, "null"]
+    Problem:
+      type: object
+      description: RFC 9457 problem details.
+      properties:
+        type:
+          type: string
+          format: uri-reference
+        title:
+          type: string
+        status:
+          type: integer
+        detail:
+          type: string
+        instance:
+          type: string
+          format: uri-reference
+      required: [type, title, status]
+  headers:
+    CorrelationId:
+      description: Request correlation identifier for tracing and audit linkage.
+      schema:
+        type: string
+  responses:
+    IndustryList:
+      description: Industries available for public taxonomy browse in the market.
+      headers:
+        correlation-id:
+          $ref: "#/components/headers/CorrelationId"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/IndustryList"
+    PublicCategoryList:
+      description: Active, market-eligible categories and subcategories.
+      headers:
+        correlation-id:
+          $ref: "#/components/headers/CorrelationId"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/PublicCategoryList"
+    PublicCategory:
+      description: Public category configuration for the requested market.
+      headers:
+        correlation-id:
+          $ref: "#/components/headers/CorrelationId"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/PublicCategory"
+    AdminCategoryPage:
+      description: Matching categories and the next opaque cursor, when present.
+      headers:
+        correlation-id:
+          $ref: "#/components/headers/CorrelationId"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/AdminCategoryPage"
+    AdminCategory:
+      description: The current administrative category representation.
+      headers:
+        correlation-id:
+          $ref: "#/components/headers/CorrelationId"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/AdminCategory"
+    AdminSubcategory:
+      description: The created or updated subcategory.
+      headers:
+        correlation-id:
+          $ref: "#/components/headers/CorrelationId"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/AdminSubcategory"
+    CategoryVersion:
+      description: An immutable configuration version for a category.
+      headers:
+        correlation-id:
+          $ref: "#/components/headers/CorrelationId"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/CategoryVersion"
+    CategoryVersionPage:
+      description: Category versions and the next opaque cursor, when present.
+      headers:
+        correlation-id:
+          $ref: "#/components/headers/CorrelationId"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/CategoryVersionPage"
+    CategorySuggestion:
+      description: Suggestion status and proposal details.
+      headers:
+        correlation-id:
+          $ref: "#/components/headers/CorrelationId"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/CategorySuggestion"
+    CategorySuggestionPage:
+      description: Suggestions and the next opaque cursor, when present.
+      headers:
+        correlation-id:
+          $ref: "#/components/headers/CorrelationId"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/CategorySuggestionPage"
+    NoContent:
+      description: The requested ordering was applied.
+      headers:
+        correlation-id:
+          $ref: "#/components/headers/CorrelationId"
+    PublicCategoryNotFound:
+      description: The category is unavailable for public browse in the requested market.
+      headers:
+        correlation-id:
+          $ref: "#/components/headers/CorrelationId"
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+    CategoryNotFound:
+      description: The category does not exist.
+      headers:
+        correlation-id:
+          $ref: "#/components/headers/CorrelationId"
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+    IndustryNotFound:
+      description: The industry does not exist.
+      headers:
+        correlation-id:
+          $ref: "#/components/headers/CorrelationId"
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+    SubcategoryNotFound:
+      description: The subcategory does not exist.
+      headers:
+        correlation-id:
+          $ref: "#/components/headers/CorrelationId"
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+    CategoryVersionNotFound:
+      description: The category or requested version does not exist.
+      headers:
+        correlation-id:
+          $ref: "#/components/headers/CorrelationId"
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+    SuggestionNotFound:
+      description: The suggestion does not exist.
+      headers:
+        correlation-id:
+          $ref: "#/components/headers/CorrelationId"
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+    CategoryConflict:
+      description: The requested change conflicts with category state, references, or hierarchy.
+      headers:
+        correlation-id:
+          $ref: "#/components/headers/CorrelationId"
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+    SuggestionConflict:
+      description: The suggestion is no longer pending review.
+      headers:
+        correlation-id:
+          $ref: "#/components/headers/CorrelationId"
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+    Unauthorized:
+      description: Missing, invalid, expired, or revoked access token.
+      headers:
+        correlation-id:
+          $ref: "#/components/headers/CorrelationId"
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+    Forbidden:
+      description: The authenticated actor does not have the required permission.
+      headers:
+        correlation-id:
+          $ref: "#/components/headers/CorrelationId"
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+    BadRequest:
+      description: The request is malformed.
+      headers:
+        correlation-id:
+          $ref: "#/components/headers/CorrelationId"
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+    UnprocessableContent:
+      description: The request is valid JSON but violates taxonomy configuration rules.
+      headers:
+        correlation-id:
+          $ref: "#/components/headers/CorrelationId"
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+x-draft-notes:
+  - "O-10 remains open: the contract does not assign manufacturers to Wholesale or to a Phase 1 Manufacturing industry."
+  - "Category lifecycle values follow F-TAX-02. Retire and merge preserve identifiers and history; no hard-delete operation is defined."
+  - "Every effective category configuration change creates an immutable version; accepted transaction snapshots are not rewritten."
+  - "A suggestion can be accepted or rejected with an auditable reason; acceptance does not create or publish a category."
+  - "The server is authoritative for market eligibility, dynamic schema validation, authorization, and category policy."

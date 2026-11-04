@@ -1,6 +1,6 @@
 # VendorVerse Technical Documentation
 
-One technical reference for the whole repository as it stands on 2026-11-03: what exists, how it is built and run, how the two mockups work, how the docs are kept in step, and what is not built yet. It describes; it does not define scope. Scope and phase come from [01-feature-spec.md](01-feature-spec.md) and [04-decisions-log.md](04-decisions-log.md).
+One technical reference for the whole repository as it stands on 2026-11-04: what exists, how it is built and run, how the two mockups work, how the docs are kept in step, and what is not built yet. It describes; it does not define scope. Scope and phase come from [01-feature-spec.md](01-feature-spec.md) and [04-decisions-log.md](04-decisions-log.md).
 
 ## 1. What VendorVerse is
 
@@ -28,7 +28,7 @@ vendor-verse-/
 |-- web/                      web mockup (React 19, Vite, Tailwind 4)
 |-- mobile/                   mobile mockup, rendered as a phone frame in the browser
 |-- backend/                  scaffold only (.gitkeep files); see section 8
-|-- packages/                 api-contract, design-tokens, shared (i18n, status-vocabulary); empty
+|-- packages/                 api-contract has a draft auth contract; design-tokens and shared are empty
 |-- infra/                    docker, environments, observability; empty
 `-- tests/                    acceptance, contract, e2e, load; empty
 ```
@@ -123,7 +123,7 @@ Detail is in [06-architecture-and-structure.md](06-architecture-and-structure.md
 - **Data:** PostgreSQL 16 with PostGIS, Redis, OpenSearch as a read model, S3-compatible object storage.
 - **Cross-cutting rules:** JWT access plus rotating refresh tokens; `Idempotency-Key` on every write; correlation ID on every response and in the audit log; cursor pagination; RFC 9457 `problem+json` errors; money as integer minor units plus ISO currency; `is_public` computed, never stored; accepted terms and contract versions stored as immutable snapshots; a module reads another's data only through its public interface.
 - **Backend folders:** `modules/` (26 Phase 1 modules, e.g. auth, accounts, rbac, geo, taxonomy, vendors, verification, listings, search, bookings, rfq, orders, contracts, messaging, notifications, reviews, trust-cases, subscriptions, sponsored, invoices, agents, admin-ops, audit, files), `modules-phase2/` (payments, payouts-commission, teams, trade), `platform/` (http, idempotency, outbox, audit-hook, rate-limit, config), `workers/` (scheduler, search-indexer, notification-dispatch, file-scanner, retention), `integrations/` (sms, email, push, whatsapp, billing, kyc, maps, storage), `db/` (migrations, seeds).
-- **Status:** the language and framework, and the mobile client technology, are **not decided** (O-13). The scaffold is language-neutral and every folder is a `.gitkeep` placeholder. Items called proposed are not commitments.
+- **Status:** the language and framework, and the mobile client technology, are **not decided** (O-13). The backend scaffold is language-neutral and its module folders are `.gitkeep` placeholders. Authentication/account-mode, vendor-profile, and taxonomy APIs are draft contracts in [auth.openapi.yaml](../packages/api-contract/auth.openapi.yaml), [vendor.openapi.yaml](../packages/api-contract/vendor.openapi.yaml), and [taxonomy.openapi.yaml](../packages/api-contract/taxonomy.openapi.yaml); they do not mean the backend is implemented. Items called proposed are not commitments.
 
 ## 7. Build order and definition of done
 
@@ -135,7 +135,7 @@ A feature is done when: the spec row has one phase; the matrix maps its web and 
 
 | Gap | Effect | Where tracked |
 |---|---|---|
-| No backend, database, API or auth | Everything is seed data in browser storage; permissions in `authorization.js` are client-side only and not a security control | Section 6, O-13 |
+| No backend, database, or authentication implementation | Everything is seed data in browser storage; [auth.openapi.yaml](../packages/api-contract/auth.openapi.yaml), [vendor.openapi.yaml](../packages/api-contract/vendor.openapi.yaml), and [taxonomy.openapi.yaml](../packages/api-contract/taxonomy.openapi.yaml) contain draft contracts only, and permissions in `authorization.js` are client-side only and not a security control | Section 6, O-13 |
 | Backend language and mobile client technology undecided | Cannot start implementation | O-13 |
 | 13 features with OPEN phase (country packs, market activation checklist, contract suspend/resume, profile completeness, field visibility, saved searches, SEO landing pages, chat attachments and scanning, content screening, and others) | Not built, changed or removed until decided | O-04, O-05, O-08, O-09, and others |
 | Web admin screens held: Add vendor, Coupons | Kept as is pending ruling | O-01, O-02 |
@@ -160,4 +160,8 @@ A feature is done when: the spec row has one phase; the matrix maps its web and 
 
 | Date & time (YYYY-MM-DD HH:MM, local) | Updated by | Change | Reason |
 |---|---|---|---|
+| 2026-11-04 13:44 | Amit | Added: Phase 1 taxonomy API draft reference | Keep the technical inventory aligned with the public browse, category administration, and suggestion contract. |
+| 2026-11-04 13:37 | Amit | Added: F-VND-09 vendor profile API draft reference | Keep the technical inventory aligned with the new profile and trust contract. |
+| 2026-11-04 13:30 | Amit | Added: F-ACC-02 account mode API draft reference | Keep the technical inventory aligned with the identity and mode contract. |
+| 2026-11-04 13:26 | Amit | Added: F-ACC-01 authentication API draft reference | Keep the technical inventory aligned with the initial OpenAPI contract. |
 | 2026-11-03 14:45 | Shil1517 | Added: technical documentation (this file) | Owner asked for one technical document covering the whole repository. |
