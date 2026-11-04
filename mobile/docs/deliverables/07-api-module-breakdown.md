@@ -17,7 +17,7 @@ Auth: JWT access token (15 min) + rotating refresh token. Staff require MFA. Eve
 | **A3** | RBAC & staff | Roles, permissions, scopes, separation of duties | `GET/POST /admin/roles`, `POST /admin/staff/{id}/grant` | ad_roles, ad_users | MVP |
 | **G1** | Geo | Country/state/city/pincode, launch status, waitlist, rollout matrix, country packs | `GET /geo/countries`, `/geo/cities?state=`, `POST /geo/waitlist`, `PUT /admin/geo/rollout` | c_location, ad_geo, ad_country | MVP |
 | **T1** | Taxonomy | Industries, categories, subcategories, field schemas, versions, suggestions | `GET /taxonomy`, `POST /taxonomy/suggestions`, `POST /admin/categories`, `POST /admin/categories/{id}/publish` | c_categories, ad_taxonomy, ad_category | MVP |
-| **V1** | Vendors & onboarding | Vendor types, wizard, profile, public profile, company link | `POST /vendors`, `PATCH /vendors/{id}`, `GET /vendors/{id}/public` | v_register*, v_profile, c_vendor | MVP |
+| **V1** | Vendors & onboarding | Vendor types, wizard, profile, public profile, company link | `GET/PATCH /vendors/me/profile`, `GET /vendors/{id}/public` (draft: `packages/api-contract/vendor.openapi.yaml`) | v_register*, v_profile, c_vendor | MVP |
 | **V2** | Verification | Evidence upload, tiers, expiry, reviewer decisions, appeals | `POST /vendors/{id}/documents`, `GET /admin/verifications`, `POST /admin/verifications/{id}/decision` | v_verify, ad_vendors | MVP |
 | **B1** | Business accounts | Eligibility, company form, admin verification, network | `POST /companies`, `GET /vendor/network`, `POST /admin/companies/{id}/decision` | b_*, ad_company, v_biz_* | MVP |
 | **L1** | Listings & catalogue | Listings, products, tiers, media, 6-gate publication, duplicates | `POST /listings`, `GET /listings/{id}/gates`, `POST /listings/{id}/submit`, `POST /admin/listings/{id}/decision` | v_listing*, ad_listing | MVP |
@@ -86,4 +86,5 @@ Auth: JWT access token (15 min) + rotating refresh token. Staff require MFA. Eve
 
 | Date & time (YYYY-MM-DD HH:MM, local) | Updated by | Change | Reason |
 |---|---|---|---|
+| 2026-11-04 13:37 | Amit | Modified: vendor profile API endpoints | Align the background API breakdown with the F-VND-09 OpenAPI draft. |
 | 2026-10-29 16:27 | Shil1517 | Modified: added pointer banner | Added pointer to the new docs/ set; content review still outstanding |

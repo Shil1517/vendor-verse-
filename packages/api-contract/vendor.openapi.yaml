@@ -1,0 +1,458 @@
+openapi: 3.1.0
+info:
+  title: VendorVerse Vendor Profile API
+  version: 0.1.0
+  summary: Draft owner and public vendor profile contract.
+  description: |
+    Draft endpoints for an authenticated vendor owner to read and update the
+    vendor's public presence, and for anyone to read the public vendor profile
+    and platform-computed trust display.
+
+    Vendor ownership is checked server-side. This contract does not expose
+    registration or tax identifiers, credential evidence, account-level
+    profile completeness, field visibility configuration, listings, categories,
+    coverage, availability, or commercial terms. Those are restricted or
+    owned by other features/modules.
+  x-feature-ids:
+    - F-VND-09
+    - F-TRU-02
+  x-change-log:
+    - date-time: "2026-11-04 13:39"
+      updated-by: Amit
+      change: "Added: F-VND-09 vendor profile API draft"
+      reason: "Define owner profile read/update and public trust display from the Phase 1 feature rules."
+servers:
+  - url: /v1
+    description: Versioned API base path
+tags:
+  - name: Vendor Profile
+    description: Owner-managed public presence and public vendor profile (F-VND-09).
+  - name: Vendor Trust
+    description: Platform-computed verification and trust display (F-TRU-02).
+paths:
+  /vendors/me/profile:
+    get:
+      operationId: getMyVendorProfile
+      tags: [Vendor Profile]
+      summary: Get the authenticated owner's vendor profile
+      description: |
+        Returns the profile belonging to a vendor organization owned by the
+        authenticated user. Business identity fields are private to the owner.
+        Owner access and reads are authorized and audited server-side.
+      security:
+        - bearerAuth: []
+      x-audit: true
+      responses:
+        "200":
+          $ref: "#/components/responses/OwnerVendorProfile"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/ProfileNotFound"
+    patch:
+      operationId: updateMyVendorProfile
+      tags: [Vendor Profile]
+      summary: Update the owner's public profile fields
+      description: |
+        Updates only fields in the vendor's public presence. Omitted fields
+        remain unchanged; nullable fields may be set to null to clear them.
+        Business type, registration country, verification, trust metrics, and
+        profile-completeness data cannot be set through this operation.
+        Website and social links are not public until they pass moderation.
+        Only the vendor owner may update a profile; changes are audited.
+      security:
+        - bearerAuth: []
+      x-audit: true
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/merge-patch+json:
+            schema:
+              $ref: "#/components/schemas/VendorProfilePatch"
+      responses:
+        "200":
+          $ref: "#/components/responses/OwnerVendorProfile"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/ProfileNotFound"
+        "422":
+          $ref: "#/components/responses/UnprocessableContent"
+  /vendors/{vendorId}/public:
+    get:
+      operationId: getPublicVendorProfile
+      tags: [Vendor Profile, Vendor Trust]
+      summary: Get a vendor's public profile and trust display
+      description: |
+        Returns only the public-presence fields defined by the PRS and public
+        credential status; it never returns legal names, registration or tax
+        identifiers, evidence files, or private contact details. Trust and
+        verification values are computed by their owning modules and cannot
+        be supplied or overridden by the vendor. Optional operational metrics
+        are omitted or null until enough data exists.         The public projection includes only website and social links that have
+        passed moderation.
+      parameters:
+        - $ref: "#/components/parameters/VendorId"
+      responses:
+        "200":
+          $ref: "#/components/responses/PublicVendorProfile"
+        "404":
+          $ref: "#/components/responses/PublicProfileNotFound"
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  parameters:
+    VendorId:
+      name: vendorId
+      in: path
+      required: true
+      description: Stable vendor organization identifier.
+      schema:
+        type: string
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      description: Makes a retried profile update safe to repeat.
+      schema:
+        type: string
+  schemas:
+    VendorBusinessType:
+      type: string
+      enum:
+        - SERVICE_PROVIDER
+        - CONTRACTOR
+        - SUPPLIER
+        - WHOLESALER
+        - MANUFACTURER
+        - DISTRIBUTOR
+        - OTHER
+    VerificationLevel:
+      type: string
+      description: Phase 1 verification levels. L4 is Phase 2 (F-VND-04).
+      enum: [L0, L1, L2, L3]
+    CredentialStatus:
+      type: string
+      enum:
+        - SUBMITTED
+        - MORE_INFORMATION_REQUIRED
+        - APPROVED
+        - REJECTED
+        - EXPIRED
+        - REVOKED_OR_RESTRICTED
+    SocialLink:
+      type: object
+      additionalProperties: false
+      required: [platform, url]
+      properties:
+        platform:
+          type: string
+          description: Vendor-provided platform label.
+        url:
+          type: string
+          format: uri
+          pattern: "^https?://"
+    VendorIdentity:
+      type: object
+      additionalProperties: false
+      required: [legalName, businessType, registrationCountry]
+      properties:
+        legalName:
+          type: string
+          description: Owner-only business identity field.
+        tradingName:
+          type: [string, "null"]
+          description: Public-facing vendor name.
+        businessType:
+          $ref: "#/components/schemas/VendorBusinessType"
+        registrationCountry:
+          type: string
+          description: Country code used for vendor registration and verification.
+          pattern: "^[A-Z]{2}$"
+    VendorPublicPresence:
+      type: object
+      additionalProperties: false
+      properties:
+        description:
+          type: [string, "null"]
+        logoFileId:
+          type: [string, "null"]
+          description: Reference to profile media; public projections include only approved assets, accessed through the files API.
+        bannerFileId:
+          type: [string, "null"]
+          description: Reference to profile media; public projections include only approved assets, accessed through the files API.
+        languages:
+          type: [array, "null"]
+          items:
+            type: string
+          description: Languages used by the vendor.
+        websiteUrl:
+          type: [string, "null"]
+          format: uri
+          pattern: "^https?://"
+          description: Submitted URL; included in the public projection only after moderation.
+        socialLinks:
+          type: [array, "null"]
+          items:
+            $ref: "#/components/schemas/SocialLink"
+          description: Submitted links; only moderated links appear in the public projection.
+        yearEstablished:
+          type: [integer, "null"]
+          description: Vendor-declared; not independently verified by this API.
+        teamSizeRange:
+          type: [string, "null"]
+          description: Vendor-declared range; permitted range values are not fixed here.
+    VendorProfile:
+      type: object
+      additionalProperties: false
+      required: [vendorId, businessIdentity, publicPresence]
+      properties:
+        vendorId:
+          type: string
+        businessIdentity:
+          $ref: "#/components/schemas/VendorIdentity"
+        publicPresence:
+          $ref: "#/components/schemas/VendorPublicPresence"
+    VendorProfilePatch:
+      type: object
+      additionalProperties: false
+      minProperties: 1
+      properties:
+        tradingName:
+          type: [string, "null"]
+          description: Public-facing vendor name; null clears the value.
+        description:
+          type: [string, "null"]
+        logoFileId:
+          type: [string, "null"]
+          description: Must reference a media asset owned by this vendor; review determines public display.
+        bannerFileId:
+          type: [string, "null"]
+          description: Must reference a media asset owned by this vendor; review determines public display.
+        languages:
+          type: [array, "null"]
+          items:
+            type: string
+        websiteUrl:
+          type: [string, "null"]
+          format: uri
+          pattern: "^https?://"
+          description: Submitted URL; it is not public until moderation passes.
+        socialLinks:
+          type: [array, "null"]
+          items:
+            $ref: "#/components/schemas/SocialLink"
+          description: Submitted links are moderated before public display.
+        yearEstablished:
+          type: [integer, "null"]
+          description: Self-declared.
+        teamSizeRange:
+          type: [string, "null"]
+          description: Self-declared; permitted range values are not fixed here.
+    PublicCredential:
+      type: object
+      additionalProperties: false
+      required: [name, status]
+      properties:
+        name:
+          type: string
+        status:
+          $ref: "#/components/schemas/CredentialStatus"
+        verifiedAt:
+          type: [string, "null"]
+          format: date-time
+        expiresAt:
+          type: [string, "null"]
+          format: date
+    VerificationBadge:
+      type: object
+      additionalProperties: false
+      required: [level, label]
+      properties:
+        level:
+          $ref: "#/components/schemas/VerificationLevel"
+        label:
+          type: string
+          description: Server-generated statement of what was verified.
+        verifiedAt:
+          type: [string, "null"]
+          format: date-time
+    RatingDimension:
+      type: object
+      additionalProperties: false
+      required: [name, average]
+      properties:
+        name:
+          type: string
+        average:
+          type: number
+          minimum: 1
+          maximum: 5
+    OperationalTrustMetrics:
+      type: object
+      additionalProperties: false
+      properties:
+        responseRate:
+          type: [number, "null"]
+          description: Computed by the platform; normalization follows published metric rules; null until enough data exists.
+        averageResponseTime:
+          type: [number, "null"]
+          description: Computed by the platform; units follow published metric rules; null until enough data exists.
+        onTimeCompletionRate:
+          type: [number, "null"]
+          description: Computed by the platform; normalization follows published metric rules; null until enough data exists.
+        repeatCustomerRate:
+          type: [number, "null"]
+          description: Computed by the platform; normalization follows published metric rules; null until enough data exists.
+        cancellationRate:
+          type: [number, "null"]
+          description: Computed by the platform; normalization follows published metric rules; null until enough data exists.
+    VendorTrustDisplay:
+      type: object
+      additionalProperties: false
+      required: [verificationLevel, verificationBadges, reviewCount]
+      properties:
+        verificationLevel:
+          $ref: "#/components/schemas/VerificationLevel"
+        verificationBadges:
+          type: array
+          items:
+            $ref: "#/components/schemas/VerificationBadge"
+        trustScore:
+          type: [number, "null"]
+          description: Platform-computed; the score formula and scale follow published rules.
+        averageRating:
+          type: [number, "null"]
+          minimum: 1
+          maximum: 5
+          description: Null when there are no eligible reviews; display "No reviews yet" neutrally.
+        reviewCount:
+          type: integer
+          minimum: 0
+        ratingDimensions:
+          type: array
+          items:
+            $ref: "#/components/schemas/RatingDimension"
+        operationalMetrics:
+          $ref: "#/components/schemas/OperationalTrustMetrics"
+    PublicVendorProfile:
+      type: object
+      additionalProperties: false
+      required: [vendorId, tradingName, businessType, publicPresence, credentials, trust]
+      properties:
+        vendorId:
+          type: string
+        tradingName:
+          type: [string, "null"]
+          description: Public-facing vendor name; null until supplied.
+        businessType:
+          $ref: "#/components/schemas/VendorBusinessType"
+        publicPresence:
+          $ref: "#/components/schemas/VendorPublicPresence"
+        credentials:
+          type: array
+          items:
+            $ref: "#/components/schemas/PublicCredential"
+        trust:
+          $ref: "#/components/schemas/VendorTrustDisplay"
+    Problem:
+      type: object
+      description: RFC 9457 problem details.
+      properties:
+        type:
+          type: string
+          format: uri-reference
+        title:
+          type: string
+        status:
+          type: integer
+        detail:
+          type: string
+        instance:
+          type: string
+          format: uri-reference
+      required: [type, title, status]
+  headers:
+    CorrelationId:
+      description: Request correlation identifier for tracing and audit linkage.
+      schema:
+        type: string
+  responses:
+    OwnerVendorProfile:
+      description: The vendor profile owned by the authenticated user.
+      headers:
+        correlation-id:
+          $ref: "#/components/headers/CorrelationId"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/VendorProfile"
+    PublicVendorProfile:
+      description: Public profile and platform-computed trust display.
+      headers:
+        correlation-id:
+          $ref: "#/components/headers/CorrelationId"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/PublicVendorProfile"
+    ProfileNotFound:
+      description: No vendor profile is available to the authenticated owner; does not disclose other vendors.
+      headers:
+        correlation-id:
+          $ref: "#/components/headers/CorrelationId"
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+    PublicProfileNotFound:
+      description: No public profile is available for this vendor identifier.
+      headers:
+        correlation-id:
+          $ref: "#/components/headers/CorrelationId"
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+    Unauthorized:
+      description: Missing, invalid, expired, or revoked access token.
+      headers:
+        correlation-id:
+          $ref: "#/components/headers/CorrelationId"
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+    BadRequest:
+      description: The request is malformed.
+      headers:
+        correlation-id:
+          $ref: "#/components/headers/CorrelationId"
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+    UnprocessableContent:
+      description: The profile patch is syntactically valid but contains invalid field values.
+      headers:
+        correlation-id:
+          $ref: "#/components/headers/CorrelationId"
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+x-draft-notes:
+  - "F-VND-11 profile completeness is OPEN under O-09; no completeness score or checklist is defined here."
+  - "F-VND-12 field visibility classes are OPEN under O-09; this contract does not expose a generic field-visibility setting."
+  - "Registration and tax identifiers are restricted data and are omitted, including from the owner response, pending a dedicated audited contract."
+  - "L4 verification is Phase 2 (F-VND-04) and is not included in this Phase 1 public contract."
+  - "Trust-score formula and operational metric units, normalization, and publication rules are platform-owned and must be finalized before implementation."
+  - "No threshold for when operational metrics have enough data is invented by this draft."
+  - "Listings, categories, coverage, availability, credentials evidence, and commercial terms remain with their owning module APIs."
