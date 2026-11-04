@@ -1,12 +1,13 @@
 openapi: 3.1.0
 info:
-  title: VendorVerse Authentication API
-  version: 0.1.0
-  summary: Draft authentication contract for F-ACC-01.
+  title: VendorVerse Authentication and Account Mode API
+  version: 0.2.0
+  summary: Draft authentication and account-mode contract for F-ACC-01 and F-ACC-02.
   description: |
     Draft contract for phone or email OTP sign-up and login, privileged-role
-    MFA challenges, access-token refresh, and logout. Authentication resolves
-    the account's role; callers do not choose a role or mode at login.
+    MFA challenges, access-token refresh, logout, and account mode selection.
+    Authentication resolves the account's role; callers do not choose a role
+    or mode at login. Mode is a UX context, not a privilege.
 
     OTP delivery, login, and MFA verification are rate-limited. Thresholds,
     token lifetimes, MFA enrollment and recovery, and production token-storage
@@ -15,7 +16,12 @@ info:
     does not disclose whether an account exists for the submitted identifier.
   x-feature-ids:
     - F-ACC-01
+    - F-ACC-02
   x-change-log:
+    - date-time: "2026-11-04 13:30"
+      updated-by: Amit
+      change: "Added: F-ACC-02 account mode APIs"
+      reason: "Define identity mode discovery and switching without making UX mode a privilege."
     - date-time: "2026-11-04 13:26"
       updated-by: Amit
       change: "Added: F-ACC-01 authentication API draft"
@@ -26,6 +32,8 @@ servers:
 tags:
   - name: Authentication
     description: Sign-up, login, MFA, token refresh, and logout (F-ACC-01).
+  - name: Account
+    description: Current identity context and customer, vendor, or business mode selection (F-ACC-02).
 paths:
   /auth/otp/request:
     post:
@@ -142,6 +150,52 @@ paths:
           $ref: "#/components/responses/BadRequest"
         "401":
           $ref: "#/components/responses/Unauthorized"
+  /me:
+    get:
+      operationId: getCurrentAccountContext
+      tags: [Account]
+      summary: Get the authenticated identity and its available modes
+      description: |
+        Returns the current identity and modes enabled for that identity.
+        This is a minimal account context, not the customer profile. Mode
+        availability does not grant permissions; resource access is authorized
+        independently using the authenticated identity, role, and ownership.
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          $ref: "#/components/responses/AccountModeContext"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /me/mode:
+    post:
+      operationId: switchCurrentMode
+      tags: [Account]
+      summary: Switch the current identity's UX mode
+      description: |
+        Sets the active customer, vendor, or business UX mode to one already
+        available to the authenticated identity and persists it as the current
+        UX context. Business mode is available only to its owner after admin
+        verification (D-005). Switching modes does not grant a role, create an
+        account or vendor organization, or bypass ownership and other
+        authorization checks.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ModeSwitchRequest"
+      responses:
+        "200":
+          $ref: "#/components/responses/AccountModeContext"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "409":
+          $ref: "#/components/responses/ModeUnavailable"
 components:
   securitySchemes:
     bearerAuth:
@@ -229,6 +283,33 @@ components:
       properties:
         refreshToken:
           type: string
+    AccountMode:
+      type: string
+      description: BUSINESS mode is available only to the owner of an admin-verified business account (D-005).
+      enum: [CUSTOMER, VENDOR, BUSINESS]
+    AccountModeContext:
+      type: object
+      additionalProperties: false
+      required: [userId, currentMode, availableModes]
+      properties:
+        userId:
+          type: string
+          description: Stable identifier for the authenticated identity.
+        currentMode:
+          $ref: "#/components/schemas/AccountMode"
+        availableModes:
+          type: array
+          description: UX modes enabled for this identity; this list is not an authorization grant.
+          items:
+            $ref: "#/components/schemas/AccountMode"
+          uniqueItems: true
+    ModeSwitchRequest:
+      type: object
+      additionalProperties: false
+      required: [mode]
+      properties:
+        mode:
+          $ref: "#/components/schemas/AccountMode"
     Problem:
       type: object
       description: RFC 9457 problem details.
@@ -313,7 +394,26 @@ components:
         application/problem+json:
           schema:
             $ref: "#/components/schemas/Problem"
+    AccountModeContext:
+      description: Current identity context and its available UX modes.
+      headers:
+        correlation-id:
+          $ref: "#/components/headers/CorrelationId"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/AccountModeContext"
+    ModeUnavailable:
+      description: The requested UX mode is not available for this identity.
+      headers:
+        correlation-id:
+          $ref: "#/components/headers/CorrelationId"
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
 x-draft-notes:
   - "No numeric OTP or request-rate limits are specified."
   - "No access-token or challenge lifetime is fixed; expiry timestamps are returned by the server."
   - "OTP delivery-provider selection is part of technical discovery (PRS v3 §15)."
+  - "Mode availability is server-managed; role grants, vendor ownership, business onboarding, and account states are governed by their respective features."
