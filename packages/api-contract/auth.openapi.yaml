@@ -1,0 +1,319 @@
+openapi: 3.1.0
+info:
+  title: VendorVerse Authentication API
+  version: 0.1.0
+  summary: Draft authentication contract for F-ACC-01.
+  description: |
+    Draft contract for phone or email OTP sign-up and login, privileged-role
+    MFA challenges, access-token refresh, and logout. Authentication resolves
+    the account's role; callers do not choose a role or mode at login.
+
+    OTP delivery, login, and MFA verification are rate-limited. Thresholds,
+    token lifetimes, MFA enrollment and recovery, and production token-storage
+    policy are not specified here and must be agreed before implementation.
+    A successful refresh rotates the refresh token. The OTP request response
+    does not disclose whether an account exists for the submitted identifier.
+  x-feature-ids:
+    - F-ACC-01
+  x-change-log:
+    - date-time: "2026-11-04 13:26"
+      updated-by: Amit
+      change: "Added: F-ACC-01 authentication API draft"
+      reason: "Define the Phase 1 OTP and privileged MFA contract without inventing undecided limits or lifetimes."
+servers:
+  - url: /v1
+    description: Versioned API base path
+tags:
+  - name: Authentication
+    description: Sign-up, login, MFA, token refresh, and logout (F-ACC-01).
+paths:
+  /auth/otp/request:
+    post:
+      operationId: requestOtp
+      tags: [Authentication]
+      summary: Request a sign-up or login OTP
+      description: |
+        Sends a one-time code to the supplied phone number or email address.
+        The response shape is the same whether or not the identifier belongs
+        to an account.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OtpRequest"
+      responses:
+        "202":
+          $ref: "#/components/responses/OtpChallengeAccepted"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /auth/otp/verify:
+    post:
+      operationId: verifyOtp
+      tags: [Authentication]
+      summary: Verify an OTP and establish or continue authentication
+      description: |
+        A successful verification returns an authenticated session unless the
+        account requires MFA, in which case it returns an MFA challenge.
+        Account roles are resolved by the server, not supplied by the caller.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OtpVerificationRequest"
+      responses:
+        "200":
+          $ref: "#/components/responses/OtpVerificationResult"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /auth/mfa/verify:
+    post:
+      operationId: verifyMfa
+      tags: [Authentication]
+      summary: Complete a privileged-account MFA challenge
+      description: |
+        Verifies the second-factor code for the challenge and returns an
+        authenticated session. The factor enrollment and recovery flows are
+        outside this draft.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MfaVerificationRequest"
+      responses:
+        "200":
+          $ref: "#/components/responses/AuthenticatedSession"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /auth/refresh:
+    post:
+      operationId: refreshSession
+      tags: [Authentication]
+      summary: Rotate a refresh token and issue a new access token
+      description: |
+        A successful request invalidates the submitted refresh token and
+        returns its replacement with a new access token. Token lifetimes are
+        supplied by the server and are not fixed by this contract.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RefreshRequest"
+      responses:
+        "200":
+          $ref: "#/components/responses/AuthenticatedSession"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /auth/logout:
+    post:
+      operationId: logout
+      tags: [Authentication]
+      summary: Revoke the current session
+      description: Revokes the refresh token for the authenticated session.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LogoutRequest"
+      responses:
+        "204":
+          $ref: "#/components/responses/NoContent"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    OtpRequest:
+      type: object
+      additionalProperties: false
+      required: [channel, identifier]
+      properties:
+        channel:
+          type: string
+          enum: [phone, email]
+        identifier:
+          type: string
+          description: Phone number or email address matching the selected channel.
+    OtpChallengeAccepted:
+      type: object
+      additionalProperties: false
+      required: [challengeId, expiresAt]
+      properties:
+        challengeId:
+          type: string
+        expiresAt:
+          type: string
+          format: date-time
+    OtpVerificationRequest:
+      type: object
+      additionalProperties: false
+      required: [challengeId, code]
+      properties:
+        challengeId:
+          type: string
+        code:
+          type: string
+    MfaChallenge:
+      type: object
+      additionalProperties: false
+      required: [status, challengeId, expiresAt]
+      properties:
+        status:
+          type: string
+          const: MFA_REQUIRED
+        challengeId:
+          type: string
+        expiresAt:
+          type: string
+          format: date-time
+    MfaVerificationRequest:
+      type: object
+      additionalProperties: false
+      required: [challengeId, code]
+      properties:
+        challengeId:
+          type: string
+        code:
+          type: string
+    AuthenticatedSession:
+      type: object
+      additionalProperties: false
+      required: [accessToken, refreshToken, accessTokenExpiresAt]
+      properties:
+        accessToken:
+          type: string
+          description: Short-lived bearer access token.
+        refreshToken:
+          type: string
+          description: Rotating refresh token; treat as a secret.
+        accessTokenExpiresAt:
+          type: string
+          format: date-time
+    RefreshRequest:
+      type: object
+      additionalProperties: false
+      required: [refreshToken]
+      properties:
+        refreshToken:
+          type: string
+    LogoutRequest:
+      type: object
+      additionalProperties: false
+      required: [refreshToken]
+      properties:
+        refreshToken:
+          type: string
+    Problem:
+      type: object
+      description: RFC 9457 problem details.
+      properties:
+        type:
+          type: string
+          format: uri-reference
+        title:
+          type: string
+        status:
+          type: integer
+        detail:
+          type: string
+        instance:
+          type: string
+          format: uri-reference
+      required: [type, title, status]
+  headers:
+    CorrelationId:
+      description: Request correlation identifier for tracing and audit linkage.
+      schema:
+        type: string
+  responses:
+    OtpChallengeAccepted:
+      description: OTP delivery was requested; account existence is not disclosed.
+      headers:
+        correlation-id:
+          $ref: "#/components/headers/CorrelationId"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/OtpChallengeAccepted"
+    OtpVerificationResult:
+      description: Authentication succeeded or an MFA challenge is required.
+      headers:
+        correlation-id:
+          $ref: "#/components/headers/CorrelationId"
+      content:
+        application/json:
+          schema:
+            oneOf:
+              - $ref: "#/components/schemas/AuthenticatedSession"
+              - $ref: "#/components/schemas/MfaChallenge"
+    AuthenticatedSession:
+      description: Authenticated session credentials were issued or rotated.
+      headers:
+        correlation-id:
+          $ref: "#/components/headers/CorrelationId"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/AuthenticatedSession"
+    NoContent:
+      description: The authenticated session was revoked.
+      headers:
+        correlation-id:
+          $ref: "#/components/headers/CorrelationId"
+    BadRequest:
+      description: The request is malformed or incomplete.
+      headers:
+        correlation-id:
+          $ref: "#/components/headers/CorrelationId"
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+    Unauthorized:
+      description: The credential, challenge, or session is invalid, expired, or revoked.
+      headers:
+        correlation-id:
+          $ref: "#/components/headers/CorrelationId"
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+    TooManyRequests:
+      description: The request was rate-limited; retry policy is not fixed by this draft.
+      headers:
+        correlation-id:
+          $ref: "#/components/headers/CorrelationId"
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+x-draft-notes:
+  - "No numeric OTP or request-rate limits are specified."
+  - "No access-token or challenge lifetime is fixed; expiry timestamps are returned by the server."
+  - "OTP delivery-provider selection is part of technical discovery (PRS v3 §15)."
