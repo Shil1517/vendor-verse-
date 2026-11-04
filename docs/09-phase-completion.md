@@ -14,8 +14,8 @@ Order follows the build order in [06-architecture-and-structure.md](06-architect
 
 | # | Stage | Modules / work | Status | Owner | Notes |
 |---|---|---|---|---|---|
-| P1-S0 | Decisions that block building | O-13 (backend language and mobile client approach); close open questions that touch Phase 1 | Not started | | Nothing in `backend/` can start before O-13. |
-| P1-S1 | Foundation | platform (http, idempotency, outbox, audit-hook, rate-limit, config), db, auth, accounts, rbac, geo, taxonomy, files, audit, notifications core; `packages/api-contract`, `shared`, `design-tokens` | Not started | | |
+| P1-S0 | Decisions that block building | Resolve remaining open questions that touch Phase 1 | In progress | | D-016 selects TypeScript/NestJS; O-13 remains open for mobile client technology. |
+| P1-S1 | Foundation | platform (http, idempotency, outbox, audit-hook, rate-limit, config), db, auth, accounts, rbac, geo, taxonomy, files, audit, notifications core; `packages/api-contract`, `shared`, `design-tokens` | In progress | | NestJS auth/account foundation is underway. OTP provider, MFA, production policy values, and BUSINESS-mode persistence remain incomplete; no production authentication or database deployment is implied. |
 | P1-S2 | Vendor supply | vendors, verification, listings, availability | Not started | | |
 | P1-S3 | Discovery | search, search-indexer worker | Not started | | |
 | P1-S4 | Transactions | bookings, rfq, orders, contracts, messaging, Mode A / Mode B payment records | Not started | | |
@@ -79,4 +79,6 @@ AI, enterprise procurement, cart checkout, more regions, remaining industries (D
 
 | Date & time (YYYY-MM-DD HH:MM, local) | Updated by | Change | Reason |
 |---|---|---|---|
+| 2026-11-04 15:24 | Amit | Modified: P1-S0 and P1-S1 backend status | Reflect D-016 and the bounded auth/account implementation while retaining open mobile and security/integration prerequisites. |
+| 2026-11-04 15:12 | Amit | Modified: P1-S0 scoped migration authorization | Record the owner's limited database-only authorization while preserving O-13 as a prerequisite for application/backend work. |
 | 2026-11-04 11:12 | Shil1517 | Added: phase-by-phase completion tracker | Team needs staged completion criteria and a sign-off record per phase. |

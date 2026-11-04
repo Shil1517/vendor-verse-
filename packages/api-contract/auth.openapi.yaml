@@ -11,13 +11,25 @@ info:
 
     OTP delivery, login, and MFA verification are rate-limited. Thresholds,
     token lifetimes, MFA enrollment and recovery, and production token-storage
-    policy are not specified here and must be agreed before implementation.
+    policy are required runtime configuration and have no defaults.
     A successful refresh rotates the refresh token. The OTP request response
     does not disclose whether an account exists for the submitted identifier.
+    The current backend implementation is local/test only: its fixed OTP is
+    not delivered to a phone or email, privileged sign-in fails closed until
+    MFA exists, and BUSINESS mode is unavailable until business verification
+    persistence is implemented.
   x-feature-ids:
     - F-ACC-01
     - F-ACC-02
   x-change-log:
+    - date-time: "2026-11-04 15:32"
+      updated-by: Amit
+      change: "Modified: local/test request behavior and challenge identifiers"
+      reason: "Align request wording and UUID formats with the current NestJS implementation."
+    - date-time: "2026-11-04 15:27"
+      updated-by: Amit
+      change: "Modified: implementation boundary and required policy configuration"
+      reason: "Keep the draft contract aligned with the bounded local/test NestJS implementation without weakening MFA or inventing production settings."
     - date-time: "2026-11-04 13:30"
       updated-by: Amit
       change: "Added: F-ACC-02 account mode APIs"
@@ -41,9 +53,9 @@ paths:
       tags: [Authentication]
       summary: Request a sign-up or login OTP
       description: |
-        Sends a one-time code to the supplied phone number or email address.
-        The response shape is the same whether or not the identifier belongs
-        to an account.
+        The target implementation sends a one-time code to the supplied
+        identifier. The current local/test backend returns the same response
+        whether or not an account exists, but does not deliver the code.
       requestBody:
         required: true
         content:
@@ -63,9 +75,10 @@ paths:
       tags: [Authentication]
       summary: Verify an OTP and establish or continue authentication
       description: |
-        A successful verification returns an authenticated session unless the
-        account requires MFA, in which case it returns an MFA challenge.
         Account roles are resolved by the server, not supplied by the caller.
+        The target returns an authenticated session or MFA challenge. Until
+        MFA exists, the current backend fails closed with 503 for privileged
+        accounts and never issues them a session.
       requestBody:
         required: true
         content:
@@ -81,15 +94,18 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "429":
           $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
   /auth/mfa/verify:
     post:
       operationId: verifyMfa
       tags: [Authentication]
       summary: Complete a privileged-account MFA challenge
       description: |
-        Verifies the second-factor code for the challenge and returns an
-        authenticated session. The factor enrollment and recovery flows are
-        outside this draft.
+        The target behavior verifies the second-factor code and returns an
+        authenticated session. Factor enrollment and recovery remain outside
+        this draft. The current backend does not implement MFA and returns
+        503; it never issues a privileged session without the second factor.
       requestBody:
         required: true
         content:
@@ -105,6 +121,8 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "429":
           $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
   /auth/refresh:
     post:
       operationId: refreshSession
@@ -221,6 +239,7 @@ components:
       properties:
         challengeId:
           type: string
+          format: uuid
         expiresAt:
           type: string
           format: date-time
@@ -231,6 +250,7 @@ components:
       properties:
         challengeId:
           type: string
+          format: uuid
         code:
           type: string
     MfaChallenge:
@@ -243,6 +263,7 @@ components:
           const: MFA_REQUIRED
         challengeId:
           type: string
+          format: uuid
         expiresAt:
           type: string
           format: date-time
@@ -394,6 +415,15 @@ components:
         application/problem+json:
           schema:
             $ref: "#/components/schemas/Problem"
+    ServiceUnavailable:
+      description: The requested authentication capability is not configured or available.
+      headers:
+        correlation-id:
+          $ref: "#/components/headers/CorrelationId"
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
     AccountModeContext:
       description: Current identity context and its available UX modes.
       headers:
@@ -413,7 +443,8 @@ components:
           schema:
             $ref: "#/components/schemas/Problem"
 x-draft-notes:
-  - "No numeric OTP or request-rate limits are specified."
-  - "No access-token or challenge lifetime is fixed; expiry timestamps are returned by the server."
-  - "OTP delivery-provider selection is part of technical discovery (PRS v3 §15)."
+  - "OTP, token and rate-limit values are required runtime configuration with no source-code defaults; production values remain undecided."
+  - "The fixed 123456 OTP provider is restricted to local/test and does not send codes; it is not a production or QA provider."
+  - "Production OTP delivery, MFA, and production deployment are blocked until providers and policy settings are approved."
+  - "Privileged accounts receive no session until MFA is implemented; BUSINESS mode is unavailable until verified business-account persistence exists."
   - "Mode availability is server-managed; role grants, vendor ownership, business onboarding, and account states are governed by their respective features."

@@ -21,6 +21,7 @@ Every scope decision lives here, with who made it and why. Features reference th
 | D-013 | 2026-10-29 | Shil1517 | **Web and mobile are one product.** Every Phase 1 feature is on both, with the same rules, terms and status names. | Stated by the owner; PRS §17 requires parity. Supersedes the mobile scope doc's "Android and iOS only, web separate". |
 | D-014 | 2026-10-29 | Claude (derived from D-001), awaiting Shil1517 | **PRS items marked "Future" map to Phase 3** (cart checkout, enterprise procurement, AI, field tools, advanced ads). | D-001 defines Phase 3 as future roadmap. This is an inference, listed under O-12 for confirmation. |
 | D-015 | 2026-10-30 | Shil1517 | **Company storefront ordering (F-BIZ-03) is Phase 2.** Customers can order directly from a verified company storefront; screens carry the "Phase 2" badge on both clients. Payment stays direct between customer and company. | Closes O-07. Owner chose Phase 2 with badge (D-010) when asked during the web sync. The mobile storefront screens need the badge. |
+| D-016 | 2026-11-04 | Amit | **Use TypeScript with NestJS for the backend modular monolith.** Keep the documented hard module boundaries, REST/OpenAPI contracts, and PostgreSQL data layer proposal. | Owner approved the recommended backend stack so implementation can start; mobile client technology remains open under O-13. |
 
 ## 2. Open decisions
 
@@ -40,7 +41,7 @@ Nothing in these rows is built, changed or removed until the decision is closed.
 | O-10 | Do manufacturers launch under the Wholesale industry in Phase 1 while "Manufacturing and OEM" opens in Phase 2? | F-TAX-05, F-TAX-06 | Open item from the mobile scope doc (decision 7). |
 | O-11 | Is the admin role visible in the mockup role picker on both apps? | sync matrix section 3 | Web shows it; mobile hides it (`HIDE_ADMIN`). Needed so both demo the same journeys. |
 | O-12 | Confirm D-014 (PRS "Future" = Phase 3) and whether the PRS should be reissued as v3.1. | F-GDS-08, F-GDS-09, F-DSC-10 and others | The PRS is dated 24 Oct 2026 and is out of step with decisions D-003, D-005, D-006, D-011, D-013. |
-| O-13 | Which backend language and framework, and is the mobile client native, React Native or a web app? | docs/06-architecture-and-structure.md | The earlier detail docs assume PostgreSQL, Redis, OpenSearch, REST/OpenAPI and React Native, but no owner decision exists. The scaffold under `backend/` is language-neutral until this is closed. |
+| O-13 | Which mobile client technology should be used: native, React Native or a web app? | docs/06-architecture-and-structure.md | Backend language and framework were decided by D-016. The mobile client choice remains open; do not assume or implement a mobile technology. |
 
 ## 3. Where these decisions differ from the PRS v3.0
 
@@ -73,6 +74,7 @@ The PRS is not edited (D-012). Until it is reissued, the decision wins.
 
 | Date & time (YYYY-MM-DD HH:MM, local) | Updated by | Change | Reason |
 |---|---|---|---|
+| 2026-11-04 15:24 | Amit | Added: D-016; narrowed O-13 to mobile client technology | Owner approved TypeScript and NestJS for the modular-monolith backend; mobile technology remains undecided. |
 | 2026-10-31 15:10 | Shil1517 | Added: O-13 | Architecture scaffold needs a backend and mobile technology decision; not assumed. |
 | 2026-10-30 17:05 | Shil1517 | Added: D-015; closed O-07 | Owner decided during the web sync pass that company storefront ordering is Phase 2 with a badge. |
 | 2026-10-30 16:42 | Shil1517 | Modified: no decision added; D-005, D-006, D-007 and D-009 applied to the web mockup | Web sync pass of 2026-10-30. Removed from web: ad_faqs, ad_requirements, ad_supply_gaps, ad_quote_moderation, ad_category_templates, ad_rfq_health, ad_platform_settings, ad_photo_approvals, ad_previous, ad_profile_images, ad_shop_leads, ad_notifications. Held per O-01 and O-02: ad_vendor_new, ad_coupons. |

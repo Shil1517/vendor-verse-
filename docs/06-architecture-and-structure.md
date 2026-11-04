@@ -2,7 +2,11 @@
 
 The target structure for building VendorVerse as a real product: backend, shared contract, clients, infrastructure and tests. It does not define scope. Scope and phase come from [01-feature-spec.md](01-feature-spec.md); this file says where each feature's code lives.
 
-The technology choices below come from the earlier detail docs (`mobile/docs/deliverables/06` and `07`), which are not yet reviewed against D-002 to D-013. Items marked **proposed** are not decided (see O-13).
+The backend language and framework are TypeScript with NestJS (D-016). Other technology choices carried over from the earlier detail docs (`mobile/docs/deliverables/06` and `07`) remain proposed and may not be reconciled with D-002 to D-013. O-13 remains open only for the mobile client technology.
+
+The current product-wide logical model is [06-database-architecture-erd.md](../mobile/docs/deliverables/06-database-architecture-erd.md). It maps the existing feature scope and PRS data/integrity requirements; it is not a physical schema or evidence that a database has been implemented. Proposed technology choices and module boundaries above remain unchanged.
+
+The explicitly authorized PostgreSQL 16 migration drafts for users, roles, vendors, categories, and auth security controls are in `backend/db/migrations/`. The backend implementation is being established under `backend/`; the mobile client technology remains open under O-13.
 
 ## 1. Shape of the system
 
@@ -14,7 +18,7 @@ The technology choices below come from the earlier detail docs (`mobile/docs/del
         packages/api-contract  (OpenAPI /v1, single source for both clients)
                     |
                     v
-   backend: modular monolith (one deployable, hard module boundaries)
+   backend: TypeScript + NestJS modular monolith (one deployable, hard module boundaries)
      |-- modules/*        one folder per business module (section 3)
      |-- platform/*       cross-cutting: http, idempotency, outbox, rate limit, config
      |-- workers/*        scheduler, search indexer, notifications, file scanner, retention
@@ -43,6 +47,7 @@ vendor-verse-/
 |-- web/                      web client (exists; currently the mockup)
 |-- mobile/                   mobile client (exists; currently the mockup)
 |-- backend/
+|   |-- src/                  NestJS application bootstrap and active auth/accounts modules
 |   |-- modules/              Phase 1 modules (section 3)
 |   |-- modules-phase2/       Phase 2 modules, empty until Phase 2 starts
 |   |-- platform/             http, idempotency, outbox, audit-hook, rate-limit, config
@@ -59,6 +64,8 @@ vendor-verse-/
 ```
 
 `web/` and `mobile/` stay where they are so the Render deploy and the sync matrix keep working. They move under `apps/` only when the mockups are replaced by real clients; that move needs a matrix and registry update.
+
+The NestJS bootstrap is in `backend/src/`; its current auth and account modules are the first implemented module slice. Other business-module folders remain scaffolds under `backend/modules/`.
 
 ## 3. Backend modules and the features they own
 
@@ -167,5 +174,11 @@ Rules:
 
 | Date & time (YYYY-MM-DD HH:MM, local) | Updated by | Change | Reason |
 |---|---|---|---|
+| 2026-11-04 15:37 | Amit | Modified: PostgreSQL migration scope reference | Include the auth challenge and request-limit support migration added for the F-ACC implementation slice. |
+| 2026-11-04 15:32 | Amit | Modified: NestJS source layout | Document the application bootstrap and first active modules without changing the modular-monolith boundaries. |
+| 2026-11-04 15:24 | Amit | Modified: backend language and framework | Record owner decision D-016 while leaving mobile technology and other proposed infrastructure unchanged. |
+| 2026-11-04 15:12 | Amit | Added: scoped PostgreSQL migration draft reference | Record the explicitly authorized database-only deliverable while keeping all proposed stack decisions and O-13 unchanged. |
+| 2026-11-04 14:29 | Amit | Modified: product-wide ERD reference | Identify the full logical data model while preserving the proposed architecture and O-13 status. |
+| 2026-11-04 13:50 | Amit | Modified: initial ERD status and reference | Point the architecture overview to the decision-aligned logical model without implying implementation or resolving O-13. |
 | 2026-11-04 11:15 | Shil1517 | Added: section 8 environments and deployment architecture | Team uses main (production) and qa (testing) branches; architecture shows how they map to environments. |
 | 2026-10-31 15:10 | Shil1517 | Added: architecture and repository structure; scaffold folders under backend, packages, infra, tests | Owner asked for the application structure for full development. |
