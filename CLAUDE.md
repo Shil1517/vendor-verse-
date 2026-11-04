@@ -25,6 +25,10 @@ Web and mobile are **one product**. Every Phase 1 feature exists on both with th
 - **Screens:** adding, renaming or removing a screen in `web/src/registry.jsx` or `mobile/src/registry.jsx` requires updating the sync matrix. Phase 2 screens carry a visible "Phase 2" badge.
 - **Run the checker** before committing anything that touches `docs/` or a registry: `python docs/tools/check_docs.py --write`. It must pass.
 
+### Branches
+
+`main` is production and `qa` is the shared testing branch. Work on `feature/*`, `fix/*` or `docs/*` branches created from `qa`, PR into `qa`, and only the release owner merges `qa` into `main` after the QA gate. Never commit directly to `main` or `qa`. Details: [docs/08-branching-and-release.md](docs/08-branching-and-release.md).
+
 ### Older docs
 
 `docs/web-vs-mobile-gap-analysis.md`, `web/docs/*`, `mobile/docs/deliverables/*`, `mobile/docs/user-flows-and-roadmap.md` and `mobile/docs/screen-inventory.csv` are background. Update the one that mentions your change, but the docs above win on any conflict. `README.md` files: update where they describe a changed feature.
@@ -50,3 +54,9 @@ Every doc edit must add a line to a `## Change Log` section at the bottom of tha
 3. Status values (Done / Partial / Missing / Hold) in the matrix reflect reality for both platforms.
 4. `python docs/tools/check_docs.py --write` passes.
 5. Commit message mentions the doc update.
+
+## Change Log
+
+| Date & time (YYYY-MM-DD HH:MM, local) | Updated by | Change | Reason |
+|---|---|---|---|
+| 2026-11-04 11:16 | Shil1517 | Added: Branches rule | Team of 3 to 4 works through qa before main. |

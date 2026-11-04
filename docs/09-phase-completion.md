@@ -1,0 +1,82 @@
+# Phase-by-Phase Completion Tracker
+
+What "done" means for each phase, the work streams inside it, and where progress is recorded. It does not define scope or assign phases: the phase of every feature is set only in [01-feature-spec.md](01-feature-spec.md), and the generated lists are in [02-phase-scope.md](02-phase-scope.md). It adds no dates; dates stay open until the owner sets them.
+
+Snapshot at 2026-11-04 (from the spec): Phase 1 = 101 features, Phase 2 = 21, Phase 3 = 8, OPEN = 13. Current state: front-end mockups only, no backend (see [07-technical-documentation.md](07-technical-documentation.md)).
+
+Status values: `Not started`, `In progress`, `In QA` (merged to `qa`, testing), `Done` (released on `main`), `Hold` (blocked, reason stated).
+
+## 1. Phase 1: launch scope (India, English and Hindi)
+
+### 1.1 Stages
+
+Order follows the build order in [06-architecture-and-structure.md](06-architecture-and-structure.md) section 6. A stage is Done only when every module in it passes the feature definition of done (06 section 7) on `main`.
+
+| # | Stage | Modules / work | Status | Owner | Notes |
+|---|---|---|---|---|---|
+| P1-S0 | Decisions that block building | O-13 (backend language and mobile client approach); close open questions that touch Phase 1 | Not started | | Nothing in `backend/` can start before O-13. |
+| P1-S1 | Foundation | platform (http, idempotency, outbox, audit-hook, rate-limit, config), db, auth, accounts, rbac, geo, taxonomy, files, audit, notifications core; `packages/api-contract`, `shared`, `design-tokens` | Not started | | |
+| P1-S2 | Vendor supply | vendors, verification, listings, availability | Not started | | |
+| P1-S3 | Discovery | search, search-indexer worker | Not started | | |
+| P1-S4 | Transactions | bookings, rfq, orders, contracts, messaging, Mode A / Mode B payment records | Not started | | |
+| P1-S5 | Revenue and trust | subscriptions, sponsored, invoices, reviews, trust-cases, business | Not started | | |
+| P1-S6 | Admin and agents | admin-ops, agents | Not started | | |
+| P1-S7 | Replace mockups with real clients | `web/` and `mobile/` use the generated API client; registries and matrix updated | Not started | | Keep web and mobile in step (D-013). |
+| P1-S8 | Hardening, UAT, launch | Load and security checks, UAT on both platforms, Jaipur first then Ajmer, Sikar, Delhi NCR (D-008) | Not started | | |
+
+### 1.2 Phase 1 exit criteria
+
+All must be true to call Phase 1 complete:
+
+- [ ] Every feature with phase `P1` in the spec is `Done` on both web and mobile in the sync matrix.
+- [ ] No `Missing` or `Partial` Phase 1 rows in the matrix.
+- [ ] Acceptance scenarios (SC-xxx) for Phase 1 features pass on `qa` and then on `main`.
+- [ ] Docs checker passes; no feature doc is out of step with the code.
+- [ ] All CFG items that Phase 1 needs have owner-decided values (none invented).
+- [ ] Phase 1 open questions (O-xx) are closed or explicitly moved to a later phase by a D-xx decision.
+- [ ] Release `v1.0` tagged on `main`.
+- [ ] Phase sign-off recorded (name and date) in section 5.
+
+## 2. Phase 2: platform payments, more markets, trade, teams
+
+Starts only after Phase 1 sign-off, unless the owner records a decision otherwise. Work lives in `backend/modules-phase2/` and the Phase 2 features in the spec; screens already carry the "Phase 2" badge (D-010).
+
+| # | Stage | Scope (see spec for IDs) | Status | Owner |
+|---|---|---|---|---|
+| P2-S1 | Payments and payouts | Checkout and escrow, wallet, refunds, payouts, commission engine, payout tax (F-PAY-03 to F-PAY-09) | Not started | |
+| P2-S2 | Trade | Incoterms, multi-currency quotes, samples, customs, trade documents (F-RFQ-07, F-GDS-07) | Not started | |
+| P2-S3 | Teams and business | Team roles, approvals, vendor staff (F-BIZ-06); company storefront ordering (F-BIZ-03, D-015) | Not started | |
+| P2-S4 | Markets and languages | More countries and metros, multi-currency display (F-GEO-07, F-GEO-08); Arabic (RTL), Spanish, French, German, Chinese (F-XCT-02) | Not started | |
+| P2-S5 | Verification and contracts | L4 and third-party KYB (F-VND-04); renewal, amendment, termination, e-sign (F-CON-03, F-CON-04) | Not started | |
+| P2-S6 | Admin and support tooling | Feature-flag console, funnels, event console (F-ADM-11, F-ADM-12); helpdesk macros and SLA timers (F-TRU-06) | Not started | |
+
+Exit criteria: every `P2` feature `Done` on both platforms; checker passes; acceptance scenarios pass; sign-off recorded; release `v2.0` tagged.
+
+## 3. Phase 3: direction only
+
+AI, enterprise procurement, cart checkout, more regions, remaining industries (D-014, awaiting confirmation under O-12). No stages are planned. Planning starts only after Phase 2 sign-off and an owner decision.
+
+## 4. OPEN features
+
+13 features have no phase (O-xx rows in [04-decisions-log.md](04-decisions-log.md)). They are not built, changed or removed until the owner decides. When one is decided it joins the relevant phase's stage list above, with a D-xx entry.
+
+## 5. Phase sign-off record
+
+| Phase | Completed on | Signed off by | Release tag | Notes |
+|---|---|---|---|---|
+| Phase 1 | | | | |
+| Phase 2 | | | | |
+| Phase 3 | | | | |
+
+## 6. How to keep this current
+
+- When a stage's work merges into `qa`, set `In QA`; when it reaches `main`, set `Done`.
+- Feature-level truth stays in the sync matrix statuses; this file tracks stages, not individual features.
+- Add a Change Log row whenever a status, owner or exit criterion changes.
+- Branching and release steps are in [08-branching-and-release.md](08-branching-and-release.md).
+
+## Change Log
+
+| Date & time (YYYY-MM-DD HH:MM, local) | Updated by | Change | Reason |
+|---|---|---|---|
+| 2026-11-04 11:12 | Shil1517 | Added: phase-by-phase completion tracker | Team needs staged completion criteria and a sign-off record per phase. |
