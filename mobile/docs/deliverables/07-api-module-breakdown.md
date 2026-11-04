@@ -16,7 +16,7 @@ Auth: JWT access token (15 min) + rotating refresh token. Staff require MFA. Eve
 | **A2** | Accounts & modes | One identity, customer/vendor/business modes, account states, deletion | `GET/PATCH /me`, `POST /me/mode`, `POST /me/delete-request`, `GET /me/export` | c_profile, acct_state, c_delete | MVP |
 | **A3** | RBAC & staff | Roles, permissions, scopes, separation of duties | `GET/POST /admin/roles`, `POST /admin/staff/{id}/grant` | ad_roles, ad_users | MVP |
 | **G1** | Geo | Country/state/city/pincode, launch status, waitlist, rollout matrix, country packs | `GET /geo/countries`, `/geo/cities?state=`, `POST /geo/waitlist`, `PUT /admin/geo/rollout` | c_location, ad_geo, ad_country | MVP |
-| **T1** | Taxonomy | Industries, categories, subcategories, field schemas, versions, suggestions | `GET /taxonomy`, `POST /taxonomy/suggestions`, `POST /admin/categories`, `POST /admin/categories/{id}/publish` | c_categories, ad_taxonomy, ad_category | MVP |
+| **T1** | Taxonomy | Industries, categories, subcategories, field schemas, versions, suggestions | `GET /taxonomy/industries`, `GET /taxonomy/categories`, `GET /taxonomy/categories/{id}`, `POST /taxonomy/suggestions`, `/admin/taxonomy/categories*` (draft: `packages/api-contract/taxonomy.openapi.yaml`) | c_categories, ad_taxonomy, ad_category | MVP |
 | **V1** | Vendors & onboarding | Vendor types, wizard, profile, public profile, company link | `GET/PATCH /vendors/me/profile`, `GET /vendors/{id}/public` (draft: `packages/api-contract/vendor.openapi.yaml`) | v_register*, v_profile, c_vendor | MVP |
 | **V2** | Verification | Evidence upload, tiers, expiry, reviewer decisions, appeals | `POST /vendors/{id}/documents`, `GET /admin/verifications`, `POST /admin/verifications/{id}/decision` | v_verify, ad_vendors | MVP |
 | **B1** | Business accounts | Eligibility, company form, admin verification, network | `POST /companies`, `GET /vendor/network`, `POST /admin/companies/{id}/decision` | b_*, ad_company, v_biz_* | MVP |
@@ -86,5 +86,6 @@ Auth: JWT access token (15 min) + rotating refresh token. Staff require MFA. Eve
 
 | Date & time (YYYY-MM-DD HH:MM, local) | Updated by | Change | Reason |
 |---|---|---|---|
+| 2026-11-04 13:44 | Amit | Modified: taxonomy API endpoints | Align the background API breakdown with the F-TAX-01 to F-TAX-04 and F-TAX-08 OpenAPI draft. |
 | 2026-11-04 13:37 | Amit | Modified: vendor profile API endpoints | Align the background API breakdown with the F-VND-09 OpenAPI draft. |
 | 2026-10-29 16:27 | Shil1517 | Modified: added pointer banner | Added pointer to the new docs/ set; content review still outstanding |
