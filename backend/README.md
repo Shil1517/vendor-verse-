@@ -5,7 +5,7 @@ implementation contains the auth/account slice and health endpoints. It is
 not production-ready: OTP delivery is not integrated, the fixed OTP adapter is
 local/test-only, privileged accounts fail closed until MFA exists, and
 BUSINESS mode requires business-account verification persistence. Platform
-Idempotency-Key handling and audit/outbox integration are also not implemented.
+The audit, outbox, rate-limit and Idempotency-Key plumbing exists in `src/platform/`, but only the account settings writes use the audit trail; no module enqueues outbox events yet and no worker dispatches them.
 
 ## Local setup
 
@@ -44,6 +44,16 @@ These routes are also listed in Swagger UI at `/docs`.
 - `POST /v1/auth/logout`
 - `GET /v1/me`
 - `POST /v1/me/mode`
+- `GET /v1/me/sessions`, `DELETE /v1/me/sessions/{sessionId}` (F-ACC-08)
+- `GET|PUT /v1/me/notification-preferences` (F-ACC-07)
+- `GET|POST /v1/me/data-requests`, `POST /v1/me/data-requests/{requestId}/cancel` (F-ACC-04, F-ACC-05; records the request only, no verification or fulfilment)
+- `POST /v1/vendors`, `GET /v1/vendors/mine`, `GET|PATCH /v1/vendors/{vendorId}` (F-VND-01, F-VND-02; owner only; creates a registered, unpublished vendor)
+- `GET /v1/geo/countries`, `/geo/regions?countryCode=`, `/geo/cities?countryCode=&regionId=` (with launchStatus), `/geo/localities?cityId=` (F-GEO-01, F-GEO-02; public)
+- `GET|POST /v1/vendors/{vendorId}/service-areas`, `DELETE /v1/vendors/{vendorId}/service-areas/{areaId}` (F-GEO-06; owner only; city, pincode, region, country, radius or remote, never worldwide)
+- `POST|GET /v1/vendors/{vendorId}/listings`, `GET|PATCH /v1/listings/{listingId}`, `POST /v1/listings/{listingId}/submit|pause|resume|unpublish` (F-VND-06; owner only; drafts are never public)
+- `GET /v1/vendors/{vendorId}/publication-gates?listingId=` (F-VND-05; computed live, never stored; gates whose module is missing report `met: null`)
+- `GET|PUT|DELETE /v1/listings/{listingId}/availability`, `GET|POST /v1/listings/{listingId}/capacity`, `DELETE /v1/listings/{listingId}/capacity/{windowId}` (F-VND-08)
+- `GET /v1/me/waitlist`, `POST|DELETE /v1/geo/cities/{cityId}/waitlist` (F-GEO-02)
 - `GET /v1/taxonomy/industries?countryCode=`
 - `GET /v1/taxonomy/categories?countryCode=&industryId=`
 - `GET /v1/taxonomy/categories/{categoryId}?countryCode=`
@@ -59,6 +69,16 @@ Mode switching supports CUSTOMER and VENDOR when a vendor record is owned by
 the identity. BUSINESS returns 409 until its separately verified account
 model is implemented. Authenticated requests validate both the JWT and its
 persisted, unrevoked session.
+
+## Platform plumbing
+
+`src/platform/` holds the cross-cutting pieces every module reuses:
+
+- **Correlation id**: every response carries `correlation-id`; the audit service stamps it on each event.
+- **Audit** (`AuditService.record`): appends to `audit_events`; pass the transaction client so the event commits with the change.
+- **Outbox** (`OutboxService.enqueue`): writes `outbox_events` in the caller's transaction. No dispatcher exists yet.
+- **Rate limit** (`RateLimitService`): fixed-window counter; callers pass the maximum and window from configuration.
+- **Idempotency**: send `Idempotency-Key` on any write. The same key and request replays the first response (`Idempotent-Replayed: true`); the same key with a different request returns 422; a concurrent duplicate returns 409. A failed attempt frees the key. `IDEMPOTENCY_TTL_SECONDS` and `IDEMPOTENCY_LOCK_SECONDS` have no code defaults; choose values for your environment. Expired keys are replaced on reuse; there is no cleanup job yet.
 
 ## Checks
 
@@ -114,3 +134,7 @@ The email is stored **unverified** and is not a sign-in identifier; verification
 | 2026-11-04 15:45 | Amit | Modified: local server exposure guidance | Document that the local/test server binds to loopback and should not be exposed publicly. |
 | 2026-11-04 15:37 | Amit | Modified: implementation limitations | Explicitly identify unfinished idempotency and audit/outbox work before any production use. |
 | 2026-11-04 15:32 | Amit | Added: NestJS backend setup and implementation status | Document the selected stack, local-only authentication limits, configuration, and available routes. |
+| 2026-11-05 15:10 | Shil1517 | Modified: platform plumbing and account settings routes | Added audit, outbox, rate-limit and Idempotency-Key services and the sessions, notification-preference and data-request routes. |
+| 2026-11-05 15:40 | Shil1517 | Added: vendor onboarding routes | First vendor-supply API slice (become a vendor, own profile). |
+| 2026-11-05 16:40 | Shil1517 | Added: geography reads and vendor service-area routes | Coverage declaration (F-GEO-06) needs a location hierarchy to pick from. |
+| 2026-11-05 17:30 | Shil1517 | Added: listings, availability, publication-gate and waitlist routes | Next slices of vendor supply (F-VND-05, F-VND-06, F-VND-08) and the F-GEO-02 waitlist. |

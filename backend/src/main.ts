@@ -3,17 +3,13 @@ import { ValidationPipe } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { NestFactory } from "@nestjs/core";
 import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
-import { randomUUID } from "node:crypto";
-import { NextFunction, Request, Response } from "express";
 import { AppModule } from "./app.module";
 import { ProblemDetailsFilter } from "./common/problem-details.filter";
+import { correlationMiddleware } from "./platform/request-context";
 
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AppModule);
-  app.use((_request: Request, response: Response, next: NextFunction) => {
-    response.setHeader("correlation-id", randomUUID());
-    next();
-  });
+  app.use(correlationMiddleware);
   app.setGlobalPrefix("v1");
   app.useGlobalPipes(
     new ValidationPipe({
@@ -27,8 +23,8 @@ async function bootstrap(): Promise<void> {
   const config = app.get(ConfigService);
   app.enableCors({
     origin: config.getOrThrow<string[]>("CORS_ORIGINS"),
-    allowedHeaders: ["authorization", "content-type"],
-    exposedHeaders: ["correlation-id"],
+    allowedHeaders: ["authorization", "content-type", "idempotency-key"],
+    exposedHeaders: ["correlation-id", "idempotent-replayed"],
   });
   const swaggerConfig = new DocumentBuilder()
     .setTitle("VendorVerse API")

@@ -4,10 +4,12 @@ import { AccountsController } from "./accounts.controller";
 import { AccountsService } from "./accounts.service";
 import { ProfileController } from "./profile.controller";
 import { ProfileService } from "./profile.service";
+import { SettingsController } from "./settings.controller";
+import { SettingsService } from "./settings.service";
 
 @Module({
   imports: [AuthModule],
-  controllers: [AccountsController, ProfileController],
-  providers: [AccountsService, ProfileService],
+  controllers: [AccountsController, ProfileController, SettingsController],
+  providers: [AccountsService, ProfileService, SettingsService],
 })
 export class AccountsModule {}

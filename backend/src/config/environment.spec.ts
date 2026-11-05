@@ -17,6 +17,8 @@ const validEnvironment: Record<string, string> = {
   SESSION_TOKEN_PEPPER: "test-only-session-token-pepper-value",
   ACCESS_TOKEN_TTL_SECONDS: "10",
   OTP_VERIFY_MAX: "3",
+  IDEMPOTENCY_TTL_SECONDS: "60",
+  IDEMPOTENCY_LOCK_SECONDS: "10",
 };
 
 describe("validateEnvironment", () => {

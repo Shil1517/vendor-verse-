@@ -16,7 +16,7 @@ function setup(routes) {
   const calls = []
   const fetchImpl = async (url, init) => {
     const path = new URL(url).pathname.replace('/v1', '')
-    const request = { path, method: init.method, auth: init.headers.authorization, body: init.body ? JSON.parse(init.body) : undefined }
+    const request = { path, method: init.method, auth: init.headers.authorization, key: init.headers['idempotency-key'], body: init.body ? JSON.parse(init.body) : undefined }
     calls.push(request)
     const handler = routes[`${init.method} ${path}`]
     if (!handler) throw new Error(`unexpected ${init.method} ${path}`)
@@ -245,5 +245,53 @@ describe('createApiAuthService: customer profile and saved locations (F-ACC-06)'
     store.set(TOKENS)
     await service.removeLocation('../profile')
     expect(calls[0].path).toBe('/me/locations/..%2Fprofile')
+  })
+})
+
+describe('account settings and vendor onboarding calls', () => {
+  const signedIn = (routes) => {
+    const ctx = setup(routes)
+    ctx.store.set(TOKENS)
+    return ctx
+  }
+
+  it('lists and revokes sessions for the signed-in user', async () => {
+    const { service, calls } = signedIn({
+      'GET /me/sessions': reply(200, { sessions: [{ id: 's1', current: true }] }),
+      'DELETE /me/sessions/s2': reply(204),
+    })
+    expect((await service.listSessions()).sessions).toEqual([{ id: 's1', current: true }])
+    expect((await service.revokeSession('s2')).ok).toBe(true)
+    expect(calls.every((c) => c.auth === 'Bearer a1')).toBe(true)
+  })
+
+  it('maps a missing session to NOT_FOUND', async () => {
+    const { service } = signedIn({ 'DELETE /me/sessions/x': reply(404, {}) })
+    expect((await service.revokeSession('x')).code).toBe('NOT_FOUND')
+  })
+
+  it('saves notification preferences as one PUT', async () => {
+    const prefs = [{ channel: 'sms', category: 'offers', enabled: false }]
+    const { service, calls } = signedIn({ 'PUT /me/notification-preferences': reply(200, { preferences: prefs }) })
+    expect((await service.saveNotificationPreferences(prefs)).preferences).toEqual(prefs)
+    expect(calls[0].body).toEqual({ preferences: prefs })
+  })
+
+  it('sends an Idempotency-Key on data requests and reports an open duplicate as CONFLICT', async () => {
+    const { service, calls } = signedIn({ 'POST /me/data-requests': [reply(201, { id: 'r1', type: 'export', status: 'requested' }), reply(409, {})] })
+    expect((await service.requestDataRequest('export')).request.id).toBe('r1')
+    expect((await service.requestDataRequest('export')).code).toBe('CONFLICT')
+    expect(calls[0].body).toEqual({ type: 'export' })
+    expect(calls[0].key).toBeTruthy()
+    expect(calls[0].key).not.toBe(calls[1].key)
+  })
+
+  it('creates a vendor with the country first and an Idempotency-Key', async () => {
+    const { service, calls } = signedIn({ 'POST /vendors': [reply(201, { id: 'v1' }), reply(400, {})] })
+    const r = await service.createVendor({ registrationCountry: 'IN', businessType: 'SUPPLIER', legalName: 'Sharma', tradingName: '' })
+    expect(r).toEqual({ ok: true, vendor: { id: 'v1' } })
+    expect(calls[0].body).toEqual({ registrationCountry: 'IN', businessType: 'SUPPLIER', legalName: 'Sharma' })
+    expect(calls[0].key).toBeTruthy()
+    expect((await service.createVendor({ registrationCountry: 'ZZ', businessType: 'SUPPLIER', legalName: 'x' })).code).toBe('INVALID_PROFILE')
   })
 })

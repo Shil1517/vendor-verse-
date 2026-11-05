@@ -15,8 +15,8 @@ Order follows the build order in [06-architecture-and-structure.md](06-architect
 | # | Stage | Modules / work | Status | Owner | Notes |
 |---|---|---|---|---|---|
 | P1-S0 | Decisions that block building | Resolve remaining open questions that touch Phase 1 | In progress | | D-016 selects TypeScript/NestJS; O-13 remains open for mobile client technology. |
-| P1-S1 | Foundation | platform (http, idempotency, outbox, audit-hook, rate-limit, config), db, auth, accounts, rbac, geo, taxonomy, files, audit, notifications core; `packages/api-contract`, `shared`, `design-tokens` | In progress | | NestJS auth/account foundation is underway. OTP provider, MFA, production policy values, and BUSINESS-mode persistence remain incomplete; no production authentication or database deployment is implied. |
-| P1-S2 | Vendor supply | vendors, verification, listings, availability | Not started | | |
+| P1-S1 | Foundation | platform (http, idempotency, outbox, audit-hook, rate-limit, config), db, auth, accounts, rbac, geo, taxonomy, files, audit, notifications core; `packages/api-contract`, `shared`, `design-tokens` | In progress | | NestJS auth/account foundation is underway. Done: platform idempotency, audit, outbox services and shared rate limit; sessions, notification preferences and data-request records. Remaining: OTP provider, MFA, production policy values, BUSINESS-mode persistence, account-state enforcement, request verification/fulfilment (CFG-08), outbox dispatcher, rbac, files and notifications core; no production authentication or database deployment is implied. |
+| P1-S2 | Vendor supply | vendors, verification, listings, availability | In progress | | Vendor onboarding and own-profile API done (F-VND-01, F-VND-02). Vendor coverage (service areas) and geography reads done (F-GEO-06, F-GEO-01). Listings, availability, live publication gates and the city waitlist done (F-VND-06, F-VND-08, F-VND-05 partial, F-GEO-02). Not built: verification L0-L3 and evidence (needs the files module and a storage provider), the admin listing review queue and duplicate detection (F-VND-07), and the subscription, verification and hold gates. |
 | P1-S3 | Discovery | search, search-indexer worker | Not started | | |
 | P1-S4 | Transactions | bookings, rfq, orders, contracts, messaging, Mode A / Mode B payment records | Not started | | |
 | P1-S5 | Revenue and trust | subscriptions, sponsored, invoices, reviews, trust-cases, business | Not started | | |
@@ -79,6 +79,10 @@ AI, enterprise procurement, cart checkout, more regions, remaining industries (D
 
 | Date & time (YYYY-MM-DD HH:MM, local) | Updated by | Change | Reason |
 |---|---|---|---|
+| 2026-11-05 17:30 | Shil1517 | Modified: P1-S2 progress note | Listings, availability, publication gates and waitlist landed; verification and review queue remain. |
+| 2026-11-05 16:40 | Shil1517 | Modified: P1-S2 progress note | Service-area and geography APIs landed. |
+| 2026-11-05 15:40 | Shil1517 | Modified: P1-S2 status to In progress | Vendor onboarding API landed. |
 | 2026-11-04 15:24 | Amit | Modified: P1-S0 and P1-S1 backend status | Reflect D-016 and the bounded auth/account implementation while retaining open mobile and security/integration prerequisites. |
 | 2026-11-04 15:12 | Amit | Modified: P1-S0 scoped migration authorization | Record the owner's limited database-only authorization while preserving O-13 as a prerequisite for application/backend work. |
 | 2026-11-04 11:12 | Shil1517 | Added: phase-by-phase completion tracker | Team needs staged completion criteria and a sign-off record per phase. |
+| 2026-11-05 15:10 | Shil1517 | Modified: P1-S1 progress note | Platform plumbing and account settings APIs landed; remaining items listed. |

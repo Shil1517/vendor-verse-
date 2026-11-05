@@ -18,6 +18,7 @@ import {
 import { PoolClient } from "pg";
 import { AppEnvironmentConfig } from "../config/environment";
 import { DatabaseService } from "../database/database.service";
+import { RateLimitService } from "../platform/rate-limit.service";
 import { AuthenticatedUser } from "./authenticated-user.decorator";
 import { OTP_DELIVERY_PROVIDER } from "./auth.constants";
 import { OtpRequestDto } from "./dto/otp-request.dto";
@@ -54,6 +55,7 @@ export class AuthService {
     private readonly jwt: JwtService,
     @Inject(OTP_DELIVERY_PROVIDER)
     private readonly otpDelivery: OtpDeliveryProvider,
+    private readonly rateLimit: RateLimitService,
   ) {}
 
   async requestOtp(
@@ -67,50 +69,18 @@ export class AuthService {
       `${request.channel}:${identifier}`,
       this.config.get("OTP_VERIFIER_SECRET", { infer: true }),
     );
-    const requestCount = await this.database.query<{ request_count: number }>(
-      `INSERT INTO auth_rate_limit_buckets
-         (scope, subject_hash, window_ends_at, request_count)
-       VALUES
-         ('otp_request', $1,
-          CURRENT_TIMESTAMP + ($2 * INTERVAL '1 second'), 1)
-       ON CONFLICT (scope, subject_hash) DO UPDATE
-       SET request_count = CASE
-             WHEN auth_rate_limit_buckets.window_ends_at <= CURRENT_TIMESTAMP
-               THEN 1
-             ELSE auth_rate_limit_buckets.request_count + 1
-           END,
-           window_ends_at = CASE
-             WHEN auth_rate_limit_buckets.window_ends_at <= CURRENT_TIMESTAMP
-               THEN CURRENT_TIMESTAMP + ($2 * INTERVAL '1 second')
-             ELSE auth_rate_limit_buckets.window_ends_at
-           END,
-           updated_at = CURRENT_TIMESTAMP
-       RETURNING request_count`,
-      [
-        identifierHash,
-        this.config.get("OTP_REQUEST_WINDOW_SECONDS", { infer: true }),
-      ],
+    await this.rateLimit.consume(
+      "otp_request",
+      identifierHash,
+      this.config.get("OTP_REQUEST_MAX", { infer: true }),
+      this.config.get("OTP_REQUEST_WINDOW_SECONDS", { infer: true }),
+      "OTP request limit exceeded",
     );
-    const count = requestCount.rows[0]?.request_count;
-    if (count === undefined) {
-      throw new Error(
-        "OTP rate-limit counter was not returned by the database",
-      );
-    }
-    if (count > this.config.get("OTP_REQUEST_MAX", { infer: true })) {
-      throw new HttpException(
-        "OTP request limit exceeded",
-        HttpStatus.TOO_MANY_REQUESTS,
-      );
-    }
     await this.database.query(
       `DELETE FROM auth_challenges
        WHERE expires_at <= CURRENT_TIMESTAMP`,
     );
-    await this.database.query(
-      `DELETE FROM auth_rate_limit_buckets
-       WHERE window_ends_at <= CURRENT_TIMESTAMP`,
-    );
+    await this.rateLimit.purgeExpired();
 
     const challengeId = randomUUID();
     const code = await this.otpDelivery.issue();

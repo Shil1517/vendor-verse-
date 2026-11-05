@@ -18,6 +18,8 @@ export interface AppEnvironmentConfig {
   SESSION_TOKEN_PEPPER: string;
   ACCESS_TOKEN_TTL_SECONDS: number;
   OTP_VERIFY_MAX: number;
+  IDEMPOTENCY_TTL_SECONDS: number;
+  IDEMPOTENCY_LOCK_SECONDS: number;
 }
 
 function requiredString(
@@ -133,5 +135,13 @@ export function validateEnvironment(
       "ACCESS_TOKEN_TTL_SECONDS",
     ),
     OTP_VERIFY_MAX: positiveInteger(environment, "OTP_VERIFY_MAX"),
+    IDEMPOTENCY_TTL_SECONDS: positiveInteger(
+      environment,
+      "IDEMPOTENCY_TTL_SECONDS",
+    ),
+    IDEMPOTENCY_LOCK_SECONDS: positiveInteger(
+      environment,
+      "IDEMPOTENCY_LOCK_SECONDS",
+    ),
   };
 }
