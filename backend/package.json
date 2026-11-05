@@ -13,7 +13,8 @@
     "test:watch": "jest --watch",
     "test:e2e": "jest --config ./test/jest-e2e.json --runInBand",
     "lint": "eslint \"{src,test}/**/*.ts\"",
-    "db:migrate": "node --env-file=.env scripts/migrate.cjs"
+    "db:migrate": "node --env-file=.env scripts/migrate.cjs",
+    "db:seed": "node --env-file=.env scripts/seed.cjs"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.0",

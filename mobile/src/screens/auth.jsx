@@ -1,5 +1,5 @@
-import { authService } from '../services/authService.js'
-import { useEffect, useState } from 'react'
+import { authService, roleForMode } from '../services/authService.js'
+import { useEffect, useRef, useState } from 'react'
 import { Phone, Mail, ShieldCheck, Store, User, Building2, ArrowRight, Lock, CalendarCheck, FileText, Globe, Search, Ban, Hourglass, Trash2, CheckCircle2, XCircle } from 'lucide-react'
 import { useApp } from '../store.jsx'
 import { useNav } from '../nav.jsx'
@@ -142,11 +142,13 @@ export function Otp({ params }) {
   const [secs, setSecs] = useState(30)
   const [devCode, setDevCode] = useState('')
   const [sending, setSending] = useState(true)
-  const contactKey = contact.replace(/^\+\d+\s/, '')
+  const [checking, setChecking] = useState(false)
+  const verifying = useRef(false)
+  const needsMfaStep = role === 'admin' && !authService.isRemote // real API: privileged sign-in is blocked server-side until MFA exists
   const factor = step === 0 ? 'otp' : 'mfa'
   const sendCode = async (f = factor) => {
     setSending(true); setErr('')
-    const r = await authService.requestOtp(contactKey, { factor: f })
+    const r = await authService.requestOtp(contact, { factor: f })
     setSending(false)
     if (!r.ok) return setErr(r.message)
     setDevCode(r.devCode || '')
@@ -158,10 +160,15 @@ export function Otp({ params }) {
     const t = setTimeout(() => setSecs((s) => s - 1), 1000)
     return () => clearTimeout(t)
   }, [secs])
-  const verify = () => {
-    const r = authService.verifyOtp(contactKey, code, { factor })
+  const verify = async () => {
+    if (verifying.current) return
+    verifying.current = true
+    setChecking(true)
+    const r = await authService.verifyOtp(contact, code, { factor })
+    verifying.current = false
+    setChecking(false)
     if (!r.ok) return setErr(r.message)
-    if (step === 0 && role === 'admin') { setStep(1); setCode(''); setErr(''); sendCode('mfa'); return }
+    if (step === 0 && needsMfaStep) { setStep(1); setCode(''); setErr(''); sendCode('mfa'); return }
     if (mode === 'register') {
       if (role === 'business') {
         setMe({ role: 'business', loggedIn: true, guest: false, vendorId: null, hasVendor: false, bizId: 'biz-me', name: name || ME.business, biz })
@@ -178,8 +185,10 @@ export function Otp({ params }) {
       }
       return
     }
-    signIn(role)
-    toast('Signed in successfully')
+    const accountRole = r.account ? roleForMode(r.account.currentMode) : role
+    const same = accountRole === role
+    signIn(accountRole, r.account ? { userId: r.account.userId } : {})
+    toast(same ? 'Signed in successfully' : `Signed in to your ${accountRole} account`)
   }
   return (
     <Screen title={step === 0 ? 'Verify OTP' : 'Two-step verification'} pad={false} bg="bg-white">
@@ -201,7 +210,7 @@ export function Otp({ params }) {
         </div>
         {err && <p className="text-sm font-medium text-red-600">{err}</p>}
         {devCode && <Banner tone="blue" title="Development mode: no SMS provider configured">The code for this request is <b>{devCode}</b>. A real provider replaces this banner. <button className="font-bold underline" onClick={() => { setCode(devCode); setErr('') }}>Auto-fill</button></Banner>}
-        <Button full size="lg" disabled={sending} onClick={verify}>{step === 0 && role === 'admin' ? 'Continue' : mode === 'register' ? 'Verify & create account' : 'Verify & log in'}</Button>
+        <Button full size="lg" disabled={sending || checking} onClick={verify}>{step === 0 && needsMfaStep ? 'Continue' : mode === 'register' ? 'Verify & create account' : 'Verify & log in'}</Button>
         {step === 0 && (
           <p className="text-center text-sm text-ink-500">
             {secs > 0 ? `Resend code in 0:${String(secs).padStart(2, '0')}` : <button onClick={() => { sendCode().then(() => toast('A new OTP has been sent')) }} className="font-bold text-brand-700">Resend OTP</button>}

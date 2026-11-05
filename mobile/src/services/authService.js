@@ -1,8 +1,10 @@
 /*
  * F-ACC-01 sign-in service (client seam).
  *
- * There is no backend yet (O-13), so this module is the single place that would
- * be replaced by real API calls. It never contains a fixed OTP:
+ * Two implementations share one interface (requestOtp, verifyOtp, endSession):
+ *  - the real API client, used when VITE_API_BASE_URL is set (createApiAuthService);
+ *  - the in-memory mock below, used otherwise (tests, offline demos).
+ * It never contains a fixed OTP:
  *  - the mock provider generates a random code per request, and "delivers" it by
  *    returning it to the screen (dev/mock only, flagged by `mock: true`);
  *  - a real SMS/email provider plugs in through the `provider` argument.
@@ -11,6 +13,8 @@
  * They are NOT invented here: each limit is `null` (not enforced) until the owner
  * decides, and tests inject values.
  */
+
+import { createSessionStore } from './session.js'
 
 export const OTP_POLICY = {
   expirySeconds: null, // CFG: OTP lifetime
@@ -28,6 +32,9 @@ export const AUTH_ERRORS = {
   LOCKED: 'LOCKED',
   RATE_LIMITED: 'RATE_LIMITED',
   ACCOUNT_BLOCKED: 'ACCOUNT_BLOCKED',
+  PRIVILEGED_BLOCKED: 'PRIVILEGED_BLOCKED',
+  NETWORK: 'NETWORK',
+  PROVIDER_ERROR: 'PROVIDER_ERROR',
 }
 
 export const AUTH_MESSAGES = {
@@ -39,6 +46,9 @@ export const AUTH_MESSAGES = {
   LOCKED: 'Too many incorrect attempts. Request a new code.',
   RATE_LIMITED: 'Too many code requests. Please wait before trying again.',
   ACCOUNT_BLOCKED: 'This account cannot sign in. See your account status for details.',
+  PRIVILEGED_BLOCKED: 'Sales Agent and Super Admin sign-in is not available yet.',
+  NETWORK: 'Cannot reach the server. Check your connection and try again.',
+  PROVIDER_ERROR: 'We could not complete that. Please try again.',
 }
 
 export const isEmail = (s) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(s || ''))
@@ -122,8 +132,134 @@ export function createAuthService({ provider = mockProvider, policy = OTP_POLICY
     return { ok: true }
   }
 
-  return { requestOtp, verifyOtp }
+  return { requestOtp, verifyOtp, endSession: async () => {} }
 }
 
-/** App-wide instance used by screens. */
-export const authService = createAuthService()
+const MODE_ROLES = { CUSTOMER: 'customer', VENDOR: 'vendor', BUSINESS: 'business' }
+
+/** Maps the backend account mode (GET /me) to the client role id. */
+export const roleForMode = (mode) => MODE_ROLES[mode] || 'customer'
+
+/** Phone numbers keep their country code and lose spacing: "+91 98290 00001" -> "+919829000001". */
+export function canonicalIdentifier(contact) {
+  const c = String(contact || '').trim()
+  return isEmail(c) ? c.toLowerCase() : c.replace(/[\s()-]/g, '')
+}
+
+/**
+ * Real API client for F-ACC-01 (POST /auth/otp/request, /auth/otp/verify, /auth/refresh,
+ * /auth/logout and GET /me). Same interface as the mock, except verifyOtp is async and
+ * resolves with the signed-in `account` ({ userId, currentMode, availableModes }).
+ * The server owns OTP limits and role; nothing here is a policy value.
+ *
+ * @param {object} deps
+ * @param {string} deps.baseUrl e.g. http://127.0.0.1:3001/v1
+ * @param {typeof fetch} [deps.fetchImpl]
+ * @param {ReturnType<typeof createSessionStore>} [deps.store]
+ */
+export function createApiAuthService({ baseUrl, fetchImpl = (...args) => globalThis.fetch(...args), store = createSessionStore() }) {
+  const challenges = new Map() // canonical identifier -> challengeId
+  let refreshing = null
+
+  async function call(path, { method = 'POST', body, token } = {}) {
+    let res
+    try {
+      res = await fetchImpl(`${baseUrl.replace(/\/$/, '')}${path}`, {
+        method,
+        headers: { 'content-type': 'application/json', ...(token ? { authorization: `Bearer ${token}` } : {}) },
+        body: body === undefined ? undefined : JSON.stringify(body),
+      })
+    } catch {
+      return { status: 0, data: null }
+    }
+    let data = null
+    try {
+      data = await res.json()
+    } catch {
+      /* 204 or non-JSON body */
+    }
+    return { status: res.status, data }
+  }
+
+  /** Rotates the refresh token once even when several requests expire together. */
+  function refresh() {
+    refreshing ??= (async () => {
+      const session = store.get()
+      if (!session?.refreshToken) return false
+      const r = await call('/auth/refresh', { body: { refreshToken: session.refreshToken } })
+      if (r.status === 200 && r.data?.accessToken) {
+        store.set(r.data)
+        return true
+      }
+      if (r.status === 401) store.clear() // definitively rejected; a network error keeps the session
+      return false
+    })().finally(() => { refreshing = null })
+    return refreshing
+  }
+
+  /** Authenticated call with one transparent refresh-and-retry on 401. `body` may be a function of the current session. */
+  async function authed(path, { method = 'POST', body } = {}) {
+    const attempt = () => {
+      const session = store.get()
+      if (!session) return Promise.resolve({ status: 401, data: null })
+      return call(path, { method, token: session.accessToken, body: typeof body === 'function' ? body(session) : body })
+    }
+    let r = await attempt()
+    if (r.status === 401 && (await refresh())) r = await attempt()
+    return r
+  }
+
+  async function requestOtp(contact) {
+    const c = String(contact || '').trim()
+    if (!c || !(isEmail(c) || isPhone(c))) return fail(AUTH_ERRORS.INVALID_CONTACT)
+    const identifier = canonicalIdentifier(c)
+    const r = await call('/auth/otp/request', { body: { channel: isEmail(c) ? 'email' : 'phone', identifier } })
+    if (r.status === 202 && r.data?.challengeId) {
+      challenges.set(identifier, r.data.challengeId)
+      return { ok: true, mock: false }
+    }
+    if (r.status === 429) return fail(AUTH_ERRORS.RATE_LIMITED)
+    if (r.status === 400) return fail(AUTH_ERRORS.INVALID_CONTACT)
+    return fail(r.status === 0 ? AUTH_ERRORS.NETWORK : AUTH_ERRORS.PROVIDER_ERROR)
+  }
+
+  async function verifyOtp(contact, input) {
+    if (!/^\d{6}$/.test(String(input || ''))) return fail(AUTH_ERRORS.INVALID_FORMAT)
+    const identifier = canonicalIdentifier(contact)
+    const challengeId = challenges.get(identifier)
+    if (!challengeId) return fail(AUTH_ERRORS.NO_REQUEST)
+    const r = await call('/auth/otp/verify', { body: { challengeId, code: input } })
+    if (r.status === 429) {
+      challenges.delete(identifier)
+      return fail(AUTH_ERRORS.LOCKED)
+    }
+    if (r.status === 401) return fail(AUTH_ERRORS.INVALID_OTP)
+    if (r.status === 503) return fail(AUTH_ERRORS.PRIVILEGED_BLOCKED)
+    if (r.status !== 200 || !r.data?.accessToken) return fail(r.status === 0 ? AUTH_ERRORS.NETWORK : AUTH_ERRORS.PROVIDER_ERROR)
+    challenges.delete(identifier)
+    store.set(r.data)
+    const me = await authed('/me', { method: 'GET' })
+    if (me.status !== 200 || !me.data?.userId) {
+      store.clear()
+      return fail(me.status === 0 ? AUTH_ERRORS.NETWORK : AUTH_ERRORS.PROVIDER_ERROR)
+    }
+    return { ok: true, account: me.data }
+  }
+
+  /** Revokes the server session (best effort) and always clears local tokens. */
+  async function endSession() {
+    if (!store.get()) return
+    try {
+      await authed('/auth/logout', { body: (session) => ({ refreshToken: session.refreshToken }) })
+    } finally {
+      store.clear()
+    }
+  }
+
+  return { requestOtp, verifyOtp, endSession, isRemote: true }
+}
+
+const apiBaseUrl = import.meta.env?.VITE_API_BASE_URL
+
+/** App-wide instance used by screens: the real API when VITE_API_BASE_URL is set, otherwise the mock. */
+export const authService = apiBaseUrl ? createApiAuthService({ baseUrl: apiBaseUrl }) : createAuthService()

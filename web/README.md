@@ -4,7 +4,7 @@ Separate responsive marketplace website inspired by the VendorVerse reference ap
 
 The landing page is redesigned as a marketplace website with searchable products and services, category browsing, featured verified vendors, saved listings, quote requests, messages, and account entry points. The role-specific customer, vendor, sales agent, and admin workflows remain based on the reference app. Users choose a role on the sign-in screen; OTP verification then opens that role’s workspace. Main navigation follows the signed-in role, while secondary pages are in the “More pages” menu. Mobile navigation adapts to a compact layout.
 
-This is a front-end mockup. Data is in memory and resets on reload; there is no backend or real authentication.
+This is a front-end mockup. Data is in memory and resets on reload; other features have no backend yet. Sign-in can use the real backend auth API: copy `.env.example` to `.env.local` and set `VITE_API_BASE_URL` (the backend must list this app's origin in `CORS_ORIGINS`). With it unset, sign-in uses the in-memory mock.
 
 ## Run
 
@@ -27,6 +27,7 @@ The web mockup follows `docs/01-feature-spec.md` and `docs/03-mockup-sync-matrix
 
 | Date & time (YYYY-MM-DD HH:MM, local) | Updated by | Change | Reason |
 |---|---|---|---|
+| 2026-11-05 11:11 | Shil1517 | Added: optional real auth API for sign-in (VITE_API_BASE_URL) | Backend auth/account APIs now exist; web and mobile share one client (OTP, session, refresh, logout, role from GET /me) and fall back to the mock when no API URL is set. |
 | 2026-10-31 10:37 | Shil1517 | Modified: Business account and RFQ form notes | Business is selectable at sign-up and runs eligibility, six-step company form and admin verification. Phase 2 features carry a badge. |
 | 2026-10-30 17:34 | Shil1517 | Modified: admin signs in with the single OTP | Owner request 2026-10-30; removes the 654321 second step on web. |
 | 2026-10-30 17:31 | Shil1517 | Modified: noted browser-verified flows and URL navigation | Hash links and back/forward now navigate; vendor sign-up passes through the type chooser. No backend: all data stays in localStorage. |

@@ -4,6 +4,7 @@ export interface AppEnvironmentConfig {
   APP_ENV: AppEnvironment;
   DATABASE_URL: string;
   DATABASE_SSL: boolean;
+  CORS_ORIGINS: string[];
   JWT_ISSUER: string;
   JWT_SECRET: string;
   OTP_CHALLENGE_TTL_SECONDS: number;
@@ -12,6 +13,7 @@ export interface AppEnvironmentConfig {
   OTP_REQUEST_WINDOW_SECONDS: number;
   OTP_VERIFIER_SECRET: string;
   PORT: number;
+  HOST: string;
   REFRESH_TOKEN_TTL_SECONDS: number;
   SESSION_TOKEN_PEPPER: string;
   ACCESS_TOKEN_TTL_SECONDS: number;
@@ -52,6 +54,20 @@ function requiredBoolean(
   return raw === "true";
 }
 
+function requiredList(
+  environment: Record<string, unknown>,
+  name: string,
+): string[] {
+  const values = requiredString(environment, name)
+    .split(",")
+    .map((value) => value.trim())
+    .filter((value) => value !== "");
+  if (values.length === 0) {
+    throw new Error(`${name} must list at least one origin`);
+  }
+  return values;
+}
+
 function requiredSecret(
   environment: Record<string, unknown>,
   name: string,
@@ -87,6 +103,7 @@ export function validateEnvironment(
     APP_ENV: appEnvironment,
     DATABASE_URL: requiredString(environment, "DATABASE_URL"),
     DATABASE_SSL: requiredBoolean(environment, "DATABASE_SSL"),
+    CORS_ORIGINS: requiredList(environment, "CORS_ORIGINS"),
     JWT_ISSUER: requiredString(environment, "JWT_ISSUER"),
     JWT_SECRET: requiredSecret(environment, "JWT_SECRET"),
     OTP_CHALLENGE_TTL_SECONDS: positiveInteger(
@@ -101,6 +118,11 @@ export function validateEnvironment(
     ),
     OTP_VERIFIER_SECRET: requiredSecret(environment, "OTP_VERIFIER_SECRET"),
     PORT: positiveInteger(environment, "PORT"),
+    // Loopback unless a deployment explicitly opts in to another interface.
+    HOST:
+      typeof environment.HOST === "string" && environment.HOST.trim() !== ""
+        ? environment.HOST.trim()
+        : "127.0.0.1",
     REFRESH_TOKEN_TTL_SECONDS: positiveInteger(
       environment,
       "REFRESH_TOKEN_TTL_SECONDS",

@@ -1,4 +1,5 @@
-import { createContext, useCallback, useContext, useMemo, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
+import { authService } from './services/authService.js'
 import {
   VENDORS0, LISTINGS0, BOOKINGS0, RFQS0, LEADS0, CASES0, APPEALS0, USERS0, STAFF0, AGENTS0, AUDIT0,
   NOTIFS0, THREADS0, SETTINGS0, REVIEWS0, SUB_EVENTS, CAMPAIGNS0, ME, ME_C, MY_LOC, isPublished, gatesFor,
@@ -54,6 +55,7 @@ export const STATE_HI = {
 
 export function AppProvider({ children, initialMe }) {
   const [me, setMe] = useState(initialMe || { role: null, loggedIn: false, guest: false, vendorId: 'v-me', name: '', hasVendor: true, bizId: null })
+  useEffect(() => { if (!me.loggedIn) authService.endSession() }, [me.loggedIn])
   const [lang, setLang] = useState('en')
   const [loc, setLoc] = useState(MY_LOC)
   const [vendors, setVendors] = useState(VENDORS0)

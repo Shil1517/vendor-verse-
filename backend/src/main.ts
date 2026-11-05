@@ -25,6 +25,11 @@ async function bootstrap(): Promise<void> {
   app.useGlobalFilters(new ProblemDetailsFilter());
   app.enableShutdownHooks();
   const config = app.get(ConfigService);
+  app.enableCors({
+    origin: config.getOrThrow<string[]>("CORS_ORIGINS"),
+    allowedHeaders: ["authorization", "content-type"],
+    exposedHeaders: ["correlation-id"],
+  });
   const swaggerConfig = new DocumentBuilder()
     .setTitle("VendorVerse API")
     .setDescription(
@@ -35,7 +40,10 @@ async function bootstrap(): Promise<void> {
     .build();
   const swaggerDocument = SwaggerModule.createDocument(app, swaggerConfig);
   SwaggerModule.setup("docs", app, swaggerDocument);
-  await app.listen(config.getOrThrow<number>("PORT"), "127.0.0.1");
+  await app.listen(
+    config.getOrThrow<number>("PORT"),
+    config.getOrThrow<string>("HOST"),
+  );
 }
 
 void bootstrap();
