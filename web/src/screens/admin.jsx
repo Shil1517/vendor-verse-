@@ -1,3 +1,4 @@
+import { validateReviewDecision } from '../services/verification.js'
 import { useMemo, useState } from 'react'
 import {
   ShieldCheck, Package, Users, Store, CalendarCheck, FileText, IndianRupee, UserPlus, AlertTriangle, ChevronRight, Check, X, Layers, Tag, Settings,
@@ -211,7 +212,7 @@ export function AdminVendorNew() {
 
 export function AdminVendor({ params }) {
   const nav = useNav()
-  const { vendors, setVendors, patchVendor, addAudit, notify, toast, leads, patchLead, setCommissions, stamp } = useApp()
+  const { me, vendors, setVendors, patchVendor, addAudit, notify, toast, leads, patchLead, setCommissions, stamp } = useApp()
   const v = vendors.find((x) => x.id === (params.id || 'v8'))
   const [dlg, setDlg] = useState(null)
   const [reason, setReason] = useState('')
@@ -221,10 +222,11 @@ export function AdminVendor({ params }) {
   const allVerified = v.docs.every((d) => d.status === 'verified')
   const setDoc = (name, status, note) => patchVendor(v.id, (x) => ({ docs: x.docs.map((d) => (d.name === name ? { ...d, status, note } : d)) }))
   const act = (kind) => {
-    if (kind !== 'approved' && reason.trim().length < 5) return setErr('A reason is required (min 5 characters)')
-    patchVendor(v.id, (x) => ({ status: kind, history: [...x.history, { s: kind, at: stamp(), by: ME.admin, note: kind === 'approved' ? undefined : reason }], docs: kind === 'approved' ? x.docs.map((d) => ({ ...d, status: 'verified' })) : x.docs }))
-    addAudit(kind === 'approved' ? 'Approved vendor' : kind === 'rejected' ? 'Rejected vendor' : 'Requested more info from vendor', v.name, 'approval', kind === 'approved' ? undefined : reason)
-    notify('vendor', kind === 'approved' ? 'You are verified 🎉' : kind === 'rejected' ? 'Application rejected' : 'More information needed', kind === 'approved' ? 'Your business is now shown as Verified.' : reason, 'onboarding')
+    const check = validateReviewDecision({ kind, reason, reviewer: me, vendor: v })
+    if (!check.ok) return setErr(check.message)
+    patchVendor(v.id, (x) => ({ status: kind, history: [...x.history, { s: kind, at: stamp(), by: ME.admin, note: reason.trim() }], docs: kind === 'approved' ? x.docs.map((d) => ({ ...d, status: 'verified' })) : x.docs }))
+    addAudit(kind === 'approved' ? 'Approved vendor' : kind === 'rejected' ? 'Rejected vendor' : 'Requested more info from vendor', v.name, 'approval', reason.trim())
+    notify('vendor', kind === 'approved' ? 'You are verified 🎉' : kind === 'rejected' ? 'Application rejected' : 'More information needed', kind === 'approved' ? `Your business is now shown as Verified. ${reason.trim()}` : reason, 'onboarding')
     if (kind === 'approved') {
       const ld = leads.find((l) => l.vendorId === v.id)
       if (ld) patchLead(ld.id, { stage: 'Approved/Converted' })
@@ -240,7 +242,7 @@ export function AdminVendor({ params }) {
       subtitle={v.id}
       right={<StatusBadge s={v.status} className="mr-2" />}
       overlay={<><Dialog open={!!dlg} onClose={() => { setDlg(null); setErr('') }} title={dlg === 'approved' ? 'Approve this vendor?' : dlg === 'rejected' ? 'Reject application' : 'Request more information'} actions={<><Button variant="secondary" className="flex-1" onClick={() => { setDlg(null); setErr('') }}>Cancel</Button><Button variant={dlg === 'rejected' ? 'danger' : 'primary'} className="flex-1" onClick={() => act(dlg)}>{dlg === 'approved' ? 'Approve' : dlg === 'rejected' ? 'Reject' : 'Send request'}</Button></>}>
-          {dlg === 'approved' ? <p>{v.name} will be shown as <b>Verified</b> and can publish listings. This action is recorded in the audit log.</p> : <Input textarea rows={3} label="Reason (visible to vendor)" value={reason} onChange={(e) => { setReason(e.target.value); setErr('') }} error={err} placeholder={dlg === 'rejected' ? 'e.g. GSTIN inactive on portal' : 'e.g. Please re-upload a clear GST certificate'} />}
+          {dlg === 'approved' && <p className="mb-3">{v.name} will be shown as <b>Verified</b> and can publish listings. This action is recorded in the audit log.</p>}<Input textarea rows={3} label="Reason (visible to vendor)" value={reason} onChange={(e) => { setReason(e.target.value); setErr('') }} error={err} placeholder={dlg === 'approved' ? 'e.g. Registration and GSTIN match the portal' : dlg === 'rejected' ? 'e.g. GSTIN inactive on portal' : 'e.g. Please re-upload a clear GST certificate'} />
         </Dialog><Dialog open={deleteOpen} onClose={() => setDeleteOpen(false)} title={`Delete ${vendorKind(v).toLowerCase()} account?`} actions={<><Button variant="secondary" className="flex-1" onClick={() => setDeleteOpen(false)}>Cancel</Button><Button variant="danger" className="flex-1" onClick={() => { setVendors((all) => all.filter((x) => x.id !== v.id)); addAudit('Deleted vendor account', v.name, 'user'); toast('Account deleted'); setDeleteOpen(false); nav.go('ad_vendors') }}>Delete account</Button></>}><p>This removes <b>{v.name}</b> from the admin account directory in this demo. Existing audit history remains recorded.</p></Dialog></>}
       footer={<div className="space-y-2">{!allVerified && v.status !== 'approved' && <button onClick={() => v.docs.forEach((d) => setDoc(d.name, 'verified'))} className="w-full text-center text-xs font-bold text-brand-700">Mark all documents as verified</button>}<div className="flex gap-2"><Button variant="dangerSoft" className="flex-1" onClick={() => setDlg('rejected')}>Reject</Button><Button variant="secondary" className="flex-1" onClick={() => setDlg('info')}>Request info</Button><Button className="flex-1" disabled={!allVerified || v.status === 'approved'} onClick={() => setDlg('approved')}>Approve</Button></div><Button full variant="dangerSoft" icon={Trash2} onClick={() => setDeleteOpen(true)}>Delete {vendorKind(v).toLowerCase()} account</Button></div>}
     >

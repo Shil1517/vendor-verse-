@@ -5,6 +5,8 @@ import { useApp } from '../store.jsx'
 import { useNav } from '../nav.jsx'
 import { P2Badge, Page, Facts, Links, Checklist, SampleBadge } from './blocks.jsx'
 import { AppealQueue } from './p1-depth.jsx'
+import { computePublicationGates } from '../services/publicationGates.js'
+import { TRUST_LEVELS as TRUST_LEVELS_SVC, levelBadges } from '../services/verification.js'
 
 /* ============ vendor onboarding by type (F-VND-01, F-VND-02) ============ */
 export function RegisterType({ params = {} }) {
@@ -42,15 +44,8 @@ export function ListingGate() {
   const { me, vendor, listings } = useApp()
   const v = vendor(me.vendorId) || {}
   const mine = listings.filter((l) => l.vendorId === v.id)
-  const gates = [
-    ['Account state is active', me.accountState !== 'suspended' && me.accountState !== 'restricted', 'Restricted or suspended accounts cannot publish'],
-    ['Content review passed', mine.some((l) => l.status === 'approved'), 'At least one listing approved by an admin'],
-    ['Subscription allows another listing', !!v.plan, v.plan ? `${v.plan} plan` : 'Choose a plan'],
-    ['Category verification met', v.status === 'approved', 'Verification level required by the category'],
-    ['Required fields and service area set', (v.areas || []).length > 0, 'Category fields and at least one area'],
-    ['No holds on the account', true, 'Cases or compliance holds'],
-  ]
-  const ok = gates.filter((g) => g[1]).length
+  const { gates: liveGates, met: ok } = computePublicationGates({ me, vendor: v, listings })
+  const gates = liveGates.map((g) => [g.label, g.ok, g.hint])
   return <Page title="Publication checklist" subtitle={`${ok} of 6 gates met`}>
     <Banner tone={ok === 6 ? 'green' : 'amber'} title={ok === 6 ? 'You can publish' : 'Some gates are open'}>These are computed live each time. They are never stored, so they always reflect today.</Banner>
     <Checklist items={gates} />
@@ -85,16 +80,15 @@ export function Availability() {
 }
 
 /* ============ F-VND-09 / F-TRU-02 public profile with trust ============ */
-export const TRUST_LEVELS = [['L0', 'Registered'], ['L1', 'Contact verified'], ['L2', 'Business verified'], ['L3', 'Credential verified']]
+export const TRUST_LEVELS = TRUST_LEVELS_SVC
 export function PublicProfile({ params = {} }) {
   const { vendor, reviews } = useApp()
   const v = vendor(params.id || 'v-me')
   const rv = reviews.filter((r) => r.target === v.id)
-  const lvl = v.status === 'approved' ? 3 : 1
   return <Page title={v.name} subtitle="How customers see you">
     <Card className="space-y-3">
       <div className="flex items-center justify-between"><p className="text-sm font-bold">Trust</p>{rv.length ? <Badge tone="green">Trust score {Math.min(99, Math.round(v.rating * 20))}</Badge> : <Badge tone="gray">No reviews yet</Badge>}</div>
-      <div className="flex flex-wrap gap-2">{TRUST_LEVELS.slice(0, lvl + 1).map(([k, l]) => <Badge key={k} tone="teal"><ShieldCheck size={12} />{k} {l} · 06 Mar 2026</Badge>)}</div>
+      <div className="flex flex-wrap gap-2">{levelBadges(v).map(([k, l]) => <Badge key={k} tone="teal"><ShieldCheck size={12} />{k} {l} · 06 Mar 2026</Badge>)}</div>
       <div className="flex items-center gap-2 text-xs text-ink-500"><Badge tone="gray">L4 Third-party KYB</Badge><P2Badge /></div><p className="text-xs text-ink-500">Badges say what was verified and when. Trust is computed by the platform and cannot be bought.</p>
     </Card>
     <Facts rows={[['Since', v.since], ['Areas', (v.areas || []).join(', ')], ['Rating', v.rating ? `${v.rating} (${v.reviews})` : 'New']]} />

@@ -24,6 +24,7 @@ export class ProblemDetailsFilter implements ExceptionFilter {
       exception instanceof HttpException
         ? exception.message
         : "An unexpected error occurred";
+    const errors = this.validationErrors(exception);
 
     if (!(exception instanceof HttpException)) {
       this.logger.error(
@@ -41,6 +42,19 @@ export class ProblemDetailsFilter implements ExceptionFilter {
         status,
         detail: message,
         instance: request.path,
+        ...(errors ? { errors } : {}),
       });
+  }
+
+  private validationErrors(exception: unknown): string[] | undefined {
+    if (!(exception instanceof HttpException)) {
+      return undefined;
+    }
+    const body = exception.getResponse();
+    if (typeof body !== "object" || body === null || !("message" in body)) {
+      return undefined;
+    }
+    const { message } = body as { message: unknown };
+    return Array.isArray(message) ? message.map(String) : undefined;
   }
 }
