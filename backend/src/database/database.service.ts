@@ -11,7 +11,7 @@ export class DatabaseService implements OnModuleDestroy {
 
   query<Row extends QueryResultRow = QueryResultRow>(
     text: string,
-    values?: Array<string | number | boolean | Date | null>,
+    values?: Array<string | number | boolean | Date | string[] | null>,
   ): Promise<QueryResult<Row>> {
     return this.pool.query<Row>(text, values);
   }

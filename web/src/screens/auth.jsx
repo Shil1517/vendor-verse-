@@ -1,11 +1,11 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Phone, Mail, ShieldCheck, Store, User, Building2, ArrowRight, Lock, Sparkles, Truck, FileText, Globe } from 'lucide-react'
 import { useApp } from '../store.jsx'
 import { useNav } from '../nav.jsx'
 import { HOME, ROLES } from '../roles.js'
 import { ME } from '../data.jsx'
 import { Button, Input, Segmented, Screen, Checkbox, Banner, useForm, cx } from '../ui.jsx'
-import { authService, isEmail, isPhone, normalizePhone } from '../services/authService.js'
+import { authService, isEmail, isPhone, normalizePhone, roleForMode } from '../services/authService.js'
 import './auth-visuals.css'
 
 export function Logo({ size = 64, light }) {
@@ -163,10 +163,11 @@ export function Otp({ params }) {
   const [devCode, setDevCode] = useState('')
   const [sending, setSending] = useState(true)
   const [secs, setSecs] = useState(30)
-  const contactKey = contact.replace(/^\+\d+\s/, '')
+  const [checking, setChecking] = useState(false)
+  const verifying = useRef(false)
   const sendCode = async () => {
     setSending(true); setErr('')
-    const r = await authService.requestOtp(contactKey)
+    const r = await authService.requestOtp(contact)
     setSending(false)
     if (!r.ok) return setErr(r.message)
     setDevCode(r.devCode || '')
@@ -178,8 +179,13 @@ export function Otp({ params }) {
     const t = setTimeout(() => setSecs((s) => s - 1), 1000)
     return () => clearTimeout(t)
   }, [secs])
-  const verify = (candidate = code) => {
-    const r = authService.verifyOtp(contactKey, candidate)
+  const verify = async (candidate = code) => {
+    if (verifying.current) return
+    verifying.current = true
+    setChecking(true)
+    const r = await authService.verifyOtp(contact, candidate)
+    verifying.current = false
+    setChecking(false)
     if (!r.ok) return setErr(r.message)
     // Super Admin signs in with the same single OTP as every other role (owner request, 2026-10-30).
     if (mode === 'register') {
@@ -198,8 +204,10 @@ export function Otp({ params }) {
       }
       return
     }
-    signIn(role, {}, next || HOME[role], nextParams || {})
-    toast('Signed in successfully')
+    const accountRole = r.account ? roleForMode(r.account.currentMode) : role
+    const same = accountRole === role
+    signIn(accountRole, r.account ? { userId: r.account.userId } : {}, same ? next || HOME[role] : HOME[accountRole], same ? nextParams || {} : {})
+    toast(same ? 'Signed in successfully' : `Signed in to your ${accountRole} account`)
   }
   return (
     <Screen title="Verify OTP" pad={false} bg="bg-white">
@@ -230,7 +238,7 @@ export function Otp({ params }) {
           </div>
           {err && <p className="text-sm font-medium text-red-600" role="alert">{err}</p>}
           {devCode && <Banner tone="blue" title="Development mode: no SMS provider configured">The code for this request is <b>{devCode}</b>. A real provider replaces this banner. <button type="button" className="font-bold underline" onClick={() => { setCode(devCode); setErr(''); window.setTimeout(() => verify(devCode), 0) }}>Auto-fill</button></Banner>}
-          <Button full size="lg" disabled={sending} onClick={() => verify()}>{mode === 'register' ? 'Verify & create account' : 'Verify & log in'}</Button>
+          <Button full size="lg" disabled={sending || checking} onClick={() => verify()}>{mode === 'register' ? 'Verify & create account' : 'Verify & log in'}</Button>
           <p className="text-center text-sm text-ink-500">
             {secs > 0 ? `Resend code in 0:${String(secs).padStart(2, '0')}` : <button onClick={() => { sendCode().then(() => toast('A new OTP has been sent')) }} className="font-bold text-brand-700">Resend OTP</button>}
           </p>

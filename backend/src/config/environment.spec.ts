@@ -4,6 +4,7 @@ const validEnvironment: Record<string, string> = {
   APP_ENV: "test",
   DATABASE_URL: "postgresql://test:test@localhost/test",
   DATABASE_SSL: "false",
+  CORS_ORIGINS: "http://localhost:5173, http://localhost:5174",
   JWT_ISSUER: "test-issuer",
   JWT_SECRET: "test-only-jwt-secret-value-with-32-bytes",
   OTP_CHALLENGE_TTL_SECONDS: "10",
@@ -35,6 +36,26 @@ describe("validateEnvironment", () => {
     expect(() => validateEnvironment(environment)).toThrow(
       "Missing required environment variable: OTP_REQUEST_MAX",
     );
+  });
+
+  it("binds to loopback unless HOST is set", () => {
+    expect(validateEnvironment(validEnvironment).HOST).toBe("127.0.0.1");
+    expect(
+      validateEnvironment({ ...validEnvironment, HOST: " 0.0.0.0 " }).HOST,
+    ).toBe("0.0.0.0");
+  });
+
+  it("parses CORS_ORIGINS into a trimmed list", () => {
+    expect(validateEnvironment(validEnvironment).CORS_ORIGINS).toEqual([
+      "http://localhost:5173",
+      "http://localhost:5174",
+    ]);
+  });
+
+  it("rejects an empty CORS_ORIGINS list", () => {
+    expect(() =>
+      validateEnvironment({ ...validEnvironment, CORS_ORIGINS: " , " }),
+    ).toThrow("CORS_ORIGINS must list at least one origin");
   });
 
   it("rejects a non-boolean DATABASE_SSL value", () => {

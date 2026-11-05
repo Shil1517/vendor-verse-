@@ -1,7 +1,7 @@
 ﻿# VendorVerse — Release 1 mobile mockup
 
 Interactive mobile mockup of the **VendorVerse Comprehensive Product Requirements Specification** (ADRS Techno Private Limited, 19 Oct 2026).
-React 19 + Vite + Tailwind CSS v4. No backend — all data is mock data held in memory, but the business rules (publication gates, booking and quote state machines, subscription lifecycle, RBAC rules) are really evaluated, so the screens behave like the product would.
+React 19 + Vite + Tailwind CSS v4. All data except sign-in is mock data held in memory (sign-in can call the real backend auth API: copy `.env.example` to `.env.local` and set `VITE_API_BASE_URL`; the backend must list this app's origin in `CORS_ORIGINS`), but the business rules (publication gates, booking and quote state machines, subscription lifecycle, RBAC rules) are really evaluated, so the screens behave like the product would.
 
 ```bash
 npm install
@@ -40,3 +40,9 @@ Product checkout, platform-held payments, vendor staff accounts, enterprise proc
 
 ## Structure
 `src/data.jsx` mock data + publication logic · `src/store.jsx` shared state · `src/ui.jsx` design kit · `src/registry.jsx` screen map (with spec/scenario links) · `src/specs.js` spec content · `src/screens/*` — `customer1` discovery · `customer_book` bookings · `customer_rfq` RFQs · `customer_misc` activity/chat/reviews/cases/profile · `vendor_a` onboarding & listings · `vendor_b` work, quotes, subscription · `agent` · `admin_a` queues & cases · `admin_b` subscriptions, RBAC, config, analytics, audit.
+
+## Change Log
+
+| Date & time (YYYY-MM-DD HH:MM, local) | Updated by | Change | Reason |
+|---|---|---|---|
+| 2026-11-05 11:11 | Shil1517 | Added: optional real auth API for sign-in (VITE_API_BASE_URL) | Backend auth/account APIs now exist; web and mobile share one client (OTP, session, refresh, logout, role from GET /me) and fall back to the mock when no API URL is set. |

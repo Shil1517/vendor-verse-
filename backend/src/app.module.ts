@@ -4,6 +4,7 @@ import { AccountsModule } from "./accounts/accounts.module";
 import { AuthModule } from "./auth/auth.module";
 import { DatabaseModule } from "./database/database.module";
 import { HealthController } from "./health/health.controller";
+import { TaxonomyModule } from "./taxonomy/taxonomy.module";
 import { validateEnvironment } from "./config/environment";
 
 @Module({
@@ -15,6 +16,7 @@ import { validateEnvironment } from "./config/environment";
     DatabaseModule,
     AuthModule,
     AccountsModule,
+    TaxonomyModule,
   ],
   controllers: [HealthController],
 })

@@ -7,6 +7,7 @@ import { CATS } from './data.jsx'
 import { clearState, loadState, saveState } from './services/browserRepository.js'
 import { COMPANIES_SEED } from './bizdata.js'
 import { can, ownsCustomerRecord, ownsVendor } from './services/authorization.js'
+import { authService } from './services/authService.js'
 
 const Ctx = createContext(null)
 export const useApp = () => useContext(Ctx)
@@ -86,6 +87,7 @@ export function AppProvider({ children, initialMe }) {
   }), [])
   const restored = useMemo(() => loadState(seed), [seed])
   const [me, setMe] = useState(initialMe || restored.me)
+  useEffect(() => { if (!me.loggedIn) authService.endSession() }, [me.loggedIn])
   const [lang, setLang] = useState(restored.lang)
   const [locale, setLocale] = useState(() => normalizeLocale(restored.locale))
   const [vendors, setVendors] = useState(restored.vendors)
