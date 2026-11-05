@@ -6,7 +6,7 @@ The backend language and framework are TypeScript with NestJS (D-016). Other tec
 
 The current product-wide logical model is [06-database-architecture-erd.md](../mobile/docs/deliverables/06-database-architecture-erd.md). It maps the existing feature scope and PRS data/integrity requirements; it is not a physical schema or evidence that a database has been implemented. Proposed technology choices and module boundaries above remain unchanged.
 
-The explicitly authorized PostgreSQL 16 migration drafts for users, roles, vendors, categories, and auth security controls are in `backend/db/migrations/`. The backend implementation is being established under `backend/`; the mobile client technology remains open under O-13.
+The PostgreSQL 16 schema for the whole Phase 1 scope (identity, geography and markets, taxonomy, vendors and verification, listings, bookings, RFQ and quotes, purchase orders, contracts, messaging, reviews, cases, notifications, subscriptions, agents, audit and admin configuration) is in `backend/db/migrations/` (001-013), with idempotent seeds in `backend/db/seeds/`. Phase 2, Phase 3 and OPEN features have no tables; the modelling choices are in section 10 of [the logical data model](../mobile/docs/deliverables/06-database-architecture-erd.md). The backend implementation is being established under `backend/`; the mobile client technology remains open under O-13.
 
 ## 1. Shape of the system
 
@@ -174,6 +174,7 @@ Rules:
 
 | Date & time (YYYY-MM-DD HH:MM, local) | Updated by | Change | Reason |
 |---|---|---|---|
+| 2026-11-05 12:16 | Shil1517 | Modified: PostgreSQL migration scope reference (migrations 004-013 added) | Schema extended from the auth/vendor/taxonomy slice to the full Phase 1 data model so APIs on web and mobile share one consistent store. |
 | 2026-11-04 15:37 | Amit | Modified: PostgreSQL migration scope reference | Include the auth challenge and request-limit support migration added for the F-ACC implementation slice. |
 | 2026-11-04 15:32 | Amit | Modified: NestJS source layout | Document the application bootstrap and first active modules without changing the modular-monolith boundaries. |
 | 2026-11-04 15:24 | Amit | Modified: backend language and framework | Record owner decision D-016 while leaving mobile technology and other proposed infrastructure unchanged. |

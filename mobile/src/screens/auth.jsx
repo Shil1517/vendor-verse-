@@ -132,7 +132,7 @@ export function Login() {
 }
 
 export function Otp({ params }) {
-  const { contact = '+91 98290 00001', role = 'customer', mode, name, biz } = params
+  const { contact = '+91 98290 00001', role = 'customer', mode, name, email, biz } = params
   const nav = useNav()
   const { setMe, toast } = useApp()
   const signIn = useSignIn()
@@ -168,6 +168,23 @@ export function Otp({ params }) {
     verifying.current = false
     setChecking(false)
     if (!r.ok) return setErr(r.message)
+    // F-ACC-06: the server holds the name and email. Sign-up saves what it collected (without overwriting an
+    // existing profile); plain sign-in reads the stored profile so an account with no name is asked for one.
+    let profile = null
+    if (authService.isRemote) {
+      const stored = await authService.getProfile()
+      profile = stored.ok ? stored.profile : null
+      if (mode === 'register' && stored.ok) {
+        const patch = {}
+        if (!profile.displayName && name) patch.displayName = name
+        if (!profile.email && email) patch.email = email
+        if (Object.keys(patch).length) {
+          const saved = await authService.saveProfile(patch)
+          if (saved.ok) profile = saved.profile
+          else toast('Account created, but your details were not saved. Add them from Edit profile.')
+        }
+      }
+    }
     if (step === 0 && needsMfaStep) { setStep(1); setCode(''); setErr(''); sendCode('mfa'); return }
     if (mode === 'register') {
       if (role === 'business') {
@@ -187,7 +204,14 @@ export function Otp({ params }) {
     }
     const accountRole = r.account ? roleForMode(r.account.currentMode) : role
     const same = accountRole === role
-    signIn(accountRole, r.account ? { userId: r.account.userId } : {})
+    const needsName = authService.isRemote && accountRole === 'customer' && !profile?.displayName
+    const extra = { ...(r.account ? { userId: r.account.userId } : {}), ...(profile?.displayName ? { name: profile.displayName } : authService.isRemote ? { name: 'Customer' } : {}) }
+    signIn(accountRole, extra)
+    if (needsName) {
+      nav.reset('c_profile_edit', { firstRun: true })
+      toast('Welcome! Add your name to finish your profile.')
+      return
+    }
     toast(same ? 'Signed in successfully' : `Signed in to your ${accountRole} account`)
   }
   return (
@@ -235,7 +259,7 @@ export function Register() {
     if (role === 'business' && f.biz.trim().length < 3) e.biz = 'Enter the registered company name'
     if (!f.agree) e.agree = 'Please accept to continue'
     setErrs(e)
-    if (Object.keys(e).length === 0) nav.go('otp', { contact: `+91 ${f.phone}`, role, mode: 'register', name: f.name, biz: f.biz })
+    if (Object.keys(e).length === 0) nav.go('otp', { contact: `+91 ${f.phone}`, role, mode: 'register', name: f.name, email: f.email, biz: f.biz })
   }
   return (
     <Screen title="Create account" pad={false} bg="bg-white">

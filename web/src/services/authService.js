@@ -35,6 +35,9 @@ export const AUTH_ERRORS = {
   PRIVILEGED_BLOCKED: 'PRIVILEGED_BLOCKED',
   NETWORK: 'NETWORK',
   PROVIDER_ERROR: 'PROVIDER_ERROR',
+  INVALID_PROFILE: 'INVALID_PROFILE',
+  NOT_FOUND: 'NOT_FOUND',
+  CONFLICT: 'CONFLICT',
 }
 
 export const AUTH_MESSAGES = {
@@ -49,6 +52,9 @@ export const AUTH_MESSAGES = {
   PRIVILEGED_BLOCKED: 'Sales Agent and Super Admin sign-in is not available yet.',
   NETWORK: 'Cannot reach the server. Check your connection and try again.',
   PROVIDER_ERROR: 'We could not complete that. Please try again.',
+  INVALID_PROFILE: 'Check your details and try again.',
+  NOT_FOUND: 'That item no longer exists.',
+  CONFLICT: 'That change is not allowed. Choose another option.',
 }
 
 export const isEmail = (s) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(s || ''))
@@ -148,7 +154,7 @@ export function canonicalIdentifier(contact) {
 
 /**
  * Real API client for F-ACC-01 (POST /auth/otp/request, /auth/otp/verify, /auth/refresh,
- * /auth/logout and GET /me). Same interface as the mock, except verifyOtp is async and
+ * /auth/logout and GET /me) and F-ACC-06 (/me/profile, /me/locations). Same interface as the mock, except verifyOtp is async and
  * resolves with the signed-in `account` ({ userId, currentMode, availableModes }).
  * The server owns OTP limits and role; nothing here is a policy value.
  *
@@ -256,7 +262,49 @@ export function createApiAuthService({ baseUrl, fetchImpl = (...args) => globalT
     }
   }
 
-  return { requestOtp, verifyOtp, endSession, isRemote: true }
+
+  /* ---- F-ACC-06 customer profile and saved locations (all calls are for the signed-in user) ---- */
+  const profileFail = (r) => {
+    if (r.status === 0) return fail(AUTH_ERRORS.NETWORK)
+    if (r.status === 400) return fail(AUTH_ERRORS.INVALID_PROFILE)
+    if (r.status === 404) return fail(AUTH_ERRORS.NOT_FOUND)
+    if (r.status === 409) return fail(AUTH_ERRORS.CONFLICT)
+    return fail(AUTH_ERRORS.PROVIDER_ERROR)
+  }
+
+  /** GET /me/profile -> { ok, profile: { displayName, phone, email, emailVerified, customerType, companyName, locale } } */
+  async function getProfile() {
+    const r = await authed('/me/profile', { method: 'GET' })
+    return r.status === 200 ? { ok: true, profile: r.data } : profileFail(r)
+  }
+
+  /** PATCH /me/profile. Omitted fields stay as they are; email: null clears it. */
+  async function saveProfile(patch) {
+    const r = await authed('/me/profile', { method: 'PATCH', body: patch })
+    return r.status === 200 ? { ok: true, profile: r.data } : profileFail(r)
+  }
+
+  async function listLocations() {
+    const r = await authed('/me/locations', { method: 'GET' })
+    return r.status === 200 ? { ok: true, locations: r.data.locations } : profileFail(r)
+  }
+
+  async function addLocation(location) {
+    const r = await authed('/me/locations', { method: 'POST', body: location })
+    return r.status === 201 ? { ok: true, location: r.data } : profileFail(r)
+  }
+
+  async function updateLocation(id, patch) {
+    const r = await authed(`/me/locations/${encodeURIComponent(id)}`, { method: 'PATCH', body: patch })
+    return r.status === 200 ? { ok: true, location: r.data } : profileFail(r)
+  }
+
+  async function removeLocation(id) {
+    const r = await authed(`/me/locations/${encodeURIComponent(id)}`, { method: 'DELETE' })
+    return r.status === 204 ? { ok: true } : profileFail(r)
+  }
+
+  return { requestOtp, verifyOtp, endSession, getProfile, saveProfile, listLocations, addLocation, updateLocation, removeLocation, isRemote: true }
 }
 
 const apiBaseUrl = import.meta.env?.VITE_API_BASE_URL

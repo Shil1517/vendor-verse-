@@ -16,6 +16,7 @@ import {
 } from '../ui.jsx'
 import { ListingCard, VendorRow, VerifiedBadge, useGate, useStartChat } from './shared.jsx'
 import { useSignIn } from './auth.jsx'
+import { authService } from '../services/authService.js'
 
 const ME_NAME = 'Aarav Mehta'
 const dateAfterISO = (days = 1) => { const d = new Date(); d.setDate(d.getDate() + days); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}` }
@@ -528,25 +529,63 @@ export function Profile() {
   )
 }
 
-export function ProfileEdit() {
+const fmtPhone = (p) => (/^\+91\d{10}$/.test(p || '') ? `+91 ${p.slice(3, 8)} ${p.slice(8)}` : p || '')
+
+export function ProfileEdit({ params = {} }) {
   const nav = useNav()
   const { me, setMe, toast, locale, setLocale } = useApp()
-  const [f, setF] = useState({ name: me.name || ME_NAME, email: 'aarav.mehta@gmail.com', city: locale.city || 'Jaipur', address: '24, Vaishali Nagar, Jaipur 302021' })
+  const remote = Boolean(authService.isRemote) // real API: name, email and address live on the server (F-ACC-06)
+  const [f, setF] = useState(remote ? { name: '', email: '', city: locale.city || 'Jaipur', address: '' } : { name: me.name || ME_NAME, email: 'aarav.mehta@gmail.com', city: locale.city || 'Jaipur', address: '24, Vaishali Nagar, Jaipur 302021' })
+  const [phone, setPhone] = useState('+91 98290 00001')
+  const [emailOk, setEmailOk] = useState(false)
+  const [homeLoc, setHomeLoc] = useState(null)
+  const [loading, setLoading] = useState(remote)
+  const [saving, setSaving] = useState(false)
   const [errs, setErrs] = useState({})
-  const save = () => {
+  useEffect(() => {
+    if (!remote) return undefined
+    let live = true
+    ;(async () => {
+      const [p, l] = await Promise.all([authService.getProfile(), authService.listLocations()])
+      if (!live) return
+      if (p.ok) {
+        setF((x) => ({ ...x, name: p.profile.displayName || '', email: p.profile.email || '' }))
+        setEmailOk(Boolean(p.profile.emailVerified))
+        if (p.profile.phone) setPhone(fmtPhone(p.profile.phone))
+      } else toast(p.message)
+      const home = l.ok ? l.locations.find((x) => x.isDefault) : null
+      if (home) { setHomeLoc(home); setF((x) => ({ ...x, address: home.addressText })) }
+      setLoading(false)
+    })()
+    return () => { live = false }
+  }, [])
+  const save = async () => {
     const e = {}
     if (f.name.trim().length < 3) e.name = 'Name is required'
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(f.email)) e.email = 'Enter a valid email'
+    if (f.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(f.email)) e.email = 'Enter a valid email'
     setErrs(e)
     if (Object.keys(e).length) return
-    setMe({ ...me, name: f.name }); const place = findCity(f.city); if (place && f.city !== locale.city) setLocale({ ...locale, ...place, pincode: '' }); toast('Profile updated'); nav.back()
+    if (remote) {
+      setSaving(true)
+      const r = await authService.saveProfile({ displayName: f.name.trim(), email: f.email.trim() ? f.email.trim() : null })
+      const address = f.address.trim()
+      let loc = { ok: true }
+      if (r.ok && address && (!homeLoc || homeLoc.addressText !== address)) {
+        loc = homeLoc ? await authService.updateLocation(homeLoc.id, { addressText: address }) : await authService.addLocation({ label: 'Home', addressText: address, isDefault: true })
+      }
+      setSaving(false)
+      if (!r.ok || !loc.ok) { const msg = (r.ok ? loc : r).message; setErrs({ form: msg }); return toast(msg) }
+    }
+    setMe({ ...me, name: f.name.trim() }); const place = findCity(f.city); if (place && f.city !== locale.city) setLocale({ ...locale, ...place, pincode: '' }); toast('Profile updated')
+    if (params.firstRun) nav.reset('c_home'); else nav.back()
   }
   return (
-    <Screen title="Edit profile" footer={<Button full size="lg" onClick={save}>Save changes</Button>}>
+    <Screen title="Edit profile" footer={<Button full size="lg" disabled={loading || saving} onClick={save}>{saving ? 'Saving…' : 'Save changes'}</Button>}>
       <div className="flex justify-center py-2"><div className="relative"><Avatar name={f.name || 'A'} size={84} /><span className="absolute -bottom-1 -right-1 grid size-8 place-items-center rounded-full bg-brand-600 text-white ring-4 ring-ink-50"><ImagePlus size={15} /></span></div></div>
+      {errs.form && <p role="alert" className="text-center text-sm font-medium text-red-600">{errs.form}</p>}
       <Input label="Full name" required value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} error={errs.name} />
-      <Input label="Mobile number" value="+91 98290 00001" readOnly hint="Verified · contact support to change" />
-      <Input label="Email" type="email" value={f.email} onChange={(e) => setF({ ...f, email: e.target.value })} error={errs.email} />
+      <Input label="Mobile number" value={phone} readOnly hint="Verified · contact support to change" />
+      <Input label="Email" type="email" value={f.email} onChange={(e) => setF({ ...f, email: e.target.value })} error={errs.email} hint={remote && f.email ? (emailOk ? 'Verified' : 'Not verified yet — email verification is coming soon') : undefined} />
       <Select label="City" value={f.city} onChange={(e) => setF({ ...f, city: e.target.value })} options={['Jaipur', 'Delhi NCR', 'Ajmer', 'Sikar']} />
       <Input label="Default address" textarea rows={2} value={f.address} onChange={(e) => setF({ ...f, address: e.target.value })} />
     </Screen>

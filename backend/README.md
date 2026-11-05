@@ -19,7 +19,8 @@ Idempotency-Key handling and audit/outbox integration are also not implemented.
    policy.
 4. Install dependencies with `npm install`, apply the migrations with
    `npm run db:migrate` (applies `db/migrations/*.up.sql` in order and records
-   them in `schema_migrations`; safe to re-run), then run `npm run start:dev`.
+   them with a checksum in `schema_migrations`; safe to re-run), then run
+   `npm run start:dev`. See "Database" below for status, rollback and verification.
 
 The local/test OTP is `123456`; it is not sent by SMS or email. The application
 rejects non-local/test configuration and `NODE_ENV=production` while this
@@ -64,10 +65,46 @@ persisted, unrevoked session.
 Run `npm run build`, `npm test`, and `npm run lint` from this directory. Tests
 use explicit test configuration and do not require a live database.
 
+## Database
+
+PostgreSQL 16. The schema covers the whole Phase 1 scope; the table-by-domain map and the
+modelling decisions are in `mobile/docs/deliverables/06-database-architecture-erd.md` (section 10).
+
+| Command | Does |
+|---|---|
+| `npm run db:migrate` | Applies pending `db/migrations/*.up.sql`. Takes an advisory lock, so two deploys cannot race. |
+| `npm run db:status` | Lists applied / pending migrations and flags any applied file that was edited afterwards. |
+| `npm run db:seed` | Idempotent reference data: Phase 1 industries, India launch geography (every market **not live**), CFG-01..19 register. |
+| `npm run db:rollback` | Reverts the latest migration with its `*.down.sql`. Destructive; needs `ALLOW_DESTRUCTIVE_DOWN=true`. |
+| `npm run db:verify` | Applies everything, tries to break the integrity rules, rolls all back and re-applies. **Drops every table**, so it refuses any host except localhost. |
+
+Rules for changing the schema:
+
+- **Never edit an applied migration.** The runner stores a SHA-256 per file and fails if one changes. Add the next numbered migration with a matching `.down.sql`.
+- Money is integer minor units plus an ISO-4217 code. Instants are `timestamptz` (UTC); local schedules keep an explicit time zone.
+- A vocabulary is a `CHECK` only when the spec or PRS defines it. Anything still open (CFG/O items) is a non-empty `text` column with a comment, so the owner's decision needs no data migration.
+- Snapshots, versions and audit rows are protected by `prevent_row_mutation()` triggers. Do not work around them; insert a new version.
+- Run `npm run db:verify` against a throwaway local Postgres before opening a PR that touches `db/`.
+
+## Customer profile (F-ACC-06)
+
+All routes need a bearer token and act on the signed-in user only (contract: `packages/api-contract/profile.openapi.yaml`).
+
+| Route | Does |
+|---|---|
+| `GET /v1/me/profile` | Name, verified phone, contact email, `emailVerified`, customer type, locale. |
+| `PATCH /v1/me/profile` | Partial update; `email: null` clears the email. The phone cannot be changed here. |
+| `GET/POST /v1/me/locations` | List (default first) and add saved locations. The first one is the default. |
+| `PATCH/DELETE /v1/me/locations/:id` | Edit, move the default, or delete. Someone else's id returns 404. |
+
+The email is stored **unverified** and is not a sign-in identifier; verification needs email OTP delivery (CFG-07, open). Name, email and addresses are collected by the Create account screen and saved right after OTP verification; an account that has no name yet is sent to Edit profile after its first sign-in.
+
 ## Change Log
 
 | Date & time (YYYY-MM-DD HH:MM, local) | Updated by | Change | Reason |
 |---|---|---|---|
+| 2026-11-05 13:05 | Shil1517 | Added: customer profile and saved-location routes, migration 014, DTO/service tests | F-ACC-06: sign-up collected a name and email but nothing stored them. |
+| 2026-11-05 12:16 | Shil1517 | Added: migrations 004-013 (full Phase 1 schema), upgraded migration runner (advisory lock, checksums, status, guarded rollback), `db:verify`, geography and CFG-register seeds; applied to the Render database | Web and mobile need one consistent store before more APIs are built; production runs need safe, auditable migrations. |
 | 2026-11-05 11:27 | Shil1517 | Added: optional `HOST` setting (default 127.0.0.1) | A hosted deployment must bind to 0.0.0.0 for the platform router to reach the process; local behaviour is unchanged. |
 | 2026-11-05 11:22 | Shil1517 | Added: public taxonomy routes, `npm run db:seed` and the Phase 1 industries seed | Implements the F-TAX-01 / F-TAX-08 public reads from packages/api-contract/taxonomy.openapi.yaml. |
 | 2026-11-05 11:11 | Shil1517 | Added: required `CORS_ORIGINS` setting and CORS support | Browser clients (web and mobile mockups) call the auth API from a different origin; only listed origins are allowed. |
