@@ -1,3 +1,4 @@
+import { authService } from '../services/authService.js'
 import { useEffect, useState } from 'react'
 import { Phone, Mail, ShieldCheck, Store, User, Building2, ArrowRight, Lock, CalendarCheck, FileText, Globe, Search, Ban, Hourglass, Trash2, CheckCircle2, XCircle } from 'lucide-react'
 import { useApp } from '../store.jsx'
@@ -139,16 +140,28 @@ export function Otp({ params }) {
   const [err, setErr] = useState('')
   const [step, setStep] = useState(0)
   const [secs, setSecs] = useState(30)
+  const [devCode, setDevCode] = useState('')
+  const [sending, setSending] = useState(true)
+  const contactKey = contact.replace(/^\+\d+\s/, '')
+  const factor = step === 0 ? 'otp' : 'mfa'
+  const sendCode = async (f = factor) => {
+    setSending(true); setErr('')
+    const r = await authService.requestOtp(contactKey, { factor: f })
+    setSending(false)
+    if (!r.ok) return setErr(r.message)
+    setDevCode(r.devCode || '')
+    setSecs(30)
+  }
+  useEffect(() => { sendCode('otp') }, [])
   useEffect(() => {
     if (secs <= 0) return
     const t = setTimeout(() => setSecs((s) => s - 1), 1000)
     return () => clearTimeout(t)
   }, [secs])
-  const target = step === 0 ? '123456' : '654321'
   const verify = () => {
-    if (code.length < 6) return setErr('Enter all 6 digits')
-    if (code !== target) return setErr(step === 0 ? 'Incorrect OTP. Please check and try again.' : 'Incorrect authenticator code.')
-    if (step === 0 && role === 'admin') { setStep(1); setCode(''); setErr(''); return }
+    const r = authService.verifyOtp(contactKey, code, { factor })
+    if (!r.ok) return setErr(r.message)
+    if (step === 0 && role === 'admin') { setStep(1); setCode(''); setErr(''); sendCode('mfa'); return }
     if (mode === 'register') {
       if (role === 'business') {
         setMe({ role: 'business', loggedIn: true, guest: false, vendorId: null, hasVendor: false, bizId: 'biz-me', name: name || ME.business, biz })
@@ -187,11 +200,11 @@ export function Otp({ params }) {
           <input autoFocus aria-label="One-time code" inputMode="numeric" maxLength={6} value={code} onChange={(e) => { setCode(e.target.value.replace(/\D/g, '')); setErr('') }} className="absolute inset-0 h-full w-full cursor-text opacity-0" />
         </div>
         {err && <p className="text-sm font-medium text-red-600">{err}</p>}
-        <Banner tone="blue" title="Demo mode">Use <b>{target}</b> as the {step === 0 ? 'OTP' : 'authenticator code'}. <button className="font-bold underline" onClick={() => { setCode(target); setErr('') }}>Auto-fill</button></Banner>
-        <Button full size="lg" onClick={verify}>{step === 0 && role === 'admin' ? 'Continue' : mode === 'register' ? 'Verify & create account' : 'Verify & log in'}</Button>
+        {devCode && <Banner tone="blue" title="Development mode: no SMS provider configured">The code for this request is <b>{devCode}</b>. A real provider replaces this banner. <button className="font-bold underline" onClick={() => { setCode(devCode); setErr('') }}>Auto-fill</button></Banner>}
+        <Button full size="lg" disabled={sending} onClick={verify}>{step === 0 && role === 'admin' ? 'Continue' : mode === 'register' ? 'Verify & create account' : 'Verify & log in'}</Button>
         {step === 0 && (
           <p className="text-center text-sm text-ink-500">
-            {secs > 0 ? `Resend code in 0:${String(secs).padStart(2, '0')}` : <button onClick={() => { setSecs(30); toast('A new OTP has been sent') }} className="font-bold text-brand-700">Resend OTP</button>}
+            {secs > 0 ? `Resend code in 0:${String(secs).padStart(2, '0')}` : <button onClick={() => { sendCode().then(() => toast('A new OTP has been sent')) }} className="font-bold text-brand-700">Resend OTP</button>}
           </p>
         )}
       </div>

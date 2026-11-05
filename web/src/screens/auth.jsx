@@ -5,6 +5,7 @@ import { useNav } from '../nav.jsx'
 import { HOME, ROLES } from '../roles.js'
 import { ME } from '../data.jsx'
 import { Button, Input, Segmented, Screen, Checkbox, Banner, useForm, cx } from '../ui.jsx'
+import { authService, isEmail, isPhone, normalizePhone } from '../services/authService.js'
 import './auth-visuals.css'
 
 export function Logo({ size = 64, light }) {
@@ -89,12 +90,7 @@ export function Welcome() {
   )
 }
 
-const normalizePhone = (value = '') => String(value).replace(/\D/g, '').slice(-10)
-const isPhone = (value) => normalizePhone(value).length === 10
-const isEmail = (s) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s)
-/* One demo OTP for every role, including Super Admin: the code is asked once. */
-const DEMO_OTP = '123456'
-const ADMIN_MFA = '654321'
+/* OTP codes come from services/authService.js (random per request, mock provider shows the code). Super Admin is asked once on web; the mobile second step is open item O-14. */
 
 export function Login({ params = {} }) {
   const nav = useNav()
@@ -164,17 +160,27 @@ export function Otp({ params }) {
   const signIn = useSignIn()
   const [code, setCode] = useState('')
   const [err, setErr] = useState('')
-  const [step, setStep] = useState(0)
+  const [devCode, setDevCode] = useState('')
+  const [sending, setSending] = useState(true)
   const [secs, setSecs] = useState(30)
+  const contactKey = contact.replace(/^\+\d+\s/, '')
+  const sendCode = async () => {
+    setSending(true); setErr('')
+    const r = await authService.requestOtp(contactKey)
+    setSending(false)
+    if (!r.ok) return setErr(r.message)
+    setDevCode(r.devCode || '')
+    setSecs(30)
+  }
+  useEffect(() => { sendCode() }, [])
   useEffect(() => {
     if (secs <= 0) return
     const t = setTimeout(() => setSecs((s) => s - 1), 1000)
     return () => clearTimeout(t)
   }, [secs])
-  const target = step === 0 ? DEMO_OTP : ADMIN_MFA
   const verify = (candidate = code) => {
-    if (candidate.length < 6) return setErr('Enter all 6 digits')
-    if (candidate !== target) return setErr(step === 0 ? 'Incorrect OTP. Please check and try again.' : 'Incorrect authenticator code.')
+    const r = authService.verifyOtp(contactKey, candidate)
+    if (!r.ok) return setErr(r.message)
     // Super Admin signs in with the same single OTP as every other role (owner request, 2026-10-30).
     if (mode === 'register') {
       if (role === 'business') {
@@ -196,11 +202,11 @@ export function Otp({ params }) {
     toast('Signed in successfully')
   }
   return (
-    <Screen title={step === 0 ? 'Verify OTP' : 'Two-step verification'} pad={false} bg="bg-white">
+    <Screen title="Verify OTP" pad={false} bg="bg-white">
       <div className="vv-otp-stage">
         <div className="vv-otp-card">
           <div className="vv-otp-heading">
-            <div className="grid size-14 place-items-center rounded-2xl bg-brand-50 text-brand-700">{step === 0 ? <ShieldCheck size={28} /> : <Lock size={28} />}</div>
+            <div className="grid size-14 place-items-center rounded-2xl bg-brand-50 text-brand-700"><ShieldCheck size={28} /></div>
             <div className="vv-otp-scene" aria-hidden="true">
               <div className="vv-otp-orbit vv-otp-orbit-one" /><div className="vv-otp-orbit vv-otp-orbit-two" />
               <div className="vv-otp-mini-cube"><span>V</span><span>+</span><span>✓</span></div>
@@ -209,9 +215,9 @@ export function Otp({ params }) {
           </div>
           <div className="vv-otp-copy">
             <p className="vv-login-eyebrow">SECURE ACCOUNT ACCESS</p>
-            <h2 className="text-2xl font-extrabold tracking-tight">{step === 0 ? 'Enter the code' : 'Authenticator code'}</h2>
+            <h2 className="text-2xl font-extrabold tracking-tight">Enter the code</h2>
             <p className="mt-1 text-sm text-ink-500">
-              {step === 0 ? <>We sent a 6-digit code to <b className="text-ink-800">{contact}</b></> : 'Super Admin accounts require a second factor. Open your authenticator app and enter the current code.'}
+              {sending ? 'Sending your code…' : <>We sent a 6-digit code to <b className="text-ink-800">{contact}</b></>}
             </p>
           </div>
           <div className="vv-otp-entry relative">
@@ -223,13 +229,11 @@ export function Otp({ params }) {
             <input autoFocus aria-label="One-time code" inputMode="numeric" maxLength={6} value={code} onChange={(e) => { const nextCode = e.target.value.replace(/\D/g, '').slice(0, 6); setCode(nextCode); setErr(''); if (nextCode.length === 6) window.setTimeout(() => verify(nextCode), 0) }} className="absolute inset-0 h-full w-full cursor-text opacity-0" />
           </div>
           {err && <p className="text-sm font-medium text-red-600" role="alert">{err}</p>}
-          <Banner tone="blue" title="Access code">Use <b>{target}</b> as the {step === 0 ? `${role === 'admin' ? 'Super Admin' : role === 'agent' ? 'Sales Agent' : role === 'business' ? 'Business / Company supplier' : role} OTP` : 'authenticator code'}. <button type="button" className="font-bold underline" onClick={() => { setCode(target); setErr(''); window.setTimeout(() => verify(target), 0) }}>Auto-fill</button></Banner>
-          <Button full size="lg" onClick={verify}>{step === 0 && role === 'admin' ? 'Continue' : mode === 'register' ? 'Verify & create account' : 'Verify & log in'}</Button>
-          {step === 0 && (
-            <p className="text-center text-sm text-ink-500">
-              {secs > 0 ? `Resend code in 0:${String(secs).padStart(2, '0')}` : <button onClick={() => { setSecs(30); toast('A new OTP has been sent') }} className="font-bold text-brand-700">Resend OTP</button>}
-            </p>
-          )}
+          {devCode && <Banner tone="blue" title="Development mode: no SMS provider configured">The code for this request is <b>{devCode}</b>. A real provider replaces this banner. <button type="button" className="font-bold underline" onClick={() => { setCode(devCode); setErr(''); window.setTimeout(() => verify(devCode), 0) }}>Auto-fill</button></Banner>}
+          <Button full size="lg" disabled={sending} onClick={() => verify()}>{mode === 'register' ? 'Verify & create account' : 'Verify & log in'}</Button>
+          <p className="text-center text-sm text-ink-500">
+            {secs > 0 ? `Resend code in 0:${String(secs).padStart(2, '0')}` : <button onClick={() => { sendCode().then(() => toast('A new OTP has been sent')) }} className="font-bold text-brand-700">Resend OTP</button>}
+          </p>
         </div>
       </div>
     </Screen>

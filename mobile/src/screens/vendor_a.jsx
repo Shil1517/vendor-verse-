@@ -102,7 +102,7 @@ export function VendorRegister({ params = {} }) {
   const { me, setMe, setVendors, notify, toast, stamp } = useApp()
   const [step, setStep] = useState(0)
   const [vtype, setVtype] = useState(params.type || null)
-  const [f, setF] = useState({ name: me.biz || '', owner: me.name || '', gstin: '', pan: '', email: '', years: '2020', cats: ['home'], subs: [], areas: ['Jaipur'], pins: '', ans: {}, lang: ['English', 'Hindi'], contact: 'chat' })
+  const [f, setF] = useState({ country: 'India', name: me.biz || '', owner: me.name || '', gstin: '', pan: '', email: '', years: '2020', cats: ['home'], subs: [], areas: ['Jaipur'], pins: '', ans: {}, lang: ['English', 'Hindi'], contact: 'chat' })
   const [docs, setDocs] = useState({})
   const [consent, setConsent] = useState(false)
   const [errs, setErrs] = useState({})
@@ -143,6 +143,7 @@ export function VendorRegister({ params = {} }) {
       {step === 0 && (
         <div className="space-y-4">
           <Banner tone="blue">Your vendor organization is separate from your personal identity. Release 1 is owner-managed — no staff accounts.</Banner>
+          <Select label="Which country is your business in?" value={f.country} onChange={set('country')} options={['India']} hint="Asked first, because verification evidence depends on it. Other countries open in Phase 2." />
           <Input label="Business name" required value={f.name} onChange={set('name')} error={errs.name} />
           <div>
             <Select label="Vendor type" required placeholder="Choose what best describes you" value={vtype || ''} onChange={(e) => { setVtype(e.target.value); setDocs({}); setErrs({ ...errs, vtype: '' }) }} options={Object.entries(VENDOR_TYPES).map(([id, t]) => ({ value: id, label: t.label }))} />

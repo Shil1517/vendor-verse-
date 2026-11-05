@@ -5,25 +5,21 @@ import { useApp } from '../store.jsx'
 import { useNav } from '../nav.jsx'
 import { Page, Lifecycle, StatePreview } from './blocks.jsx'
 import { GEO, lookupPin } from '../geo.js'
+import { ACCOUNT_STATES, ACCOUNT_STATE_IDS, stateOf } from '../services/accountState.js'
 
 /* ---------- F-ACC-03 account states ---------- */
-const ACCOUNT_STATES = [
-  ['pending', 'Pending verification', 'You can browse and prepare content. Publishing and transacting stay locked until verification completes.', 'amber'],
-  ['active', 'Active', 'Everything available to your role is open.', 'green'],
-  ['restricted', 'Restricted', 'Some actions are limited while we review a report. Existing commitments stay manageable.', 'amber'],
-  ['suspended', 'Suspended', 'You cannot transact. You can read your records and appeal to a human reviewer.', 'red'],
-  ['deletion', 'Deletion requested', 'Your account is queued for the approved deletion and anonymisation flow.', 'gray'],
-]
+const STATE_ROWS = ACCOUNT_STATE_IDS.map((id) => [id, ACCOUNT_STATES[id].label, ACCOUNT_STATES[id].message, ACCOUNT_STATES[id].tone])
 export function AccountState() {
   const { me, setMe } = useApp()
   const nav = useNav()
-  const [cur, setCur] = useState(me.accountState === 'deletion_requested' ? 'deletion' : me.accountState || 'active')
-  const row = ACCOUNT_STATES.find((s) => s[0] === cur)
+  const cur = stateOf(me)
+  const st = ACCOUNT_STATES[cur]
   return <Page title="Account status" subtitle="What each state means for you">
-    <Chips scroll options={ACCOUNT_STATES.map((s) => ({ id: s[0], label: s[1] }))} value={cur} onChange={(v) => { setCur(v); setMe({ ...me, accountState: v === 'deletion' ? 'deletion_requested' : v }) }} />
-    <Banner tone={row[3]} title={row[1]}>{row[2]}</Banner>
-    <Card><KV rows={[['Browse and search', cur === 'suspended' ? 'Read only' : 'Allowed'], ['New bookings, RFQs, orders', ['active'].includes(cur) ? 'Allowed' : 'Blocked'], ['Publish or edit listings', ['active'].includes(cur) ? 'Allowed' : 'Blocked'], ['Appeal', ['restricted', 'suspended'].includes(cur) ? 'Available' : 'Not needed']]} /></Card>
-    {['restricted', 'suspended'].includes(cur) && <Button full variant="secondary" onClick={() => nav.go('v_cases')}>Appeal this decision</Button>}
+    <Chips scroll options={STATE_ROWS.map((s) => ({ id: s[0], label: s[1] }))} value={cur} onChange={(v) => setMe({ ...me, accountState: v })} />
+    <p className="text-xs text-ink-500">Demo control: in production the state is set by verification, admin action or a deletion request, never by the account owner.</p>
+    <Banner tone={st.tone} title={st.label}>{st.message}</Banner>
+    <Card><KV rows={[['Browse and search', cur === 'suspended' ? 'Read only' : 'Allowed'], ['New bookings, RFQs, orders', st.transact ? 'Allowed' : 'Blocked'], ['Publish or edit listings', st.publish ? 'Allowed' : 'Blocked'], ['Appeal', st.appeal ? 'Available' : 'Not needed']]} /></Card>
+    {st.appeal && <Button full variant="secondary" onClick={() => nav.go('v_cases')}>Appeal this decision</Button>}
   </Page>
 }
 
