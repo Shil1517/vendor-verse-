@@ -6,7 +6,7 @@ One technical reference for the whole repository as it stands on 2026-11-04: wha
 
 A global B2B and B2C marketplace where customers find verified vendors, book services, request quotations (RFQ), place purchase orders and sign contracts. Web and mobile are **one product** (D-013): every Phase 1 feature exists on both with the same rules and wording.
 
-**Current state: there is no deployed backend or applied database.** A TypeScript/NestJS auth/account implementation is in progress under `backend/`; PostgreSQL 16 SQL migration drafts cover users, roles, vendors, categories, and auth security controls. The mobile client technology remains open under O-13. The fixed OTP adapter is local/test only and does not deliver codes; production delivery, MFA, idempotency/audit plumbing, and policy values remain unconfigured. All data in the apps is still seed data held in the browser.
+**Current state: there is no deployed backend or applied database.** A TypeScript/NestJS auth/account API is implemented for local/test use under `backend/`, with Swagger UI at `/docs` when the service is running. PostgreSQL 16 SQL migration drafts cover users, roles, vendors, categories, and auth security controls. The mobile client technology remains open under O-13. The fixed OTP adapter is local/test only and does not deliver codes; production delivery, MFA, idempotency/audit plumbing, and policy values remain unconfigured. The web and mobile mockups still use browser-held seed data and do not call this API.
 
 | Item | Value |
 |---|---|
@@ -135,7 +135,7 @@ A feature is done when: the spec row has one phase; the matrix maps its web and 
 
 | Gap | Effect | Where tracked |
 |---|---|---|
-| No backend, database, or authentication implementation | Everything is seed data in browser storage; the OpenAPI contracts and [initial logical ERD](../mobile/docs/deliverables/06-database-architecture-erd.md) are drafts only, and permissions in `authorization.js` are client-side only and not a security control | Section 6, O-13 |
+| No deployed backend or applied database | The local/test auth/account API is not connected to the web or mobile mockups; mockup data remains in browser storage. The product-wide OpenAPI contracts and [initial logical ERD](../mobile/docs/deliverables/06-database-architecture-erd.md) remain drafts, and permissions in `authorization.js` are client-side only and not a security control | Section 6, O-13 |
 | Backend language and mobile client technology undecided | Cannot start implementation | O-13 |
 | 13 features with OPEN phase (country packs, market activation checklist, contract suspend/resume, profile completeness, field visibility, saved searches, SEO landing pages, chat attachments and scanning, content screening, and others) | Not built, changed or removed until decided | O-04, O-05, O-08, O-09, and others |
 | Web admin screens held: Add vendor, Coupons | Kept as is pending ruling | O-01, O-02 |
@@ -160,6 +160,7 @@ A feature is done when: the spec row has one phase; the matrix maps its web and 
 
 | Date & time (YYYY-MM-DD HH:MM, local) | Updated by | Change | Reason |
 |---|---|---|---|
+| 2026-11-05 09:42 | Amit | Modified: local API access and Swagger documentation | Explain how to browse the implemented local/test API and clarify the mockups are not connected to it. |
 | 2026-11-04 15:37 | Amit | Modified: auth/account implementation limitations | Call out unfinished platform idempotency/audit plumbing alongside the existing production auth blockers. |
 | 2026-11-04 15:27 | Amit | Modified: NestJS auth/account implementation status | Document the local/test-only boundary, unresolved production dependencies, and new auth migration without implying deploy readiness. |
 | 2026-11-04 15:24 | Amit | Modified: backend implementation status | Record the TypeScript/NestJS decision and explicit local/test-only authentication boundary without implying production readiness. |
