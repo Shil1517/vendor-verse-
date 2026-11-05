@@ -7,6 +7,7 @@ import { GeoModule } from "./geo/geo.module";
 import { ListingsModule } from "./listings/listings.module";
 import { HealthController } from "./health/health.controller";
 import { PlatformModule } from "./platform/platform.module";
+import { RbacModule } from "./rbac/rbac.module";
 import { TaxonomyModule } from "./taxonomy/taxonomy.module";
 import { VendorsModule } from "./vendors/vendors.module";
 import { validateEnvironment } from "./config/environment";
@@ -21,6 +22,7 @@ import { validateEnvironment } from "./config/environment";
     PlatformModule,
     AuthModule,
     AccountsModule,
+    RbacModule,
     GeoModule,
     TaxonomyModule,
     VendorsModule,
