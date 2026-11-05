@@ -1,6 +1,6 @@
 # 06 · Product-Wide Logical Data Model / ERD
 
-> **Logical model; not a complete physical schema.** Draft PostgreSQL 16 SQL migrations implement the initial users, roles, vendors, and categories slice in `backend/db/migrations/`. This ERD maps the wider current product requirements across the feature register, owner decisions, PRS v3.0, and proposed architecture. It does not add, remove, or re-phase product behavior. Source precedence remains [04-decisions-log.md](../../../docs/04-decisions-log.md), [01-feature-spec.md](../../../docs/01-feature-spec.md), the read-only [PRS](../../../docs/VendorVerse_Comprehensive_PRS_v3_Global_Marketplace.docx), then the sync matrix and mockup. The migration scope is explicitly authorized while proposed architecture choices remain proposed and O-13 stays open.
+> **Logical model.** PostgreSQL 16 SQL migrations 001-013 in `backend/db/migrations/` implement the Phase 1 scope of this model; section 10 records where the physical schema differs from the diagrams and what is deliberately not built. This ERD maps the wider current product requirements across the feature register, owner decisions, PRS v3.0, and proposed architecture. It does not add, remove, or re-phase product behavior. Source precedence remains [04-decisions-log.md](../../../docs/04-decisions-log.md), [01-feature-spec.md](../../../docs/01-feature-spec.md), the read-only [PRS](../../../docs/VendorVerse_Comprehensive_PRS_v3_Global_Marketplace.docx), then the sync matrix and mockup. The migration scope is explicitly authorized while proposed architecture choices remain proposed and O-13 stays open.
 
 The model is grouped by domain for readability. Relationships show conceptual ownership and references, not permission for one module to read another module's tables. Per the architecture, modules use their public interfaces. Physical design for domains beyond the initial migration slice, partitioning, retention periods, provider choices, and application-stack decisions remain for technical discovery and owner-approved implementation.
 
@@ -914,10 +914,59 @@ These are phase and decision labels from the existing sources, not new scope dec
 | Market visibility | Unactivated markets/categories are never publicly searchable. |
 | Deletion and retention | Follow verified deletion/anonymization and legal retention; do not invent retention periods. |
 
+## 10. Physical schema notes (migrations 001-013)
+
+The diagrams above stay the logical model; this section is what the database actually does.
+
+**Tables by domain**
+
+| Domain | Tables |
+|---|---|
+| Identity and access | `users`, `user_identifiers`, `auth_challenges`, `auth_rate_limit_buckets`, `auth_sessions`, `roles`, `permissions`, `role_permissions`, `user_role_assignments` |
+| Accounts | `customer_profiles`, `saved_locations`, `user_consents`, `user_privacy_preferences`, `account_data_requests`, `business_accounts`, `business_account_evidence`, `sales_agent_profiles` |
+| Geography | `countries`, `regions`, `cities`, `localities`, `market_activations`, `market_waitlist` |
+| Taxonomy | `industries`, `categories`, `category_config_versions`, `attribute_definitions`, `subcategories`, `category_suggestions` |
+| Vendors and listings | `vendors`, `vendor_profiles`, `vendor_profile_links`, `vendor_categories`, `vendor_documents`, `verifications`, `verification_evidence`, `listings`, `listing_attributes`, `listing_media`, `listing_reviews`, `duplicate_flags`, `service_areas`, `availability_rules`, `availability_capacity`, `catalog_items` |
+| Transactions | `rfqs`, `rfq_revisions`, `rfq_revision_files`, `rfq_recipients`, `quotes`, `quote_revisions`, `quote_lines`, `accepted_terms_snapshots`, `booking_series`, `bookings`, `booking_terms_snapshots`, `booking_events`, `booking_modifications`, `work_orders`, `purchase_orders`, `po_lines`, `po_events`, `shipments`, `po_disputes`, `contracts`, `contract_versions`, `contract_acceptances`, `milestones`, `payment_records` |
+| Engagement and trust | `favorites`, `conversations`, `conversation_links`, `conversation_participants`, `messages`, `contact_share_consents`, `reviews`, `review_ratings`, `vendor_trust_metrics`, `reports`, `support_cases`, `case_evidence`, `case_actions`, `appeals`, `account_holds`, `notification_templates`, `notifications`, `notification_delivery_attempts`, `notification_preferences` |
+| Revenue and agents | `plans`, `plan_versions`, `plan_entitlements`, `subscriptions`, `billing_events`, `invoices`, `lead_usage`, `sponsored_campaigns`, `sales_leads`, `lead_activities`, `onboarding_consents` |
+| Platform | `files`, `audit_events`, `idempotency_keys`, `outbox_events`, `config_register_items`, `platform_settings`, `schema_migrations` |
+
+**Where the physical schema differs from the diagrams**
+
+- Taxonomy stays two levels (`categories`, `subcategories`) as built in migration 002, not the generic `TAXONOMY_NODE` tree.
+- There is no `MARKET_CATEGORY` table. Which categories are enabled in a market stays in the versioned category configuration (`marketRules`, read by the taxonomy API), so category availability has one source of truth. `market_activations` holds only whether a country or city is live.
+- `ATTRIBUTE_DEFINITION` rows are derived from a category configuration version and are immutable with it.
+- `quotes` can only be created for vendors in `rfq_recipients`; `accepted_terms_snapshots` is unique per RFQ and per quote.
+- Payment records (`payment_records`) allow Mode A and B only and need exactly one parent record.
+
+**Enforced in the database (not only in the service)**
+
+- One accepted quote per RFQ (partial unique index plus unique snapshot), and accepted terms are immutable.
+- Immutable or append-only: category configuration versions, attribute definitions, RFQ and quote revisions and lines, accepted terms, booking terms snapshots, booking and PO events, contract versions and acceptances, case actions, listing reviews, audit events, plan entitlements.
+- A contract version can be accepted only while it is the latest; an accepted quote or non-open RFQ cannot be revised; declined, expired, closed and cancelled bookings are final.
+- Reviewer separation: a vendor owner cannot approve their own verification or listing; an owner cannot verify their own business account; a category suggestion cannot be reviewed by its submitter; an appeal cannot be reviewed by the appellant.
+- Retry safety: booking idempotency key per customer, idempotency-key table, billing webhook `(provider, provider_event_id)`, notification `dedupe_key`.
+- Capacity: non-overlapping windows per listing and `reserved <= capacity`.
+- Coverage is always explicit: there is no worldwide coverage type; a live market needs an activator and timestamp.
+
+**Left open on purpose (no table, column or value)**
+
+Per the decisions log and spec: market activation checklist and dual approval (O-05), country packs (O-04), profile completeness and field visibility (O-09), saved searches (O-09), chat attachments and read receipts (O-09), automated content screening (O-09), coupons (O-02), agent commissions (O-03), PO "payment failed" (O-06), contract suspend/resume/expiry (O-08), admin-created vendors (O-01). Phase 2 and 3 items (Mode C, escrow, wallet, refunds, payouts, commission engine, multi-currency, Incoterms, teams, storefront ordering, L4/KYB, contract renewal/amendment/termination) have no tables.
+
+Vocabularies the owner has not decided are non-empty `text` columns, not enumerations, so a later decision needs no data migration: support-case severity and state (CFG-06), review moderation state (CFG-11), invoice and payment-record status (CFG-16), lead pipeline status, attribute data types, notification categories. Plan names, prices, limits and entitlements are not seeded (D-007, CFG-01, CFG-02).
+
+**Known follow-ups (not done here)**
+
+- The RBAC permission catalogue (`permissions`, `role_permissions`) is empty. Authorization still uses roles plus ownership checks in the service; the catalogue needs the owner's list before it is seeded (PRS 4.1 groups only).
+- Database roles: use separate roles for migrations, the API (no DDL) and the trust-metrics worker (only it may write `vendor_trust_metrics`). Not configured on Render yet.
+- Retention and deletion periods (CFG-08), `audit_events` partitioning, backups and restore tests (CFG-09) are open.
+
 ## Change Log
 
 | Date & time (YYYY-MM-DD HH:MM, local) | Updated by | Change | Reason |
 |---|---|---|---|
+| 2026-11-05 12:16 | Shil1517 | Added: section 10 physical schema notes; Modified: header (no longer 'not a physical schema') | Migrations 004-013 now implement the Phase 1 scope; records divergences from the logical diagrams and the open items left unbuilt. |
 | 2026-11-04 15:27 | Amit | Modified: authentication rate-limit and attempt-tracking ERD | Keep the logical model aligned with the scoped auth security migration without assigning policy values. |
 | 2026-11-04 15:12 | Amit | Modified: ERD linked to scoped SQL migration draft | Keep the logical model aligned with the authorized users, roles, vendors, and categories migration deliverable without closing O-13. |
 | 2026-11-04 14:30 | Amit | Modified: product-wide logical data model and ERD | Map the existing PRS and approved feature/architecture scope without changing requirements, phases, or open decisions. |
