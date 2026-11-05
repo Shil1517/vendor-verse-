@@ -2,6 +2,7 @@ import "reflect-metadata";
 import { ValidationPipe } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { NestFactory } from "@nestjs/core";
+import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
 import { randomUUID } from "node:crypto";
 import { NextFunction, Request, Response } from "express";
 import { AppModule } from "./app.module";
@@ -24,6 +25,16 @@ async function bootstrap(): Promise<void> {
   app.useGlobalFilters(new ProblemDetailsFilter());
   app.enableShutdownHooks();
   const config = app.get(ConfigService);
+  const swaggerConfig = new DocumentBuilder()
+    .setTitle("VendorVerse API")
+    .setDescription(
+      "Local/test API for VendorVerse authentication and accounts.",
+    )
+    .setVersion("0.1.0")
+    .addBearerAuth()
+    .build();
+  const swaggerDocument = SwaggerModule.createDocument(app, swaggerConfig);
+  SwaggerModule.setup("docs", app, swaggerDocument);
   await app.listen(config.getOrThrow<number>("PORT"), "127.0.0.1");
 }
 

@@ -22,9 +22,13 @@ Idempotency-Key handling and audit/outbox integration are also not implemented.
 The local/test OTP is `123456`; it is not sent by SMS or email. The application
 rejects non-local/test configuration and `NODE_ENV=production` while this
 provider is selected. The local process binds to `127.0.0.1`; do not expose
-this service publicly.
+this service publicly. Once the service starts, open the interactive API
+reference at `http://127.0.0.1:<PORT>/docs` (replace `<PORT>` with the `PORT`
+value in `.env`). The OpenAPI JSON is available at `/docs-json`.
 
 ## Implemented routes
+
+These routes are also listed in Swagger UI at `/docs`.
 
 - `GET /v1/health/live`
 - `GET /v1/health/ready`
@@ -50,6 +54,7 @@ use explicit test configuration and do not require a live database.
 
 | Date & time (YYYY-MM-DD HH:MM, local) | Updated by | Change | Reason |
 |---|---|---|---|
+| 2026-11-05 09:42 | Amit | Added: Swagger API reference instructions | Make the implemented local/test endpoints easy to discover and exercise. |
 | 2026-11-04 15:45 | Amit | Modified: local server exposure guidance | Document that the local/test server binds to loopback and should not be exposed publicly. |
 | 2026-11-04 15:37 | Amit | Modified: implementation limitations | Explicitly identify unfinished idempotency and audit/outbox work before any production use. |
 | 2026-11-04 15:32 | Amit | Added: NestJS backend setup and implementation status | Document the selected stack, local-only authentication limits, configuration, and available routes. |
