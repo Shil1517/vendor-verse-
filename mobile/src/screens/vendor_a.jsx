@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
+import { authService } from '../services/authService.js'
 import {
   Package, CalendarCheck, FileText, Plus, AlertTriangle, ChevronRight, Store, ShieldCheck, Clock, MessageCircle, Check, X, Upload, BarChart3, Star, MapPin, Crown, Trash2, ImagePlus,
   BadgeCheck, Info, Pause, Play, Copy, Eye, RefreshCw, CalendarClock, Settings, Lock, Layers, Megaphone, Gavel, LogOut, Repeat, Hourglass, TriangleAlert,
@@ -97,6 +98,9 @@ export function VendorDashboard() {
 }
 
 /* ================= ONBOARDING WIZARD (spec §5.1) ================= */
+const COUNTRY_CODE = { India: 'IN' }
+/** Wizard vendor type -> backend vendors.business_type. */
+const BUSINESS_TYPE = { service: 'SERVICE_PROVIDER', contractor: 'CONTRACTOR', manufacturer: 'MANUFACTURER', supplier: 'SUPPLIER' }
 export function VendorRegister({ params = {} }) {
   const nav = useNav()
   const { me, setMe, setVendors, notify, toast, stamp } = useApp()
@@ -106,6 +110,8 @@ export function VendorRegister({ params = {} }) {
   const [docs, setDocs] = useState({})
   const [consent, setConsent] = useState(false)
   const [errs, setErrs] = useState({})
+  const [busy, setBusy] = useState(false)
+  const created = useRef(false) // the vendor record is created once, even if Submit is pressed again
   const c = cat(f.cats[0])
   const VT = vtype ? VENDOR_TYPES[vtype] : null
   const goods = VT?.offer === 'products'
@@ -127,9 +133,17 @@ export function VendorRegister({ params = {} }) {
     if (step === 4 && !consent) e.consent = 'Please confirm to submit'
     setErrs(e); return Object.keys(e).length === 0
   }
-  const next = () => {
+  const next = async () => {
     if (!validate()) return
     if (step < 4) return setStep(step + 1)
+    if (authService.isRemote && !created.current) {
+      // F-VND-01/02: the backend records the vendor (country first); the rest of the wizard is still the mockup flow.
+      setBusy(true)
+      const r = await authService.createVendor({ registrationCountry: COUNTRY_CODE[f.country] || 'IN', businessType: BUSINESS_TYPE[vtype], legalName: f.name.trim() })
+      setBusy(false)
+      if (!r.ok) return toast(r.message, 'warn')
+      created.current = true
+    }
     const rec = { id: 'v-new', name: f.name, owner: f.owner, cat: f.cats[0], city: f.areas[0], areas: f.areas, branches: 1, acct: 'pending', kind: vtype || 'service', ver: c.verifyReq ? 'submitted' : 'not_started', tone: c.tone, since: +f.years, gstin: f.gstin.toUpperCase(), phone: '+91 98290 00099', email: f.email, resp: null, jobs: 0, rating: 0, reviews: 0, langs: f.lang, docs: docList.map((d) => ({ name: d, status: 'pending' })), sub: { plan: 'Free', status: 'none', renews: '—', paidUntil: null, autoRenew: false, leads: 0 }, history: [{ s: 'submitted', at: stamp(), by: f.owner }] }
     setVendors((vs) => [rec, ...vs.filter((x) => x.id !== 'v-new')])
     setMe({ ...me, role: 'vendor', vendorId: 'v-new', hasVendor: true })
@@ -138,7 +152,7 @@ export function VendorRegister({ params = {} }) {
     nav.reset('v_verify')
   }
   return (
-    <Screen title="Vendor onboarding" subtitle={`${VT ? VT.label + ' · ' : ''}step ${step + 1} of 5`} back={step === 0} footer={<div className="flex gap-2">{step > 0 && <Button variant="secondary" onClick={() => setStep(step - 1)}>Back</Button>}<Button className="flex-1" size="lg" onClick={next}>{step === 4 ? 'Submit for review' : 'Continue'}</Button></div>}>
+    <Screen title="Vendor onboarding" subtitle={`${VT ? VT.label + ' · ' : ''}step ${step + 1} of 5`} back={step === 0} footer={<div className="flex gap-2">{step > 0 && <Button variant="secondary" onClick={() => setStep(step - 1)}>Back</Button>}<Button className="flex-1" size="lg" disabled={busy} onClick={next}>{step === 4 ? 'Submit for review' : 'Continue'}</Button></div>}>
       <Stepper steps={['Business', 'Services', 'Details', 'Documents', 'Submit']} current={step} />
       {step === 0 && (
         <div className="space-y-4">

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { Store, Factory, Wrench, Star, Trophy, ShieldCheck, FileText, Wallet, ClipboardList, Target, Clock, Receipt, RefreshCw, Landmark, CreditCard, Globe, WifiOff, SearchX } from 'lucide-react'
 import { Badge, Banner, Button, Card, Checkbox, EmptyState, Group, HBar, Input, ListRow, Section, Select, Stars, StatusBadge, Toggle, Stat, fmt, cx } from '../ui.jsx'
 import { useApp } from '../store.jsx'
@@ -7,29 +7,50 @@ import { P2Badge, Page, Facts, Links, Checklist, SampleBadge } from './blocks.js
 import { AppealQueue } from './p1-depth.jsx'
 import { computePublicationGates } from '../services/publicationGates.js'
 import { TRUST_LEVELS as TRUST_LEVELS_SVC, levelBadges } from '../services/verification.js'
+import { authService } from '../services/authService.js'
 
 /* ============ vendor onboarding by type (F-VND-01, F-VND-02) ============ */
+const COUNTRY_CODE = { India: 'IN' }
 export function RegisterType({ params = {} }) {
   const nav = useNav()
   const [country, setCountry] = useState('India')
   return <Page title="Become a vendor" subtitle="Tell us who you are">
     <Select label="Which country is your business in?" value={country} onChange={(e) => setCountry(e.target.value)} options={['India']} hint="Asked first, because verification evidence depends on it. Other countries open in Phase 2." />
     <Group>
-      <ListRow icon={Wrench} title="Service provider" subtitle="Electricians, cleaners, caterers and other services" onClick={() => nav.go('v_register_svc', { name: params.biz })} />
-      <ListRow icon={Factory} title="Manufacturer / supplier" subtitle="Goods, bulk supply and wholesale" onClick={() => nav.go('v_register_mfr', { name: params.biz })} last />
+      <ListRow icon={Wrench} title="Service provider" subtitle="Electricians, cleaners, caterers and other services" onClick={() => nav.go('v_register_svc', { name: params.biz, country: COUNTRY_CODE[country] })} />
+      <ListRow icon={Factory} title="Manufacturer / supplier" subtitle="Goods, bulk supply and wholesale" onClick={() => nav.go('v_register_mfr', { name: params.biz, country: COUNTRY_CODE[country] })} last />
     </Group>
     <p className="text-xs text-ink-500">Own a registered company for 3+ years? Open a <button className="font-bold text-brand-700" onClick={() => nav.go('b_eligibility')}>Business account</button> instead.</p>
   </Page>
 }
 
+/* Business types the backend accepts (vendors.business_type), per onboarding path. */
+const TYPE_OPTIONS = {
+  svc: [['SERVICE_PROVIDER', 'Service provider'], ['CONTRACTOR', 'Contractor']],
+  mfr: [['MANUFACTURER', 'Manufacturer'], ['SUPPLIER', 'Supplier'], ['WHOLESALER', 'Wholesaler'], ['DISTRIBUTOR', 'Distributor']],
+}
 const IND_CAT = { 'Home & facilities': 'home', Construction: 'build', Events: 'event', 'Professional services': 'staff', 'Wholesale and distribution': 'elec' }
 function TypedRegister({ kind, params = {} }) {
   const nav = useNav()
   const { toast } = useApp()
   const svc = kind === 'svc'
-  const [f, setF] = useState({ name: params.name || '', cat: svc ? 'Home & facilities' : 'Wholesale and distribution', area: 'Jaipur', moq: '' })
-  return <Page title={svc ? 'Service provider' : 'Manufacturer / supplier'} subtitle="Business details" footer={<Button full onClick={() => { if (!f.name.trim()) return toast('Enter your business name', 'warn'); nav.go('v_register', { name: f.name, cat: IND_CAT[f.cat], vendorType: svc ? 'service_provider' : 'manufacturer_supplier' }) }}>Continue to verification</Button>}>
+  const [f, setF] = useState({ name: params.name || '', type: TYPE_OPTIONS[kind][0][0], cat: svc ? 'Home & facilities' : 'Wholesale and distribution', area: 'Jaipur', moq: '' })
+  const [busy, setBusy] = useState(false)
+  const created = useRef(false) // the vendor record is created once, even if Continue is pressed again
+  const next = async () => {
+    if (!f.name.trim()) return toast('Enter your business name', 'warn')
+    if (authService.isRemote && !created.current) {
+      setBusy(true)
+      const r = await authService.createVendor({ registrationCountry: params.country || 'IN', businessType: f.type, legalName: f.name.trim() })
+      setBusy(false)
+      if (!r.ok) return toast(r.message, 'warn')
+      created.current = true
+    }
+    nav.go('v_register', { name: f.name, cat: IND_CAT[f.cat], vendorType: svc ? 'service_provider' : 'manufacturer_supplier' })
+  }
+  return <Page title={svc ? 'Service provider' : 'Manufacturer / supplier'} subtitle="Business details" footer={<Button full disabled={busy} onClick={next}>Continue to verification</Button>}>
     <Input label="Business name" required value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} />
+    <Select label="Business type" value={f.type} onChange={(e) => setF({ ...f, type: e.target.value })} options={TYPE_OPTIONS[kind].map(([value, label]) => ({ value, label }))} />
     <Select label="Industry" value={f.cat} onChange={(e) => setF({ ...f, cat: e.target.value })} options={['Home & facilities', 'Construction', 'Events', 'Professional services', 'Wholesale and distribution']} />
     <Input label={svc ? 'Service areas' : 'Delivery regions'} value={f.area} onChange={(e) => setF({ ...f, area: e.target.value })} hint={svc ? 'Cities and radius you serve' : 'Where you can ship'} />
     {!svc && <Input label="Minimum order quantity" value={f.moq} onChange={(e) => setF({ ...f, moq: e.target.value })} />}

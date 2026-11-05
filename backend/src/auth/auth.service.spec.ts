@@ -6,6 +6,7 @@ import { ConfigService } from "@nestjs/config";
 import { JwtService } from "@nestjs/jwt";
 import { createHmac } from "node:crypto";
 import { DatabaseService } from "../database/database.service";
+import { RateLimitService } from "../platform/rate-limit.service";
 import { AuthService } from "./auth.service";
 
 const VERIFIER_SECRET = "v".repeat(32);
@@ -50,9 +51,13 @@ describe("AuthService", () => {
     const jwt = {
       signAsync: jest.fn().mockResolvedValue("jwt"),
     } as unknown as JwtService;
-    service = new AuthService(database, config, jwt, {
-      issue: async () => "123456",
-    });
+    service = new AuthService(
+      database,
+      config,
+      jwt,
+      { issue: async () => "123456" },
+      new RateLimitService(database),
+    );
   });
 
   describe("requestOtp", () => {

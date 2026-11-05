@@ -154,7 +154,7 @@ export function canonicalIdentifier(contact) {
 
 /**
  * Real API client for F-ACC-01 (POST /auth/otp/request, /auth/otp/verify, /auth/refresh,
- * /auth/logout and GET /me) and F-ACC-06 (/me/profile, /me/locations). Same interface as the mock, except verifyOtp is async and
+ * /auth/logout and GET /me) and F-ACC-06 (/me/profile, /me/locations), F-ACC-04/05/07/08 (/me/sessions, /me/notification-preferences, /me/data-requests) and F-VND-01/02 (/vendors). Same interface as the mock, except verifyOtp is async and
  * resolves with the signed-in `account` ({ userId, currentMode, availableModes }).
  * The server owns OTP limits and role; nothing here is a policy value.
  *
@@ -167,12 +167,12 @@ export function createApiAuthService({ baseUrl, fetchImpl = (...args) => globalT
   const challenges = new Map() // canonical identifier -> challengeId
   let refreshing = null
 
-  async function call(path, { method = 'POST', body, token } = {}) {
+  async function call(path, { method = 'POST', body, token, headers = {} } = {}) {
     let res
     try {
       res = await fetchImpl(`${baseUrl.replace(/\/$/, '')}${path}`, {
         method,
-        headers: { 'content-type': 'application/json', ...(token ? { authorization: `Bearer ${token}` } : {}) },
+        headers: { 'content-type': 'application/json', ...(token ? { authorization: `Bearer ${token}` } : {}), ...headers },
         body: body === undefined ? undefined : JSON.stringify(body),
       })
     } catch {
@@ -204,11 +204,11 @@ export function createApiAuthService({ baseUrl, fetchImpl = (...args) => globalT
   }
 
   /** Authenticated call with one transparent refresh-and-retry on 401. `body` may be a function of the current session. */
-  async function authed(path, { method = 'POST', body } = {}) {
+  async function authed(path, { method = 'POST', body, headers } = {}) {
     const attempt = () => {
       const session = store.get()
       if (!session) return Promise.resolve({ status: 401, data: null })
-      return call(path, { method, token: session.accessToken, body: typeof body === 'function' ? body(session) : body })
+      return call(path, { method, token: session.accessToken, headers, body: typeof body === 'function' ? body(session) : body })
     }
     let r = await attempt()
     if (r.status === 401 && (await refresh())) r = await attempt()
@@ -304,7 +304,68 @@ export function createApiAuthService({ baseUrl, fetchImpl = (...args) => globalT
     return r.status === 204 ? { ok: true } : profileFail(r)
   }
 
-  return { requestOtp, verifyOtp, endSession, getProfile, saveProfile, listLocations, addLocation, updateLocation, removeLocation, isRemote: true }
+  /* ---- F-ACC-07 / F-ACC-08 / F-ACC-04 / F-ACC-05 account settings ---- */
+  /** One key per user action, reused if the same call is retried, so a retry never creates a second record. */
+  const newKey = () => (globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(16).slice(2)}`)
+
+  /** GET /me/sessions -> { ok, sessions: [{ id, createdAt, expiresAt, device, current }] } */
+  async function listSessions() {
+    const r = await authed('/me/sessions', { method: 'GET' })
+    return r.status === 200 ? { ok: true, sessions: r.data.sessions } : profileFail(r)
+  }
+
+  /** DELETE /me/sessions/:id. Revoking the current session signs this device out on its next call. */
+  async function revokeSession(id) {
+    const r = await authed(`/me/sessions/${encodeURIComponent(id)}`, { method: 'DELETE' })
+    return r.status === 204 ? { ok: true } : profileFail(r)
+  }
+
+  /** GET /me/notification-preferences -> { ok, preferences: [{ channel, category, enabled }] } (channel: push|sms|email|in_app) */
+  async function getNotificationPreferences() {
+    const r = await authed('/me/notification-preferences', { method: 'GET' })
+    return r.status === 200 ? { ok: true, preferences: r.data.preferences } : profileFail(r)
+  }
+
+  async function saveNotificationPreferences(preferences) {
+    const r = await authed('/me/notification-preferences', { method: 'PUT', body: { preferences } })
+    return r.status === 200 ? { ok: true, preferences: r.data.preferences } : profileFail(r)
+  }
+
+  /** GET /me/data-requests -> { ok, requests: [{ id, type: export|deletion, status, requestedAt, completedAt }] } */
+  async function listDataRequests() {
+    const r = await authed('/me/data-requests', { method: 'GET' })
+    return r.status === 200 ? { ok: true, requests: r.data.requests } : profileFail(r)
+  }
+
+  /** POST /me/data-requests. It only records the request; 409 means one of that type is already open. */
+  async function requestDataRequest(type) {
+    const r = await authed('/me/data-requests', { method: 'POST', body: { type }, headers: { 'idempotency-key': newKey() } })
+    return r.status === 201 ? { ok: true, request: r.data } : profileFail(r)
+  }
+
+  async function cancelDataRequest(id) {
+    const r = await authed(`/me/data-requests/${encodeURIComponent(id)}/cancel`, { method: 'POST' })
+    return r.status === 200 ? { ok: true, request: r.data } : profileFail(r)
+  }
+
+  /* ---- F-VND-01 / F-VND-02 vendor onboarding ---- */
+  /** POST /vendors. Country first; businessType is one of SERVICE_PROVIDER|CONTRACTOR|SUPPLIER|WHOLESALER|MANUFACTURER|DISTRIBUTOR|OTHER. */
+  async function createVendor({ registrationCountry, businessType, legalName, tradingName }) {
+    const r = await authed('/vendors', { method: 'POST', body: { registrationCountry, businessType, legalName, ...(tradingName ? { tradingName } : {}) }, headers: { 'idempotency-key': newKey() } })
+    return r.status === 201 ? { ok: true, vendor: r.data } : profileFail(r)
+  }
+
+  async function listMyVendors() {
+    const r = await authed('/vendors/mine', { method: 'GET' })
+    return r.status === 200 ? { ok: true, vendors: r.data.vendors } : profileFail(r)
+  }
+
+  async function updateVendor(id, patch) {
+    const r = await authed(`/vendors/${encodeURIComponent(id)}`, { method: 'PATCH', body: patch })
+    return r.status === 200 ? { ok: true, vendor: r.data } : profileFail(r)
+  }
+
+  return { requestOtp, verifyOtp, endSession, getProfile, saveProfile, listLocations, addLocation, updateLocation, removeLocation, listSessions, revokeSession, getNotificationPreferences, saveNotificationPreferences, listDataRequests, requestDataRequest, cancelDataRequest, createVendor, listMyVendors, updateVendor, isRemote: true }
 }
 
 const apiBaseUrl = import.meta.env?.VITE_API_BASE_URL

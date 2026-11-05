@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Download, Trash2, Smartphone, Laptop, LogOut, MapPin } from 'lucide-react'
 import { Badge, Banner, Button, Card, Checkbox, Chips, Group, Input, KV, ListRow, Section, Select, Toggle, StatusBadge } from '../ui.jsx'
 import { useApp } from '../store.jsx'
@@ -6,6 +6,7 @@ import { useNav } from '../nav.jsx'
 import { Page, Lifecycle, StatePreview } from './blocks.jsx'
 import { GEO, lookupPin } from '../geo.js'
 import { ACCOUNT_STATES, ACCOUNT_STATE_IDS, stateOf } from '../services/accountState.js'
+import { authService } from '../services/authService.js'
 
 /* ---------- F-ACC-03 account states ---------- */
 const STATE_ROWS = ACCOUNT_STATE_IDS.map((id) => [id, ACCOUNT_STATES[id].label, ACCOUNT_STATES[id].message, ACCOUNT_STATES[id].tone])
@@ -23,30 +24,63 @@ export function AccountState() {
   </Page>
 }
 
+/* ---------- shared helpers for the real API (F-ACC-04/05/07/08) ---------- */
+const remote = Boolean(authService.isRemote)
+/** Loads once from the API; `data` stays null while loading, `error` holds the service message. */
+function useRemote(load) {
+  const [state, setState] = useState({ data: null, error: '', loading: remote })
+  const reload = () => {
+    if (!remote) return
+    setState((x) => ({ ...x, loading: true }))
+    load().then((r) => setState(r.ok ? { data: r, error: '', loading: false } : { data: null, error: r.message, loading: false }))
+  }
+  useEffect(reload, []) // eslint-disable-line react-hooks/exhaustive-deps
+  return { ...state, reload }
+}
+const openRequest = (requests, type) => (requests || []).find((r) => r.type === type && ['requested', 'verified', 'in_progress'].includes(r.status))
+
 /* ---------- F-ACC-04 deletion request ---------- */
 export function DeleteAccount() {
   const { me, setMe, toast } = useApp()
   const nav = useNav()
   const [ack, setAck] = useState(false)
   const [otp, setOtp] = useState('')
-  const requested = me.accountState === 'deletion_requested'
+  const [busy, setBusy] = useState(false)
+  const reqs = useRemote(() => authService.listDataRequests())
+  const pending = remote ? openRequest(reqs.data?.requests, 'deletion') : null
+  const requested = remote ? Boolean(pending) : me.accountState === 'deletion_requested'
+  const run = async (action, done) => {
+    setBusy(true)
+    const r = await action()
+    setBusy(false)
+    if (!r.ok) return toast(r.message, 'warn')
+    toast(done)
+    reqs.reload()
+  }
   const submit = () => {
+    if (remote) return run(() => authService.requestDataRequest('deletion'), 'Deletion request submitted')
     if (otp !== '123456') return toast('Enter the 6-digit demo code 123456 to verify it is you', 'warn')
     setMe({ ...me, accountState: 'deletion_requested' })
     toast('Deletion request submitted')
   }
+  const cancel = () => {
+    if (remote) return run(() => authService.cancelDataRequest(pending.id), 'Deletion request cancelled')
+    setMe({ ...me, accountState: 'active' })
+    toast('Deletion request cancelled')
+  }
   return <Page title="Delete account" subtitle="Request deletion and track its status">
+    {reqs.error && <Banner tone="red" title="Could not load your requests">{reqs.error}</Banner>}
     {requested ? <>
-      <Banner tone="amber" title="Deletion requested">Your request is in the approved deletion flow. You can cancel while it is pending.</Banner>
+      <Banner tone="amber" title="Deletion requested">{remote ? 'Your request is recorded. Identity verification and the deletion itself are not automated yet, so your account stays active. You can cancel while it is pending.' : 'Your request is in the approved deletion flow. You can cancel while it is pending.'}</Banner>
       <Lifecycle steps={['Requested', 'Identity verified', 'Legal records checked', 'Anonymised and closed']} start={1} />
-      <Button full variant="secondary" onClick={() => { setMe({ ...me, accountState: 'active' }); toast('Deletion request cancelled') }}>Cancel request</Button>
+      <Button full variant="secondary" disabled={busy} onClick={cancel}>Cancel request</Button>
     </> : <>
       <Banner tone="red" title="This cannot be undone once complete">Open bookings, orders, RFQs or contracts must be closed first. Some records are kept where the law requires it.</Banner>
       <Card className="space-y-3">
-        <Input label="Verification code" placeholder="Enter OTP" maxLength={6} value={otp} onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))} hint="Demo code: 123456" />
+        {!remote && <Input label="Verification code" placeholder="Enter OTP" maxLength={6} value={otp} onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))} hint="Demo code: 123456" />}
         <Checkbox checked={ack} onChange={setAck}>I understand what is kept and what is removed.</Checkbox>
       </Card>
-      <Button full variant="danger" icon={Trash2} disabled={!ack} onClick={submit}>Request deletion</Button>
+      <Button full variant="danger" icon={Trash2} disabled={!ack || busy || reqs.loading} onClick={submit}>Request deletion</Button>
       <Button full variant="ghost" onClick={() => nav.go('c_export')}>What happens to my data?</Button>
     </>}
   </Page>
@@ -56,10 +90,23 @@ export function DeleteAccount() {
 export function ExportData() {
   const { toast } = useApp()
   const [sent, setSent] = useState(false)
+  const [busy, setBusy] = useState(false)
+  const reqs = useRemote(() => authService.listDataRequests())
+  const open = remote ? openRequest(reqs.data?.requests, 'export') : null
+  const requestExport = async () => {
+    if (!remote) { setSent(true); return toast('Export requested') }
+    setBusy(true)
+    const r = await authService.requestDataRequest('export')
+    setBusy(false)
+    if (!r.ok) return toast(r.message, 'warn')
+    toast('Export requested')
+    reqs.reload()
+  }
   return <Page title="Your data" subtitle="Export and deletion explained">
+    {reqs.error && <Banner tone="red" title="Could not load your requests">{reqs.error}</Banner>}
     <Section title="Export my data">
       <Card className="space-y-3"><p className="text-sm text-ink-600">Get a copy of your profile, bookings, RFQs, orders, messages and reviews. We email a download link to your verified address.</p>
-        {sent ? <Banner tone="green" title="Export requested">Link arrives within the time set in CFG-08 (open).</Banner> : <Button icon={Download} onClick={() => { setSent(true); toast('Export requested') }}>Request export</Button>}</Card>
+        {sent || open ? <Banner tone="green" title="Export requested">{remote ? 'Your request is recorded. Fulfilment is not automated yet; the delivery time is set in CFG-08 (open).' : 'Link arrives within the time set in CFG-08 (open).'}</Banner> : <Button icon={Download} disabled={busy || reqs.loading} onClick={requestExport}>Request export</Button>}</Card>
     </Section>
     <Section title="If you delete your account">
       <Group>
@@ -72,6 +119,7 @@ export function ExportData() {
 }
 
 /* ---------- F-ACC-08 sessions ---------- */
+const deviceName = (d = {}) => d.name || d.userAgent || 'Signed-in device'
 export function Sessions() {
   const { toast } = useApp()
   const [list, setList] = useState([
@@ -79,18 +127,59 @@ export function Sessions() {
     { id: 's2', icon: Smartphone, name: 'Android app', info: 'Jaipur, India · 2 days ago' },
     { id: 's3', icon: Laptop, name: 'Safari on macOS', info: 'Delhi, India · 9 days ago' },
   ])
+  const live = useRemote(() => authService.listSessions())
+  const rows = remote
+    ? (live.data?.sessions || []).map((x) => ({ id: x.id, icon: Laptop, name: deviceName(x.device), info: `Signed in ${new Date(x.createdAt).toLocaleString()}`, cur: x.current }))
+    : list
+  const signOut = async (s) => {
+    if (!remote) { setList(list.filter((x) => x.id !== s.id)); return toast('Signed out of that device') }
+    const r = await authService.revokeSession(s.id)
+    if (!r.ok) return toast(r.message, 'warn')
+    toast('Signed out of that device')
+    live.reload()
+  }
+  const signOutOthers = async () => {
+    if (!remote) { setList(list.filter((x) => x.cur)); return toast('Signed out everywhere else') }
+    const results = await Promise.all(rows.filter((s) => !s.cur).map((s) => authService.revokeSession(s.id)))
+    const all = results.every((r) => r.ok)
+    toast(all ? 'Signed out everywhere else' : 'Some devices could not be signed out', all ? undefined : 'warn')
+    live.reload()
+  }
   return <Page title="Sessions and devices" subtitle="Where you are signed in">
-    <Group>{list.map((s, i) => <ListRow key={s.id} icon={s.icon} title={s.name} subtitle={s.info} right={s.cur ? <Badge tone="green">This device</Badge> : <button className="text-[13px] font-bold text-red-600" onClick={() => { setList(list.filter((x) => x.id !== s.id)); toast('Signed out of that device') }}>Sign out</button>} last={i === list.length - 1} />)}</Group>
-    {list.length > 1 && <Button full variant="secondary" icon={LogOut} onClick={() => { setList(list.filter((x) => x.cur)); toast('Signed out everywhere else') }}>Sign out of all other devices</Button>}
+    {live.error && <Banner tone="red" title="Could not load your sessions">{live.error}</Banner>}
+    <Group>{rows.map((s, i) => <ListRow key={s.id} icon={s.icon} title={s.name} subtitle={s.info} right={s.cur ? <Badge tone="green">This device</Badge> : <button className="text-[13px] font-bold text-red-600" onClick={() => signOut(s)}>Sign out</button>} last={i === rows.length - 1} />)}</Group>
+    {rows.length > 1 && <Button full variant="secondary" icon={LogOut} onClick={signOutOthers}>Sign out of all other devices</Button>}
     <p className="text-xs text-ink-500">Vendor and admin accounts must review this list when a new device signs in.</p>
   </Page>
 }
 
 /* ---------- F-ACC-07 / F-MSG-05 notification preferences ---------- */
+const CHANNEL_API = { inapp: 'in_app', email: 'email', sms: 'sms', push: 'push' }
+const CATEGORY_KEYS = ['orders', 'bookings', 'quotes', 'promos']
 export function NotifPrefs() {
   const { prefs, setPrefs, settings, toast } = useApp()
   const [ch, setCh] = useState({ inapp: true, email: false, sms: false, push: true })
-  return <Page title="Notification preferences" subtitle="Channels and categories" footer={<Button full onClick={() => toast('Preferences saved')}>Save</Button>}>
+  const [busy, setBusy] = useState(false)
+  const stored = useRemote(() => authService.getNotificationPreferences())
+  const applied = useRef(null)
+  useEffect(() => {
+    // The server stores channel x category rows. A channel or category reads as on when any enabled row mentions it; no rows keeps the defaults.
+    const rows = stored.data?.preferences
+    if (!remote || !rows?.length || applied.current === rows) return
+    applied.current = rows
+    setCh((c) => Object.fromEntries(Object.entries(c).map(([k, v]) => [k, k === 'inapp' || !rows.some((x) => x.channel === CHANNEL_API[k]) ? v : rows.some((x) => x.channel === CHANNEL_API[k] && x.enabled)])))
+    setPrefs((p) => ({ ...p, ...Object.fromEntries(CATEGORY_KEYS.filter((k) => rows.some((x) => x.category === k)).map((k) => [k, rows.some((x) => x.category === k && x.enabled)])) }))
+  }, [stored.data]) // eslint-disable-line react-hooks/exhaustive-deps
+  const save = async () => {
+    if (!remote) return toast('Preferences saved')
+    setBusy(true)
+    const rows = ['email', 'sms', 'push'].flatMap((k) => CATEGORY_KEYS.map((c) => ({ channel: CHANNEL_API[k], category: c, enabled: Boolean(ch[k] && prefs[c]) })))
+    const r = await authService.saveNotificationPreferences(rows)
+    setBusy(false)
+    toast(r.ok ? 'Preferences saved' : r.message, r.ok ? undefined : 'warn')
+  }
+  return <Page title="Notification preferences" subtitle="Channels and categories" footer={<Button full disabled={busy} onClick={save}>Save</Button>}>
+    {stored.error && <Banner tone="red" title="Could not load your preferences">{stored.error}</Banner>}
     <Section title="Channels"><Card className="space-y-1">{[['inapp', 'In-app (always on)'], ['email', 'Email'], ['sms', 'SMS'], ['push', 'Push']].map(([k, l]) => <Toggle key={k} label={l} on={ch[k]} onChange={(v) => k !== 'inapp' && setCh({ ...ch, [k]: v })} desc={k !== 'inapp' && !settings.channels?.[k] ? 'Provider not ready yet (CFG-10)' : undefined} />)}</Card></Section>
     <Section title="Categories"><Card className="space-y-1">{[['orders', 'Orders and purchase orders'], ['bookings', 'Bookings'], ['quotes', 'RFQs and quotations'], ['promos', 'Promotions']].map(([k, l]) => <Toggle key={k} label={l} on={!!prefs[k]} onChange={(v) => setPrefs({ ...prefs, [k]: v })} />)}</Card></Section>
     <Banner tone="blue">Security and account notices cannot be switched off.</Banner>
