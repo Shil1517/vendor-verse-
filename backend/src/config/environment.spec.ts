@@ -3,6 +3,7 @@ import { validateEnvironment } from "./environment";
 const validEnvironment: Record<string, string> = {
   APP_ENV: "test",
   DATABASE_URL: "postgresql://test:test@localhost/test",
+  DATABASE_SSL: "false",
   JWT_ISSUER: "test-issuer",
   JWT_SECRET: "test-only-jwt-secret-value-with-32-bytes",
   OTP_CHALLENGE_TTL_SECONDS: "10",
@@ -34,6 +35,12 @@ describe("validateEnvironment", () => {
     expect(() => validateEnvironment(environment)).toThrow(
       "Missing required environment variable: OTP_REQUEST_MAX",
     );
+  });
+
+  it("rejects a non-boolean DATABASE_SSL value", () => {
+    expect(() =>
+      validateEnvironment({ ...validEnvironment, DATABASE_SSL: "yes" }),
+    ).toThrow('DATABASE_SSL must be "true" or "false"');
   });
 
   it("refuses fixed OTP outside local and test environments", () => {

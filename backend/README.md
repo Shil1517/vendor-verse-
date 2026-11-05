@@ -10,14 +10,15 @@ Idempotency-Key handling and audit/outbox integration are also not implemented.
 ## Local setup
 
 1. Use Node.js 20 or newer and PostgreSQL 16.
-2. Create a local database, then apply `db/migrations/001_users_and_roles.up.sql`,
-   `002_vendors_and_taxonomy.up.sql`, and
-   `003_auth_security_controls.up.sql` in that order.
+2. Create a database (a hosted one such as Render works; set `DATABASE_SSL=true`
+   for it, `false` for a local server).
 3. Copy `.env.example` to `.env` and supply every required value. Authentication
    lifetimes and request/verification limits have no code defaults; select
    values for the local environment rather than copying arbitrary production
    policy.
-4. Install dependencies with `npm install`, then run `npm run start:dev`.
+4. Install dependencies with `npm install`, apply the migrations with
+   `npm run db:migrate` (applies `db/migrations/*.up.sql` in order and records
+   them in `schema_migrations`; safe to re-run), then run `npm run start:dev`.
 
 The local/test OTP is `123456`; it is not sent by SMS or email. The application
 rejects non-local/test configuration and `NODE_ENV=production` while this
@@ -54,6 +55,8 @@ use explicit test configuration and do not require a live database.
 
 | Date & time (YYYY-MM-DD HH:MM, local) | Updated by | Change | Reason |
 |---|---|---|---|
+| 2026-11-05 11:05 | Shil1517 | Added: `DATABASE_SSL` setting and `npm run db:migrate` runner; migrations 001-003 applied to the Render database | Render requires SSL and the schema had to be created there before clients can connect. |
+| 2026-11-05 10:50 | Shil1517 | Added: field-level `errors` in 400 responses, AuthService and error-filter tests; restored `.env.example` | Validation failures were unreadable for clients, auth logic had no tests, and setup step 3 referenced a missing file. |
 | 2026-11-05 09:42 | Amit | Added: Swagger API reference instructions | Make the implemented local/test endpoints easy to discover and exercise. |
 | 2026-11-04 15:45 | Amit | Modified: local server exposure guidance | Document that the local/test server binds to loopback and should not be exposed publicly. |
 | 2026-11-04 15:37 | Amit | Modified: implementation limitations | Explicitly identify unfinished idempotency and audit/outbox work before any production use. |

@@ -3,6 +3,7 @@ export type AppEnvironment = "local" | "test";
 export interface AppEnvironmentConfig {
   APP_ENV: AppEnvironment;
   DATABASE_URL: string;
+  DATABASE_SSL: boolean;
   JWT_ISSUER: string;
   JWT_SECRET: string;
   OTP_CHALLENGE_TTL_SECONDS: number;
@@ -40,6 +41,17 @@ function positiveInteger(
   return value;
 }
 
+function requiredBoolean(
+  environment: Record<string, unknown>,
+  name: string,
+): boolean {
+  const raw = requiredString(environment, name);
+  if (raw !== "true" && raw !== "false") {
+    throw new Error(`${name} must be "true" or "false"`);
+  }
+  return raw === "true";
+}
+
 function requiredSecret(
   environment: Record<string, unknown>,
   name: string,
@@ -74,6 +86,7 @@ export function validateEnvironment(
   return {
     APP_ENV: appEnvironment,
     DATABASE_URL: requiredString(environment, "DATABASE_URL"),
+    DATABASE_SSL: requiredBoolean(environment, "DATABASE_SSL"),
     JWT_ISSUER: requiredString(environment, "JWT_ISSUER"),
     JWT_SECRET: requiredSecret(environment, "JWT_SECRET"),
     OTP_CHALLENGE_TTL_SECONDS: positiveInteger(

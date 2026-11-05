@@ -5,8 +5,8 @@ import { Pool, PoolClient, QueryResult, QueryResultRow } from "pg";
 export class DatabaseService implements OnModuleDestroy {
   private readonly pool: Pool;
 
-  constructor(connectionString: string) {
-    this.pool = new Pool({ connectionString });
+  constructor(connectionString: string, ssl = false) {
+    this.pool = new Pool({ connectionString, ssl });
   }
 
   query<Row extends QueryResultRow = QueryResultRow>(
