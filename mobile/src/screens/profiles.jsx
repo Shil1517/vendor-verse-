@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
   CalendarCheck, FileText, FileSignature, Heart, ShieldCheck, Plus, Trash2, MapPin, Building2, User, Check, ImagePlus, Award, Globe, Users, Package, Eye, Wallet, ChevronRight, Lock, Star, X, Link as LinkIcon,
 } from 'lucide-react'
@@ -10,6 +10,7 @@ import {
   Screen, Card, Section, Button, Chips, Segmented, Sheet, Input, Select, Toggle, Badge, Banner, EmptyState, Stat, KV, cx, Pill, ListRow, Group, Avatar, HBar, TierBadge, PhaseBanner, PhaseTag, Missing, Rating, Thumb, Checkbox,
 } from '../ui.jsx'
 import { useMyVendor } from './vendor_a.jsx'
+import { authService } from '../services/authService.js'
 
 /* ---------- shared: completeness meter ---------- */
 export function Completeness({ pct, items, onTap }) {
@@ -67,34 +68,81 @@ export function CustomerDash() {
 }
 
 /* ================= CUSTOMER PROFILE (individual or business) ================= */
-export function ProfileEdit() {
+const fmtPhone = (p) => (/^\+91\d{10}$/.test(p || '') ? `+91 ${p.slice(3, 8)} ${p.slice(8)}` : p || '')
+const LANG_LABEL = { en: 'English', hi: 'हिन्दी' }
+const LANG_CODE = { English: 'en', 'हिन्दी': 'hi' }
+
+export function ProfileEdit({ params = {} }) {
   const nav = useNav()
   const { me, setMe, toast, loc } = useApp()
   const p = me.profile || {}
-  const [f, setF] = useState({ name: me.name, email: p.email || 'aarav.mehta@gmail.com', country: p.country || loc.country || 'IN', lang: p.lang || 'English', cur: p.cur || 'INR', addresses: p.addresses || [{ id: 1, label: 'Home', text: '24, Vaishali Nagar, Jaipur 302021', def: true }], emailOk: p.emailOk ?? false })
+  const remote = Boolean(authService.isRemote) // real API: name, email, locale and addresses live on the server (F-ACC-06)
+  const [f, setF] = useState(remote
+    ? { name: '', email: '', country: loc.country || 'IN', lang: 'English', cur: 'INR', addresses: [], emailOk: false }
+    : { name: me.name, email: p.email || 'aarav.mehta@gmail.com', country: p.country || loc.country || 'IN', lang: p.lang || 'English', cur: p.cur || 'INR', addresses: p.addresses || [{ id: 1, label: 'Home', text: '24, Vaishali Nagar, Jaipur 302021', def: true }], emailOk: p.emailOk ?? false })
+  const [phone, setPhone] = useState('+91 98290 00001')
+  const [serverIds, setServerIds] = useState([])
+  const [loading, setLoading] = useState(remote)
+  const [saving, setSaving] = useState(false)
   const [addr, setAddr] = useState('')
   const [errs, setErrs] = useState({})
+  useEffect(() => {
+    if (!remote) return undefined
+    let live = true
+    ;(async () => {
+      const [pr, lr] = await Promise.all([authService.getProfile(), authService.listLocations()])
+      if (!live) return
+      if (pr.ok) {
+        const q = pr.profile
+        setF((x) => ({ ...x, name: q.displayName || '', email: q.email || '', emailOk: Boolean(q.emailVerified), country: q.locale?.country || x.country, lang: LANG_LABEL[q.locale?.language] || x.lang, cur: q.locale?.currency || x.cur }))
+        if (q.phone) setPhone(fmtPhone(q.phone))
+      } else toast(pr.message)
+      if (lr.ok) {
+        setServerIds(lr.locations.map((l) => l.id))
+        setF((x) => ({ ...x, addresses: lr.locations.map((l) => ({ id: l.id, label: l.label, text: l.addressText, def: l.isDefault, server: true })) }))
+      }
+      setLoading(false)
+    })()
+    return () => { live = false }
+  }, [])
   const checks = [f.name.trim().length > 2, /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(f.email), f.emailOk, f.addresses.length > 0]
   const pct = Math.round((checks.filter(Boolean).length / checks.length) * 100)
-  const save = () => {
+  const save = async () => {
     const e = {}
     if (f.name.trim().length < 3) e.name = 'Name is required'
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(f.email)) e.email = 'Enter a valid email'
+    if (f.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(f.email)) e.email = 'Enter a valid email'
     setErrs(e)
     if (Object.keys(e).length) return
-    setMe({ ...me, name: f.name, profile: { ...f } }); toast('Profile saved'); nav.back()
+    if (remote) {
+      setSaving(true)
+      const locale = {}
+      if (/^[A-Z]{2}$/.test(f.country)) locale.country = f.country
+      if (LANG_CODE[f.lang]) locale.language = LANG_CODE[f.lang]
+      if (/^[A-Z]{3}$/.test(f.cur)) locale.currency = f.cur
+      const steps = [() => authService.saveProfile({ displayName: f.name.trim(), email: f.email.trim() ? f.email.trim() : null, locale })]
+      for (const id of serverIds) if (!f.addresses.some((a) => a.id === id)) steps.push(() => authService.removeLocation(id))
+      for (const a of f.addresses) if (!a.server) steps.push(() => authService.addLocation({ label: a.label, addressText: a.text, isDefault: Boolean(a.def) }))
+      for (const step of steps) {
+        const r = await step()
+        if (!r.ok) { setSaving(false); setErrs({ form: r.message }); return toast(r.message) }
+      }
+      setSaving(false)
+    }
+    setMe({ ...me, name: f.name.trim(), profile: { ...f } }); toast('Profile saved')
+    if (params.firstRun) nav.reset('c_home'); else nav.back()
   }
   return (
-    <Screen title="Edit profile" footer={<Button full size="lg" onClick={save}>Save changes</Button>}>
+    <Screen title="Edit profile" footer={<Button full size="lg" disabled={loading || saving} onClick={save}>{saving ? 'Saving…' : 'Save changes'}</Button>}>
       <Completeness pct={pct} items={[{ label: 'Confirm your email', ok: f.emailOk }, { label: 'Add an address', ok: f.addresses.length > 0 }]} />
       <div className="flex justify-center py-1"><div className="relative"><Avatar name={f.name || 'A'} size={84} /><span className="absolute -bottom-1 -right-1 grid size-8 place-items-center rounded-full bg-brand-600 text-white ring-4 ring-ink-50"><ImagePlus size={15} /></span></div></div>
+      {errs.form && <p role="alert" className="text-center text-sm font-medium text-red-600">{errs.form}</p>}
       <Input label="Full name" required value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} error={errs.name} />
-      <Input label="Mobile number" value="+91 98290 00001" readOnly hint="Verified · changing it needs OTP re-verification" />
-      <div><Input label="Email" type="email" value={f.email} onChange={(e) => setF({ ...f, email: e.target.value, emailOk: false })} error={errs.email} />{!f.emailOk && <button onClick={() => { setF({ ...f, emailOk: true }); toast('Email confirmed') }} className="mt-1.5 text-xs font-bold text-brand-700">Send confirmation link →</button>}{f.emailOk && <p className="mt-1.5 flex items-center gap-1 text-xs font-semibold text-emerald-700"><Check size={13} />Email confirmed</p>}</div>
+      <Input label="Mobile number" value={phone} readOnly hint="Verified · changing it needs OTP re-verification" />
+      <div><Input label="Email" type="email" value={f.email} onChange={(e) => setF({ ...f, email: e.target.value, emailOk: false })} error={errs.email} />{!remote && !f.emailOk && <button onClick={() => { setF({ ...f, emailOk: true }); toast('Email confirmed') }} className="mt-1.5 text-xs font-bold text-brand-700">Send confirmation link →</button>}{remote && f.email && !f.emailOk && <p className="mt-1.5 text-xs text-ink-500">Not verified yet — email verification is coming soon.</p>}{f.emailOk && <p className="mt-1.5 flex items-center gap-1 text-xs font-semibold text-emerald-700"><Check size={13} />Email confirmed</p>}</div>
       <Banner tone="blue" title="Personal profile">Company details are not kept here. To list a business, become a vendor from your Profile. Company owners open a separate Business account.</Banner>
       <Section title="Addresses">
         <div className="space-y-2">{f.addresses.map((a) => <div key={a.id} className="flex items-center gap-3 rounded-xl bg-white p-3 ring-1 ring-inset ring-ink-200"><MapPin size={17} className="text-brand-600" /><div className="min-w-0 flex-1"><p className="text-sm font-semibold">{a.label}{a.def && <span className="ml-2 text-[10px] font-bold text-brand-700">DEFAULT</span>}</p><p className="truncate text-xs text-ink-500">{a.text}</p></div><button aria-label="Remove" onClick={() => setF({ ...f, addresses: f.addresses.filter((x) => x.id !== a.id) })}><Trash2 size={16} className="text-ink-400" /></button></div>)}</div>
-        <div className="mt-2 flex gap-2"><input value={addr} onChange={(e) => setAddr(e.target.value)} placeholder="Add an address" className="h-11 flex-1 rounded-xl bg-white px-3.5 text-sm outline-none ring-1 ring-inset ring-ink-200 focus:ring-2 focus:ring-brand-500" /><Button variant="soft" onClick={() => { if (addr.trim()) { setF({ ...f, addresses: [...f.addresses, { id: Date.now(), label: 'Other', text: addr.trim() }] }); setAddr('') } }}>Add</Button></div>
+        <div className="mt-2 flex gap-2"><input value={addr} onChange={(e) => setAddr(e.target.value)} placeholder="Add an address" className="h-11 flex-1 rounded-xl bg-white px-3.5 text-sm outline-none ring-1 ring-inset ring-ink-200 focus:ring-2 focus:ring-brand-500" /><Button variant="soft" onClick={() => { if (addr.trim()) { setF({ ...f, addresses: [...f.addresses, { id: Date.now(), label: 'Other', text: addr.trim(), def: f.addresses.length === 0 }] }); setAddr('') } }}>Add</Button></div>
       </Section>
       <Section title="Preferences"><Card className="space-y-3"><div className="flex gap-3"><Select label="Language" value={f.lang} onChange={(e) => setF({ ...f, lang: e.target.value })} options={['English', 'हिन्दी']} /><Select label="Currency" value={f.cur} onChange={(e) => setF({ ...f, cur: e.target.value })} options={Object.keys(CUR)} /></div></Card></Section>
       <Card className="!p-3.5"><div className="flex items-center gap-3"><ShieldCheck size={20} className="text-ink-400" /><div className="min-w-0 flex-1"><p className="text-sm font-bold">ID verification</p><p className="text-xs text-ink-500">Needed for high-value contracts and escrow</p></div><PhaseTag p="P2" /></div></Card>

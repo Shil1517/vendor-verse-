@@ -310,6 +310,19 @@ async function invariants(client) {
   await mustPass(client, "independent admin can verify a business",
     `INSERT INTO business_accounts (owner_user_id, company_name, verification_status, verified_by_user_id, verified_at, decision_reason)
      VALUES ($1, 'Co', 'verified', $2, now(), 'ok')`, [owner, reviewer]);
+  await mustFail(client, "contact email must be lower-case",
+    `INSERT INTO customer_profiles (user_id, contact_email) VALUES ($1, 'A@B.com')`, [customer], "23514");
+  await mustFail(client, "contact email must look like an email",
+    `INSERT INTO customer_profiles (user_id, contact_email) VALUES ($1, 'nope')`, [customer], "23514");
+  await mustFail(client, "an individual has no company name",
+    `INSERT INTO customer_profiles (user_id, customer_type, company_name) VALUES ($1, 'individual', 'Acme')`, [customer], "23514");
+  await mustPass(client, "a business customer can carry a company name",
+    `INSERT INTO customer_profiles (user_id, customer_type, company_name, contact_email) VALUES ($1, 'business', 'Acme', 'a@b.com')`, [customer]);
+  await q(`INSERT INTO saved_locations (user_id, label, is_default) VALUES ($1, 'Home', true)`, [customer]);
+  await mustFail(client, "one default location per user",
+    `INSERT INTO saved_locations (user_id, label, is_default) VALUES ($1, 'Office', true)`, [customer], "23505");
+  await mustPass(client, "several non-default locations are fine",
+    `INSERT INTO saved_locations (user_id, label) VALUES ($1, 'Office'), ($1, 'Shop')`, [customer]);
   await q(`INSERT INTO account_data_requests (user_id, request_type) VALUES ($1, 'export')`, [customer]);
   await mustFail(client, "one open export request per user",
     `INSERT INTO account_data_requests (user_id, request_type) VALUES ($1, 'export')`, [customer], "23505");

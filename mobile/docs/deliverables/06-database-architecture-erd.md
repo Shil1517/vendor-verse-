@@ -1,6 +1,6 @@
 # 06 · Product-Wide Logical Data Model / ERD
 
-> **Logical model.** PostgreSQL 16 SQL migrations 001-013 in `backend/db/migrations/` implement the Phase 1 scope of this model; section 10 records where the physical schema differs from the diagrams and what is deliberately not built. This ERD maps the wider current product requirements across the feature register, owner decisions, PRS v3.0, and proposed architecture. It does not add, remove, or re-phase product behavior. Source precedence remains [04-decisions-log.md](../../../docs/04-decisions-log.md), [01-feature-spec.md](../../../docs/01-feature-spec.md), the read-only [PRS](../../../docs/VendorVerse_Comprehensive_PRS_v3_Global_Marketplace.docx), then the sync matrix and mockup. The migration scope is explicitly authorized while proposed architecture choices remain proposed and O-13 stays open.
+> **Logical model.** PostgreSQL 16 SQL migrations 001-014 in `backend/db/migrations/` implement the Phase 1 scope of this model; section 10 records where the physical schema differs from the diagrams and what is deliberately not built. This ERD maps the wider current product requirements across the feature register, owner decisions, PRS v3.0, and proposed architecture. It does not add, remove, or re-phase product behavior. Source precedence remains [04-decisions-log.md](../../../docs/04-decisions-log.md), [01-feature-spec.md](../../../docs/01-feature-spec.md), the read-only [PRS](../../../docs/VendorVerse_Comprehensive_PRS_v3_Global_Marketplace.docx), then the sync matrix and mockup. The migration scope is explicitly authorized while proposed architecture choices remain proposed and O-13 stays open.
 
 The model is grouped by domain for readability. Relationships show conceptual ownership and references, not permission for one module to read another module's tables. Per the architecture, modules use their public interfaces. Physical design for domains beyond the initial migration slice, partitioning, retention periods, provider choices, and application-stack decisions remain for technical discovery and owner-approved implementation.
 
@@ -914,7 +914,7 @@ These are phase and decision labels from the existing sources, not new scope dec
 | Market visibility | Unactivated markets/categories are never publicly searchable. |
 | Deletion and retention | Follow verified deletion/anonymization and legal retention; do not invent retention periods. |
 
-## 10. Physical schema notes (migrations 001-013)
+## 10. Physical schema notes (migrations 001-014)
 
 The diagrams above stay the logical model; this section is what the database actually does.
 
@@ -939,6 +939,7 @@ The diagrams above stay the logical model; this section is what the database act
 - `ATTRIBUTE_DEFINITION` rows are derived from a category configuration version and are immutable with it.
 - `quotes` can only be created for vendors in `rfq_recipients`; `accepted_terms_snapshots` is unique per RFQ and per quote.
 - Payment records (`payment_records`) allow Mode A and B only and need exactly one parent record.
+- `customer_profiles.contact_email` (migration 014) is an unverified contact detail, deliberately not a `user_identifiers` row: authentication resolves accounts by identifier, so an unverified address there would let someone claim another person's email. A verified email is promoted to `user_identifiers` once email OTP exists, and the API reports `emailVerified` by matching the two. `saved_locations.is_default` allows at most one default per user.
 
 **Enforced in the database (not only in the service)**
 
@@ -966,6 +967,7 @@ Vocabularies the owner has not decided are non-empty `text` columns, not enumera
 
 | Date & time (YYYY-MM-DD HH:MM, local) | Updated by | Change | Reason |
 |---|---|---|---|
+| 2026-11-05 13:05 | Shil1517 | Modified: section 10 (migration 014: contact email and default saved location) | F-ACC-06 stores the sign-up name and email; the email is kept off the login identifiers to prevent account takeover by pre-claiming an address. |
 | 2026-11-05 12:16 | Shil1517 | Added: section 10 physical schema notes; Modified: header (no longer 'not a physical schema') | Migrations 004-013 now implement the Phase 1 scope; records divergences from the logical diagrams and the open items left unbuilt. |
 | 2026-11-04 15:27 | Amit | Modified: authentication rate-limit and attempt-tracking ERD | Keep the logical model aligned with the scoped auth security migration without assigning policy values. |
 | 2026-11-04 15:12 | Amit | Modified: ERD linked to scoped SQL migration draft | Keep the logical model aligned with the authorized users, roles, vendors, and categories migration deliverable without closing O-13. |

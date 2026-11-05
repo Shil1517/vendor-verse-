@@ -1,0 +1,351 @@
+openapi: 3.1.0
+info:
+  title: VendorVerse Customer Profile API
+  version: 0.1.0
+  summary: Customer profile and saved locations for F-ACC-06.
+  description: |
+    The signed-in user's own profile: name, contact email, individual or
+    business customer type, locale (country, language, time zone, currency) and
+    a list of labelled saved locations. Every operation is scoped to the access
+    token's user; there is no user id in any path, and a location id that
+    belongs to someone else is reported as 404, the same as one that does not
+    exist.
+
+    The phone number is the verified sign-in identifier. It is returned for
+    display and cannot be changed here. The email is stored as an unverified
+    contact detail: it is deliberately not a sign-in identifier, so saving an
+    address on a profile never lets anyone sign in with it. `emailVerified`
+    becomes true only when the same address is a verified identifier of the
+    account, which needs email OTP delivery (open item CFG-07).
+
+    Not in this contract: notification and privacy preferences (F-ACC-07),
+    data export and deletion (F-ACC-04, F-ACC-05), billing address and tax id
+    for business customers (restricted data, needs audited reads), and a cap on
+    the number of saved locations (no limit has been decided).
+  x-feature-ids:
+    - F-ACC-06
+  x-change-log:
+    - date-time: "2026-11-05 13:05"
+      updated-by: Shil1517
+      change: "Added: customer profile and saved-location APIs"
+      reason: "Sign-up collected a name and email but nothing stored them; F-ACC-06 needs a persisted profile that web and mobile share."
+servers:
+  - url: /v1
+    description: Versioned API base path
+tags:
+  - name: Customer profile
+    description: Own profile and saved locations (F-ACC-06).
+security:
+  - bearerAuth: []
+paths:
+  /me/profile:
+    get:
+      operationId: getProfile
+      tags: [Customer profile]
+      summary: Get the signed-in user's profile
+      responses:
+        "200":
+          description: The profile. A new account has null name and email.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Profile"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+    patch:
+      operationId: updateProfile
+      tags: [Customer profile]
+      summary: Update name, contact email, customer type or locale
+      description: |
+        Omitted fields are unchanged. `email: null` and `companyName: null`
+        clear the value. An `individual` customer has no company name. Locale
+        keys are merged, so sending one key leaves the others as they were.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProfileUpdate"
+      responses:
+        "200":
+          description: The updated profile.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Profile"
+        "400":
+          $ref: "#/components/responses/ValidationFailed"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /me/locations:
+    get:
+      operationId: listLocations
+      tags: [Customer profile]
+      summary: List saved locations, default first
+      responses:
+        "200":
+          description: The user's saved locations.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [locations]
+                properties:
+                  locations:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Location"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+    post:
+      operationId: createLocation
+      tags: [Customer profile]
+      summary: Add a saved location
+      description: The first location is always the default. Setting `isDefault` moves the default.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LocationCreate"
+      responses:
+        "201":
+          description: The created location.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Location"
+        "400":
+          $ref: "#/components/responses/ValidationFailed"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /me/locations/{locationId}:
+    parameters:
+      - name: locationId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    patch:
+      operationId: updateLocation
+      tags: [Customer profile]
+      summary: Edit a saved location or make it the default
+      description: |
+        `isDefault: true` makes this location the default and unsets the
+        previous one. `isDefault: false` on the current default is rejected
+        (409): set another location to default instead.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LocationUpdate"
+      responses:
+        "200":
+          description: The updated location.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Location"
+        "400":
+          $ref: "#/components/responses/ValidationFailed"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          description: The default location cannot be unset directly.
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+    delete:
+      operationId: deleteLocation
+      tags: [Customer profile]
+      summary: Delete a saved location
+      description: Deleting the default promotes the oldest remaining location to default.
+      responses:
+        "204":
+          description: Deleted.
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    Locale:
+      type: object
+      additionalProperties: false
+      properties:
+        country:
+          type: string
+          pattern: "^[A-Z]{2}$"
+          description: ISO 3166-1 alpha-2.
+          examples: [IN]
+        language:
+          type: string
+          enum: [en, hi]
+          description: English and Hindi at launch (D-008); more languages are Phase 2.
+        timeZone:
+          type: string
+          description: IANA time zone.
+          examples: [Asia/Kolkata]
+        currency:
+          type: string
+          pattern: "^[A-Z]{3}$"
+          description: ISO 4217.
+          examples: [INR]
+    Profile:
+      type: object
+      required: [userId, displayName, phone, email, emailVerified, customerType, companyName, locale]
+      properties:
+        userId:
+          type: string
+          format: uuid
+        displayName:
+          type: [string, "null"]
+        phone:
+          type: [string, "null"]
+          description: The verified sign-in phone number. Read-only.
+          examples: ["+919829000001"]
+        email:
+          type: [string, "null"]
+          description: Unverified contact email, lower-cased.
+        emailVerified:
+          type: boolean
+        customerType:
+          type: string
+          enum: [individual, business]
+        companyName:
+          type: [string, "null"]
+        locale:
+          $ref: "#/components/schemas/Locale"
+    ProfileUpdate:
+      type: object
+      additionalProperties: false
+      properties:
+        displayName:
+          type: string
+          minLength: 2
+          maxLength: 120
+          description: Trimmed. Cannot be null.
+        email:
+          type: [string, "null"]
+          format: email
+          maxLength: 254
+        customerType:
+          type: string
+          enum: [individual, business]
+        companyName:
+          type: [string, "null"]
+          minLength: 1
+          maxLength: 160
+        locale:
+          $ref: "#/components/schemas/Locale"
+    Location:
+      type: object
+      required: [id, label, addressText, postalCode, cityId, isDefault, createdAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        label:
+          type: string
+          maxLength: 60
+        addressText:
+          type: string
+          maxLength: 300
+        postalCode:
+          type: [string, "null"]
+        cityId:
+          type: [string, "null"]
+          format: uuid
+          description: A city from the geography hierarchy.
+        isDefault:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+    LocationCreate:
+      type: object
+      additionalProperties: false
+      required: [label, addressText]
+      properties:
+        label:
+          type: string
+          minLength: 1
+          maxLength: 60
+        addressText:
+          type: string
+          minLength: 1
+          maxLength: 300
+        postalCode:
+          type: string
+          minLength: 1
+          maxLength: 12
+        cityId:
+          type: string
+          format: uuid
+        isDefault:
+          type: boolean
+    LocationUpdate:
+      type: object
+      additionalProperties: false
+      properties:
+        label:
+          type: string
+          minLength: 1
+          maxLength: 60
+        addressText:
+          type: string
+          minLength: 1
+          maxLength: 300
+        postalCode:
+          type: [string, "null"]
+          minLength: 1
+          maxLength: 12
+        cityId:
+          type: [string, "null"]
+          format: uuid
+        isDefault:
+          type: boolean
+    Problem:
+      type: object
+      description: RFC 9457 problem details.
+      required: [title, status]
+      properties:
+        type:
+          type: string
+        title:
+          type: string
+        status:
+          type: integer
+        detail:
+          type: [string, array]
+        instance:
+          type: string
+  responses:
+    Unauthorized:
+      description: Access token is missing, invalid or expired.
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+    ValidationFailed:
+      description: A field failed validation, or an unknown field was sent.
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+    NotFound:
+      description: No such location for this user (including one owned by someone else).
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"

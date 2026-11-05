@@ -161,3 +161,89 @@ describe('createApiAuthService', () => {
     expect(calls).toHaveLength(0)
   })
 })
+
+describe('createApiAuthService: customer profile and saved locations (F-ACC-06)', () => {
+  const signedIn = () => {
+    const ctx = setup({
+      'GET /me/profile': reply(200, { userId: 'u1', displayName: 'Aarav Mehta', phone: '+919829000001', email: 'a@b.co', emailVerified: false, customerType: 'individual', companyName: null, locale: {} }),
+      'PATCH /me/profile': (req) => reply(200, { userId: 'u1', displayName: req.body.displayName ?? 'Aarav Mehta', email: req.body.email ?? null }),
+      'GET /me/locations': reply(200, { locations: [{ id: 'l1', label: 'Home', addressText: '24 Vaishali Nagar', isDefault: true }] }),
+      'POST /me/locations': (req) => reply(201, { id: 'l2', ...req.body, isDefault: false }),
+      'PATCH /me/locations/l2': reply(200, { id: 'l2', isDefault: true }),
+      'DELETE /me/locations/l2': reply(204),
+    })
+    ctx.store.set(TOKENS)
+    return ctx
+  }
+
+  it('loads the profile with the bearer token', async () => {
+    const { service, calls } = signedIn()
+    const r = await service.getProfile()
+    expect(r.ok).toBe(true)
+    expect(r.profile).toMatchObject({ displayName: 'Aarav Mehta', phone: '+919829000001', emailVerified: false })
+    expect(calls[0]).toMatchObject({ method: 'GET', path: '/me/profile', auth: 'Bearer a1' })
+  })
+
+  it('sends only the fields it is given (PATCH) and null clears the email', async () => {
+    const { service, calls } = signedIn()
+    expect((await service.saveProfile({ displayName: 'Aarav Mehta', email: 'a@b.co' })).ok).toBe(true)
+    expect(calls[0].body).toEqual({ displayName: 'Aarav Mehta', email: 'a@b.co' })
+    await service.saveProfile({ email: null })
+    expect(calls[1].body).toEqual({ email: null })
+  })
+
+  it.each([
+    [400, 'INVALID_PROFILE'],
+    [404, 'NOT_FOUND'],
+    [409, 'CONFLICT'],
+    [500, 'PROVIDER_ERROR'],
+  ])('maps HTTP %i to %s', async (status, code) => {
+    const { service, store } = setup({ 'PATCH /me/profile': reply(status, {}) })
+    store.set(TOKENS)
+    const r = await service.saveProfile({ displayName: 'x' })
+    expect(r).toMatchObject({ ok: false, code })
+    expect(r.message).toBeTruthy()
+  })
+
+  it('reports a network failure distinctly', async () => {
+    const store = createSessionStore(memoryStorage())
+    store.set(TOKENS)
+    const service = createApiAuthService({ baseUrl: 'http://api.test/v1', fetchImpl: async () => { throw new Error('offline') }, store })
+    expect((await service.getProfile()).code).toBe('NETWORK')
+  })
+
+  it('refreshes an expired token once and retries the profile call', async () => {
+    const { service, store, calls } = setup({
+      'GET /me/profile': [reply(401, {}), reply(200, { userId: 'u1', displayName: 'Aarav Mehta' })],
+      'POST /auth/refresh': reply(200, { accessToken: 'a2', refreshToken: 'r2', accessTokenExpiresAt: 'x' }),
+    })
+    store.set(TOKENS)
+    const r = await service.getProfile()
+    expect(r.ok).toBe(true)
+    expect(calls.map((c) => `${c.method} ${c.path}`)).toEqual(['GET /me/profile', 'POST /auth/refresh', 'GET /me/profile'])
+    expect(calls[2].auth).toBe('Bearer a2')
+  })
+
+  it('does nothing when signed out', async () => {
+    const { service, calls } = setup({})
+    expect((await service.getProfile()).ok).toBe(false)
+    expect(calls).toHaveLength(0)
+  })
+
+  it('lists, adds, edits and removes saved locations', async () => {
+    const { service, calls } = signedIn()
+    expect((await service.listLocations()).locations).toHaveLength(1)
+    const added = await service.addLocation({ label: 'Office', addressText: 'MI Road' })
+    expect(added).toMatchObject({ ok: true, location: { id: 'l2', label: 'Office' } })
+    expect((await service.updateLocation('l2', { isDefault: true })).location.isDefault).toBe(true)
+    expect(await service.removeLocation('l2')).toEqual({ ok: true })
+    expect(calls.map((c) => `${c.method} ${c.path}`)).toEqual(['GET /me/locations', 'POST /me/locations', 'PATCH /me/locations/l2', 'DELETE /me/locations/l2'])
+  })
+
+  it('url-encodes location ids so a crafted id cannot change the path', async () => {
+    const { service, store, calls } = setup({ 'DELETE /me/locations/..%2Fprofile': reply(204) })
+    store.set(TOKENS)
+    await service.removeLocation('../profile')
+    expect(calls[0].path).toBe('/me/locations/..%2Fprofile')
+  })
+})
