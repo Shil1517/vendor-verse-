@@ -88,6 +88,25 @@ Protect an admin route with `@RequirePermission("<code>")` (`src/rbac/permission
 
 The first Super Admin is created from the command line, because the API needs one to exist: the person signs up first, then run `npm run admin:first-super-admin -- phone "<normalized phone>" "<reason>"` (or `email`). It refuses once any Super Admin exists and writes an audit event. Super Admin sign-in is blocked until the MFA method is decided.
 
+## Deploying on Render: required variables
+
+The backend refuses to start if any of these is missing, so a failed deploy usually means one is unset. Secrets must be at least 32 bytes.
+
+| Variable | Value on Render |
+|---|---|
+| `APP_ENV` | `local` or `test` (the only values accepted while the fixed OTP provider is the only one) |
+| `NODE_ENV` | **not** `production` while `OTP_PROVIDER=local-test` (the app refuses to start) |
+| `OTP_PROVIDER` | `local-test` until a real provider is chosen |
+| `DATABASE_URL`, `DATABASE_SSL` | the Render Postgres URL; `DATABASE_SSL=true` |
+| `CORS_ORIGINS` | comma-separated `https://` origins of the deployed web **and** mobile sites, no trailing slash (a missing origin makes every browser call fail) |
+| `HOST` | `0.0.0.0` |
+| `PORT` | the port Render routes to |
+| `JWT_ISSUER`, `JWT_SECRET`, `OTP_VERIFIER_SECRET`, `SESSION_TOKEN_PEPPER` | your own values; secrets of 32+ bytes |
+| `OTP_CHALLENGE_TTL_SECONDS`, `ACCESS_TOKEN_TTL_SECONDS`, `REFRESH_TOKEN_TTL_SECONDS`, `OTP_REQUEST_WINDOW_SECONDS`, `OTP_REQUEST_MAX`, `OTP_VERIFY_MAX` | no code defaults; owner-chosen policy values |
+| `IDEMPOTENCY_TTL_SECONDS`, `IDEMPOTENCY_LOCK_SECONDS` | no code defaults; omitting them failed an earlier deploy |
+
+The web and mobile static sites need `VITE_API_BASE_URL=https://<backend>.onrender.com/v1`. Vite reads it **at build time**, so set it, then redeploy (Clear build cache & deploy). Without it the app runs on the in-memory mock: screens look fine, but nothing is saved and a reload loses it. After changing `CORS_ORIGINS`, redeploy the backend. Check `https://<backend>.onrender.com/v1/health/live` returns `{"status":"ok"}`.
+
 ## Checks
 
 Run `npm run build`, `npm test`, and `npm run lint` from this directory. Tests
@@ -148,3 +167,4 @@ The email is stored **unverified** and is not a sign-in identifier; verification
 | 2026-11-05 17:30 | Shil1517 | Added: listings, availability, publication-gate and waitlist routes | Next slices of vendor supply (F-VND-05, F-VND-06, F-VND-08) and the F-GEO-02 waitlist. |
 | 2026-11-05 16:14 | Shil1517 | Added: roles and permissions routes, permission guard, rbac seed, first-Super-Admin script | F-ADM-04: every admin API needs a deny-by-default permission check and audited role changes. |
 | 2026-11-05 16:31 | Shil1517 | Added: admin taxonomy builder routes and taxonomy.manage seed | F-TAX-02: no categories existed, so listings could not be tried end to end. |
+| 2026-11-05 16:52 | Shil1517 | Added: Render required-variables checklist | A deploy failed on missing idempotency variables and the deployed apps ran on the mock without the API URL. |

@@ -1,14 +1,23 @@
 # Render Blueprint: one static site per app, each built from its own folder.
+# VITE_API_BASE_URL is read at BUILD time (Vite bakes it in) and .env.local is not committed, so it must be set here
+# or in the dashboard, then redeployed. Unset, the app silently runs on the in-memory mock. Value: https://<backend>.onrender.com/v1
+# The backend is not part of this Blueprint; its required variables are listed in backend/README.md.
 services:
   - type: web
     runtime: static
     name: vendorverse-web
+    envVars:
+      - key: VITE_API_BASE_URL
+        sync: false
     rootDir: web
     buildCommand: npm ci && npm run build
     staticPublishPath: dist
   - type: web
     runtime: static
     name: vendorverse-mobile
+    envVars:
+      - key: VITE_API_BASE_URL
+        sync: false
     rootDir: mobile
     buildCommand: npm ci && npm run build
     staticPublishPath: dist
