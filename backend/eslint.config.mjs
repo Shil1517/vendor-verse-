@@ -16,6 +16,8 @@ export default [
         process: 'readonly',
         Buffer: 'readonly',
         console: 'readonly',
+        setInterval: 'readonly',
+        clearInterval: 'readonly',
         describe: 'readonly',
         it: 'readonly',
         expect: 'readonly',

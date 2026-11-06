@@ -5,6 +5,7 @@ import { AuthModule } from "./auth/auth.module";
 import { DatabaseModule } from "./database/database.module";
 import { GeoModule } from "./geo/geo.module";
 import { ListingsModule } from "./listings/listings.module";
+import { NotificationsModule } from "./notifications/notifications.module";
 import { HealthController } from "./health/health.controller";
 import { PlatformModule } from "./platform/platform.module";
 import { RbacModule } from "./rbac/rbac.module";
@@ -27,6 +28,7 @@ import { validateEnvironment } from "./config/environment";
     TaxonomyModule,
     VendorsModule,
     ListingsModule,
+    NotificationsModule,
   ],
   controllers: [HealthController],
 })
