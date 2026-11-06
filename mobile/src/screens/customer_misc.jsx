@@ -5,6 +5,7 @@ import {
 } from 'lucide-react'
 import { useApp } from '../store.jsx'
 import { useNav } from '../nav.jsx'
+import { remoteInbox, useInbox } from '../useInbox.js'
 import { authService } from '../services/authService.js'
 import { cat, CATS, REPORT_REASONS, serves, AVAIL_LABEL } from '../data.jsx'
 import {
@@ -132,10 +133,16 @@ export function Notifications() {
   const nav = useNav()
   const { me, notifs, setNotifs } = useApp()
   const role = me.role || 'customer'
-  const list = notifs[role] || []
+  const inbox = useInbox(role)
+  const list = remoteInbox ? inbox.rows : notifs[role] || []
   const fresh = list.filter((n) => !n.read)
   const old = list.filter((n) => n.read)
   const open = (n) => {
+    if (remoteInbox) {
+      if (!n.read) inbox.markRead(n.id)
+      if (n.to) nav.go(n.to[0], n.to[1] || {})
+      return
+    }
     setNotifs((s) => ({ ...s, [role]: s[role].map((x) => (x.id === n.id ? { ...x, read: true } : x)) }))
     if (n.to) nav.go(n.to[0], n.to[1] || {})
   }
@@ -150,10 +157,12 @@ export function Notifications() {
     )
   }
   return (
-    <Screen title="Notifications" right={fresh.length > 0 ? <button onClick={() => setNotifs((s) => ({ ...s, [role]: s[role].map((x) => ({ ...x, read: true })) }))} className="mr-2 text-[13px] font-bold text-brand-700">Mark all read</button> : null}>
-      {list.length === 0 && <EmptyState icon={Bell} title="You’re all caught up" />}
+    <Screen title="Notifications" right={fresh.length > 0 ? <button onClick={() => (remoteInbox ? inbox.markAll() : setNotifs((s) => ({ ...s, [role]: s[role].map((x) => ({ ...x, read: true })) })))} className="mr-2 text-[13px] font-bold text-brand-700">Mark all read</button> : null}>
+      {remoteInbox && inbox.error && <p className="text-center text-sm text-red-600">{inbox.error}</p>}
+      {list.length === 0 && !inbox.loading && !inbox.error && <EmptyState icon={Bell} title="You’re all caught up" />}
       {fresh.length > 0 && <Section title="New"><div className="space-y-2">{fresh.map((n) => <Row key={n.id} n={n} />)}</div></Section>}
       {old.length > 0 && <Section title="Earlier"><div className="space-y-2">{old.map((n) => <Row key={n.id} n={n} />)}</div></Section>}
+      {remoteInbox && inbox.more && <button onClick={inbox.loadMore} disabled={inbox.loading} className="mx-auto block text-[13px] font-bold text-brand-700">Load older</button>}
       <p className="text-center text-xs text-ink-400">Transactional alerts are always sent. Lock-screen previews hide sensitive case details by default.</p>
     </Screen>
   )

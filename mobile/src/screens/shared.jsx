@@ -1,6 +1,7 @@
 import { Languages, Bell, Heart, MapPin, ShieldCheck, ShieldAlert, CalendarDays, Clock, Zap, FileText, CalendarCheck, BadgeAlert } from 'lucide-react'
 import { useApp } from '../store.jsx'
 import { useNav } from '../nav.jsx'
+import { remoteInbox, useUnreadCount } from '../useInbox.js'
 import { Thumb, Rating, Badge, StatusBadge, IconBtn, Card, cx, Pill, Missing, SponsoredTag, Countdown } from '../ui.jsx'
 import { cat, serves, MODE_LABEL } from '../data.jsx'
 import { KIND_LABEL, country } from '../globaldata.jsx'
@@ -76,7 +77,8 @@ export function LangButton() {
 export function NotifBell({ role }) {
   const { notifs } = useApp()
   const nav = useNav()
-  const n = notifs[role]?.filter((x) => !x.read).length || 0
+  const remoteCount = useUnreadCount(role)
+  const n = remoteInbox ? remoteCount : notifs[role]?.filter((x) => !x.read).length || 0
   return (
     <IconBtn label="Notifications" onClick={() => nav.go('notifications')}>
       <Bell size={21} />

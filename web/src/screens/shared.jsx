@@ -1,6 +1,7 @@
 import { Bell, Heart, MapPin, ShieldCheck, ShieldAlert, Package, CalendarDays, Clock } from 'lucide-react'
 import { useApp } from '../store.jsx'
 import { useNav } from '../nav.jsx'
+import { remoteInbox, useUnreadCount } from '../useInbox.js'
 import { Thumb, Rating, Badge, StatusBadge, IconBtn, Card, Avatar, cx, fmt, Pill } from '../ui.jsx'
 import { cat } from '../data.jsx'
 
@@ -49,7 +50,8 @@ export function VerifiedBadge({ id, className }) {
 export function NotifBell({ role }) {
   const { notifs } = useApp()
   const nav = useNav()
-  const n = notifs[role]?.filter((x) => !x.read).length || 0
+  const remoteCount = useUnreadCount(role)
+  const n = remoteInbox ? remoteCount : notifs[role]?.filter((x) => !x.read).length || 0
   return (
     <IconBtn label="Notifications" onClick={() => nav.go('notifications')}>
       <Bell size={21} />

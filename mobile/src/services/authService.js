@@ -348,6 +348,32 @@ export function createApiAuthService({ baseUrl, fetchImpl = (...args) => globalT
     return r.status === 200 ? { ok: true, request: r.data } : profileFail(r)
   }
 
+  /* ---- F-MSG-04 notification inbox ---- */
+  /** GET /me/notifications -> { ok, notifications: [{ id, eventType, category, payload, linkedResource: { type, id } | null, read, createdAt }] }. Page back with `before` (a createdAt). */
+  async function listNotifications({ unreadOnly = false, limit, before } = {}) {
+    const q = new URLSearchParams()
+    if (unreadOnly) q.set('unreadOnly', 'true')
+    if (limit) q.set('limit', String(limit))
+    if (before) q.set('before', before)
+    const r = await authed(`/me/notifications${q.size ? `?${q}` : ''}`, { method: 'GET' })
+    return r.status === 200 ? { ok: true, notifications: r.data.notifications } : profileFail(r)
+  }
+
+  async function getUnreadNotificationCount() {
+    const r = await authed('/me/notifications/unread-count', { method: 'GET' })
+    return r.status === 200 ? { ok: true, count: r.data.count } : profileFail(r)
+  }
+
+  async function markNotificationRead(id) {
+    const r = await authed(`/me/notifications/${encodeURIComponent(id)}/read`, { method: 'POST' })
+    return r.status === 200 ? { ok: true, notification: r.data } : profileFail(r)
+  }
+
+  async function markAllNotificationsRead() {
+    const r = await authed('/me/notifications/read-all', { method: 'POST' })
+    return r.status === 200 ? { ok: true, updated: r.data.updated } : profileFail(r)
+  }
+
   /* ---- F-VND-01 / F-VND-02 vendor onboarding ---- */
   /** POST /vendors. Country first; businessType is one of SERVICE_PROVIDER|CONTRACTOR|SUPPLIER|WHOLESALER|MANUFACTURER|DISTRIBUTOR|OTHER. */
   async function createVendor({ registrationCountry, businessType, legalName, tradingName }) {
@@ -365,7 +391,7 @@ export function createApiAuthService({ baseUrl, fetchImpl = (...args) => globalT
     return r.status === 200 ? { ok: true, vendor: r.data } : profileFail(r)
   }
 
-  return { requestOtp, verifyOtp, endSession, getProfile, saveProfile, listLocations, addLocation, updateLocation, removeLocation, listSessions, revokeSession, getNotificationPreferences, saveNotificationPreferences, listDataRequests, requestDataRequest, cancelDataRequest, createVendor, listMyVendors, updateVendor, isRemote: true }
+  return { requestOtp, verifyOtp, endSession, getProfile, saveProfile, listLocations, addLocation, updateLocation, removeLocation, listSessions, revokeSession, getNotificationPreferences, saveNotificationPreferences, listDataRequests, requestDataRequest, cancelDataRequest, listNotifications, getUnreadNotificationCount, markNotificationRead, markAllNotificationsRead, createVendor, listMyVendors, updateVendor, isRemote: true }
 }
 
 const apiBaseUrl = import.meta.env?.VITE_API_BASE_URL
