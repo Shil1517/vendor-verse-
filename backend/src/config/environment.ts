@@ -20,6 +20,16 @@ export interface AppEnvironmentConfig {
   OTP_VERIFY_MAX: number;
   IDEMPOTENCY_TTL_SECONDS: number;
   IDEMPOTENCY_LOCK_SECONDS: number;
+  /**
+   * File policy. All optional: with any of them unset, file uploads and
+   * downloads are refused (fail closed) because the values are owner
+   * decisions that are not made yet.
+   */
+  FILE_STORAGE_PROVIDER?: "local-test";
+  FILE_MAX_BYTES?: number;
+  FILE_ALLOWED_CONTENT_TYPES?: string[];
+  FILE_UPLOAD_URL_TTL_SECONDS?: number;
+  FILE_DOWNLOAD_URL_TTL_SECONDS?: number;
 }
 
 function requiredString(
@@ -72,6 +82,19 @@ function requiredList(
   return values;
 }
 
+function optionalPositiveInteger(
+  environment: Record<string, unknown>,
+  name: string,
+): number | undefined {
+  return isBlank(environment[name])
+    ? undefined
+    : positiveInteger(environment, name);
+}
+
+function isBlank(value: unknown): boolean {
+  return typeof value !== "string" || value.trim() === "";
+}
+
 function requiredSecret(
   environment: Record<string, unknown>,
   name: string,
@@ -102,6 +125,16 @@ export function validateEnvironment(
   if (otpProvider !== "local-test") {
     throw new Error(`Unsupported OTP_PROVIDER: ${otpProvider}`);
   }
+
+  const fileStorage = environment.FILE_STORAGE_PROVIDER;
+  if (!isBlank(fileStorage) && String(fileStorage).trim() !== "local-test") {
+    throw new Error(
+      `Unsupported FILE_STORAGE_PROVIDER: ${String(fileStorage)}`,
+    );
+  }
+  const contentTypes = isBlank(environment.FILE_ALLOWED_CONTENT_TYPES)
+    ? undefined
+    : requiredList(environment, "FILE_ALLOWED_CONTENT_TYPES");
 
   return {
     APP_ENV: appEnvironment,
@@ -144,6 +177,17 @@ export function validateEnvironment(
     IDEMPOTENCY_LOCK_SECONDS: positiveInteger(
       environment,
       "IDEMPOTENCY_LOCK_SECONDS",
+    ),
+    FILE_STORAGE_PROVIDER: isBlank(fileStorage) ? undefined : "local-test",
+    FILE_MAX_BYTES: optionalPositiveInteger(environment, "FILE_MAX_BYTES"),
+    FILE_ALLOWED_CONTENT_TYPES: contentTypes?.map((type) => type.toLowerCase()),
+    FILE_UPLOAD_URL_TTL_SECONDS: optionalPositiveInteger(
+      environment,
+      "FILE_UPLOAD_URL_TTL_SECONDS",
+    ),
+    FILE_DOWNLOAD_URL_TTL_SECONDS: optionalPositiveInteger(
+      environment,
+      "FILE_DOWNLOAD_URL_TTL_SECONDS",
     ),
   };
 }

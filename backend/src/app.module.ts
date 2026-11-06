@@ -3,6 +3,7 @@ import { ConfigModule } from "@nestjs/config";
 import { AccountsModule } from "./accounts/accounts.module";
 import { AuthModule } from "./auth/auth.module";
 import { DatabaseModule } from "./database/database.module";
+import { FilesModule } from "./files/files.module";
 import { GeoModule } from "./geo/geo.module";
 import { ListingsModule } from "./listings/listings.module";
 import { NotificationsModule } from "./notifications/notifications.module";
@@ -29,6 +30,7 @@ import { validateEnvironment } from "./config/environment";
     VendorsModule,
     ListingsModule,
     NotificationsModule,
+    FilesModule,
   ],
   controllers: [HealthController],
 })
