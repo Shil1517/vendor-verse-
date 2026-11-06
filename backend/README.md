@@ -54,6 +54,8 @@ These routes are also listed in Swagger UI at `/docs`.
 - `GET /v1/vendors/{vendorId}/publication-gates?listingId=` (F-VND-05; computed live, never stored; gates whose module is missing report `met: null`)
 - `GET|PUT|DELETE /v1/listings/{listingId}/availability`, `GET|POST /v1/listings/{listingId}/capacity`, `DELETE /v1/listings/{listingId}/capacity/{windowId}` (F-VND-08)
 - `GET /v1/me/waitlist`, `POST|DELETE /v1/geo/cities/{cityId}/waitlist` (F-GEO-02)
+- `GET /v1/admin/roles`, `GET|POST /v1/admin/users/{userId}/roles`, `DELETE /v1/admin/users/{userId}/roles/{roleCode}` (F-ADM-04; needs `rbac.read` / `rbac.manage`; only SALES_AGENT and SUPER_ADMIN are assignable; reason required and audited; you cannot change your own roles; the last Super Admin cannot be revoked)
+- `GET /v1/admin/taxonomy/categories?industryId=&lifecycle=`, `GET|PATCH /v1/admin/taxonomy/categories/{id}`, `POST /v1/admin/taxonomy/categories`, `POST .../categories/{id}/lifecycle|merge`, `PUT /v1/admin/taxonomy/industries/{id}/category-order`, `POST .../categories/{id}/subcategories`, `PATCH .../subcategories/{id}` (F-TAX-02; needs `taxonomy.manage`; new categories start as Draft, so activate one and set a `marketRules` entry before it shows in public browse)
 - `GET /v1/taxonomy/industries?countryCode=`
 - `GET /v1/taxonomy/categories?countryCode=&industryId=`
 - `GET /v1/taxonomy/categories/{categoryId}?countryCode=`
@@ -63,7 +65,7 @@ The taxonomy routes are public (F-TAX-01, F-TAX-08). They return Active categori
 that a Super Admin marked always-show. The eligible-listings rule is not applied yet because
 the listings module does not exist, so a category without always-show is hidden. Industries
 come from `npm run db:seed` (the ten Phase 1 industries of F-TAX-05); categories are created by
-the admin taxonomy builder (F-TAX-02), which is not implemented, so none exist until then.
+the admin taxonomy builder (F-TAX-02) above, so none exist until a Super Admin creates and activates them.
 
 Mode switching supports CUSTOMER and VENDOR when a vendor record is owned by
 the identity. BUSINESS returns 409 until its separately verified account
@@ -79,6 +81,31 @@ persisted, unrevoked session.
 - **Outbox** (`OutboxService.enqueue`): writes `outbox_events` in the caller's transaction. No dispatcher exists yet.
 - **Rate limit** (`RateLimitService`): fixed-window counter; callers pass the maximum and window from configuration.
 - **Idempotency**: send `Idempotency-Key` on any write. The same key and request replays the first response (`Idempotent-Replayed: true`); the same key with a different request returns 422; a concurrent duplicate returns 409. A failed attempt frees the key. `IDEMPOTENCY_TTL_SECONDS` and `IDEMPOTENCY_LOCK_SECONDS` have no code defaults; choose values for your environment. Expired keys are replaced on reuse; there is no cleanup job yet.
+
+## Roles and permissions (F-ADM-04)
+
+Protect an admin route with `@RequirePermission("<code>")` (`src/rbac/permission.guard.ts`). It also applies the access-token guard and is **deny by default**: a route that names no permission, or a caller whose active roles lack it, gets 403. Roles are read on every request, so a revoke takes effect at once. Permission codes and the role grants live in `db/seeds/*.sql` (currently `004_rbac_permissions.sql`: SUPER_ADMIN holds `rbac.read` and `rbac.manage`; CUSTOMER and VENDOR hold none because their access is ownership-based; SALES_AGENT holds none until the agents module decides). Each admin module adds its own permission rows when it ships; run `npm run db:seed` after pulling.
+
+The first Super Admin is created from the command line, because the API needs one to exist: the person signs up first, then run `npm run admin:first-super-admin -- phone "<normalized phone>" "<reason>"` (or `email`). It refuses once any Super Admin exists and writes an audit event. Super Admin sign-in is blocked until the MFA method is decided.
+
+## Deploying on Render: required variables
+
+The backend refuses to start if any of these is missing, so a failed deploy usually means one is unset. Secrets must be at least 32 bytes.
+
+| Variable | Value on Render |
+|---|---|
+| `APP_ENV` | `local` or `test` (the only values accepted while the fixed OTP provider is the only one) |
+| `NODE_ENV` | **not** `production` while `OTP_PROVIDER=local-test` (the app refuses to start) |
+| `OTP_PROVIDER` | `local-test` until a real provider is chosen |
+| `DATABASE_URL`, `DATABASE_SSL` | the Render Postgres URL; `DATABASE_SSL=true` |
+| `CORS_ORIGINS` | comma-separated `https://` origins of the deployed web **and** mobile sites, no trailing slash (a missing origin makes every browser call fail) |
+| `HOST` | `0.0.0.0` |
+| `PORT` | the port Render routes to |
+| `JWT_ISSUER`, `JWT_SECRET`, `OTP_VERIFIER_SECRET`, `SESSION_TOKEN_PEPPER` | your own values; secrets of 32+ bytes |
+| `OTP_CHALLENGE_TTL_SECONDS`, `ACCESS_TOKEN_TTL_SECONDS`, `REFRESH_TOKEN_TTL_SECONDS`, `OTP_REQUEST_WINDOW_SECONDS`, `OTP_REQUEST_MAX`, `OTP_VERIFY_MAX` | no code defaults; owner-chosen policy values |
+| `IDEMPOTENCY_TTL_SECONDS`, `IDEMPOTENCY_LOCK_SECONDS` | no code defaults; omitting them failed an earlier deploy |
+
+The web and mobile static sites need `VITE_API_BASE_URL=https://<backend>.onrender.com/v1`. Vite reads it **at build time**, so set it, then redeploy (Clear build cache & deploy). Without it the app runs on the in-memory mock: screens look fine, but nothing is saved and a reload loses it. After changing `CORS_ORIGINS`, redeploy the backend. Check `https://<backend>.onrender.com/v1/health/live` returns `{"status":"ok"}`.
 
 ## Checks
 
@@ -138,3 +165,6 @@ The email is stored **unverified** and is not a sign-in identifier; verification
 | 2026-11-05 15:40 | Shil1517 | Added: vendor onboarding routes | First vendor-supply API slice (become a vendor, own profile). |
 | 2026-11-05 16:40 | Shil1517 | Added: geography reads and vendor service-area routes | Coverage declaration (F-GEO-06) needs a location hierarchy to pick from. |
 | 2026-11-05 17:30 | Shil1517 | Added: listings, availability, publication-gate and waitlist routes | Next slices of vendor supply (F-VND-05, F-VND-06, F-VND-08) and the F-GEO-02 waitlist. |
+| 2026-11-05 16:14 | Shil1517 | Added: roles and permissions routes, permission guard, rbac seed, first-Super-Admin script | F-ADM-04: every admin API needs a deny-by-default permission check and audited role changes. |
+| 2026-11-05 16:31 | Shil1517 | Added: admin taxonomy builder routes and taxonomy.manage seed | F-TAX-02: no categories existed, so listings could not be tried end to end. |
+| 2026-11-05 16:52 | Shil1517 | Added: Render required-variables checklist | A deploy failed on missing idempotency variables and the deployed apps ran on the mock without the API URL. |

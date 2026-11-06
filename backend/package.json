@@ -17,7 +17,8 @@
     "db:status": "node --env-file=.env scripts/migrate.cjs status",
     "db:rollback": "node --env-file=.env scripts/migrate.cjs down",
     "db:verify": "node --env-file=.env scripts/verify-schema.cjs",
-    "db:seed": "node --env-file=.env scripts/seed.cjs"
+    "db:seed": "node --env-file=.env scripts/seed.cjs",
+    "admin:first-super-admin": "node --env-file=.env scripts/grant-first-super-admin.cjs"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.0",
