@@ -107,4 +107,37 @@ describe("validateEnvironment", () => {
       }),
     ).toThrow("JWT_SECRET must contain at least 32 bytes");
   });
+  it("leaves the file policy unset unless the owner configures it", () => {
+    const config = validateEnvironment(validEnvironment);
+    expect(config.FILE_STORAGE_PROVIDER).toBeUndefined();
+    expect(config.FILE_MAX_BYTES).toBeUndefined();
+    expect(config.FILE_ALLOWED_CONTENT_TYPES).toBeUndefined();
+  });
+
+  it("parses the file policy when it is set", () => {
+    const config = validateEnvironment({
+      ...validEnvironment,
+      FILE_STORAGE_PROVIDER: "local-test",
+      FILE_MAX_BYTES: "1000",
+      FILE_ALLOWED_CONTENT_TYPES: "Application/PDF, image/png",
+      FILE_UPLOAD_URL_TTL_SECONDS: "60",
+      FILE_DOWNLOAD_URL_TTL_SECONDS: "30",
+    });
+    expect(config).toMatchObject({
+      FILE_STORAGE_PROVIDER: "local-test",
+      FILE_MAX_BYTES: 1000,
+      FILE_ALLOWED_CONTENT_TYPES: ["application/pdf", "image/png"],
+      FILE_UPLOAD_URL_TTL_SECONDS: 60,
+      FILE_DOWNLOAD_URL_TTL_SECONDS: 30,
+    });
+  });
+
+  it("rejects an unknown file storage provider and a bad size", () => {
+    expect(() =>
+      validateEnvironment({ ...validEnvironment, FILE_STORAGE_PROVIDER: "s3" }),
+    ).toThrow("Unsupported FILE_STORAGE_PROVIDER");
+    expect(() =>
+      validateEnvironment({ ...validEnvironment, FILE_MAX_BYTES: "-5" }),
+    ).toThrow("FILE_MAX_BYTES must be a positive integer");
+  });
 });
