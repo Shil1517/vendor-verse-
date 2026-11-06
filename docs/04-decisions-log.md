@@ -42,6 +42,7 @@ Nothing in these rows is built, changed or removed until the decision is closed.
 | O-11 | Is the admin role visible in the mockup role picker on both apps? | sync matrix section 3 | Web shows it; mobile hides it (`HIDE_ADMIN`). Needed so both demo the same journeys. |
 | O-12 | Confirm D-014 (PRS "Future" = Phase 3) and whether the PRS should be reissued as v3.1. | F-GDS-08, F-GDS-09, F-DSC-10 and others | The PRS is dated 24 Oct 2026 and is out of step with decisions D-003, D-005, D-006, D-011, D-013. |
 | O-13 | Which mobile client technology should be used: native, React Native or a web app? | docs/06-architecture-and-structure.md | Backend language and framework were decided by D-016. The mobile client choice remains open; do not assume or implement a mobile technology. |
+| O-14 | What may an account in each state do: Pending verification, Restricted, Suspended, Deletion requested? | F-ACC-03 | PRS §3.2 gives only general behaviour (restrict sensitive actions; disable some capabilities with a user-facing explanation; block relevant activity but keep records). No capability list per state exists, so only Active accounts can sign in or use the API and no other state is enforced. The server needs the capability list, and the user-facing explanation copy, before it can enforce them. |
 
 ## 3. Where these decisions differ from the PRS v3.0
 
@@ -74,6 +75,7 @@ The PRS is not edited (D-012). Until it is reissued, the decision wins.
 
 | Date & time (YYYY-MM-DD HH:MM, local) | Updated by | Change | Reason |
 |---|---|---|---|
+| 2026-11-06 13:48 | Shil1517 | Added: O-14 | Account-state enforcement cannot be built without a per-state capability list; PRS §3.2 is not specific enough. |
 | 2026-11-04 15:24 | Amit | Added: D-016; narrowed O-13 to mobile client technology | Owner approved TypeScript and NestJS for the modular-monolith backend; mobile technology remains undecided. |
 | 2026-10-31 15:10 | Shil1517 | Added: O-13 | Architecture scaffold needs a backend and mobile technology decision; not assumed. |
 | 2026-10-30 17:05 | Shil1517 | Added: D-015; closed O-07 | Owner decided during the web sync pass that company storefront ordering is Phase 2 with a badge. |

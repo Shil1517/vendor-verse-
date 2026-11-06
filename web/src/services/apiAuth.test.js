@@ -277,6 +277,25 @@ describe('account settings and vendor onboarding calls', () => {
     expect(calls[0].body).toEqual({ preferences: prefs })
   })
 
+  it('lists the inbox with filters, reads the unread count and marks items read', async () => {
+    const { service, calls } = signedIn({
+      'GET /me/notifications': reply(200, { notifications: [{ id: 'n1' }] }),
+      'GET /me/notifications/unread-count': reply(200, { count: 2 }),
+      'POST /me/notifications/n1/read': reply(200, { id: 'n1', read: true }),
+      'POST /me/notifications/read-all': reply(200, { updated: 2 }),
+    })
+    expect((await service.listNotifications({ unreadOnly: true, limit: 10, before: '2026-11-06T00:00:00Z' })).notifications).toEqual([{ id: 'n1' }])
+    expect((await service.getUnreadNotificationCount()).count).toBe(2)
+    expect((await service.markNotificationRead('n1')).notification.read).toBe(true)
+    expect((await service.markAllNotificationsRead()).updated).toBe(2)
+    expect(calls.every((c) => c.auth === 'Bearer a1')).toBe(true)
+  })
+
+  it('reports a missing notification as NOT_FOUND', async () => {
+    const { service } = signedIn({ 'POST /me/notifications/n9/read': reply(404, {}) })
+    expect((await service.markNotificationRead('n9')).code).toBe('NOT_FOUND')
+  })
+
   it('sends an Idempotency-Key on data requests and reports an open duplicate as CONFLICT', async () => {
     const { service, calls } = signedIn({ 'POST /me/data-requests': [reply(201, { id: 'r1', type: 'export', status: 'requested' }), reply(409, {})] })
     expect((await service.requestDataRequest('export')).request.id).toBe('r1')
