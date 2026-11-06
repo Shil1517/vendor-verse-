@@ -5,7 +5,7 @@ implementation contains the auth/account slice and health endpoints. It is
 not production-ready: OTP delivery is not integrated, the fixed OTP adapter is
 local/test-only, privileged accounts fail closed until MFA exists, and
 BUSINESS mode requires business-account verification persistence. Platform
-The audit, outbox, rate-limit and Idempotency-Key plumbing exists in `src/platform/`, but only the account settings writes use the audit trail; no module enqueues outbox events yet and no worker dispatches them.
+The audit, outbox, rate-limit and Idempotency-Key plumbing exists in `src/platform/`, but only the account settings writes use the audit trail; the notifications module is the only one that enqueues outbox events, and an in-process dispatcher drains them (no separate worker yet).
 
 ## Local setup
 
@@ -46,6 +46,7 @@ These routes are also listed in Swagger UI at `/docs`.
 - `POST /v1/me/mode`
 - `GET /v1/me/sessions`, `DELETE /v1/me/sessions/{sessionId}` (F-ACC-08)
 - `GET|PUT /v1/me/notification-preferences` (F-ACC-07)
+- `GET /v1/me/notifications`, `GET /v1/me/notifications/unread-count`, `POST /v1/me/notifications/:id/read`, `POST /v1/me/notifications/read-all` (F-MSG-04)
 - `GET|POST /v1/me/data-requests`, `POST /v1/me/data-requests/{requestId}/cancel` (F-ACC-04, F-ACC-05; records the request only, no verification or fulfilment)
 - `POST /v1/vendors`, `GET /v1/vendors/mine`, `GET|PATCH /v1/vendors/{vendorId}` (F-VND-01, F-VND-02; owner only; creates a registered, unpublished vendor)
 - `GET /v1/geo/countries`, `/geo/regions?countryCode=`, `/geo/cities?countryCode=&regionId=` (with launchStatus), `/geo/localities?cityId=` (F-GEO-01, F-GEO-02; public)
@@ -78,7 +79,8 @@ persisted, unrevoked session.
 
 - **Correlation id**: every response carries `correlation-id`; the audit service stamps it on each event.
 - **Audit** (`AuditService.record`): appends to `audit_events`; pass the transaction client so the event commits with the change.
-- **Outbox** (`OutboxService.enqueue`): writes `outbox_events` in the caller's transaction. No dispatcher exists yet.
+- **Outbox** (`OutboxService.enqueue`): writes `outbox_events` in the caller's transaction. `OutboxDispatcherService` drains them in-process every 2 seconds (skipped when `APP_ENV=test`): rows are claimed with `FOR UPDATE SKIP LOCKED`, handlers register by `event_type`, a failure retries with exponential backoff (30 s, doubling) and the event is dead-lettered (`dead_lettered_at`) after 8 attempts. Handlers must be idempotent. The batch size, attempt limit and backoff are engineering constants in `outbox-dispatcher.service.ts`, not product values. There is no separate worker process yet.
+- **Notifications** (`src/notifications/`): `NotificationsService.notify` writes the inbox row (deduplicated by `recipient + dedupeKey`) and a `notification.created` outbox event in the caller's transaction. The dispatch handler then creates one `notification_delivery_attempts` row per channel (push, SMS, email) for each active template of the event: user opt-outs are honoured (unset means on), mandatory templates always send, and a channel with no registered provider is recorded as `skipped`. No channel provider exists yet (CFG-07, CFG-10 open).
 - **Rate limit** (`RateLimitService`): fixed-window counter; callers pass the maximum and window from configuration.
 - **Idempotency**: send `Idempotency-Key` on any write. The same key and request replays the first response (`Idempotent-Replayed: true`); the same key with a different request returns 422; a concurrent duplicate returns 409. A failed attempt frees the key. `IDEMPOTENCY_TTL_SECONDS` and `IDEMPOTENCY_LOCK_SECONDS` have no code defaults; choose values for your environment. Expired keys are replaced on reuse; there is no cleanup job yet.
 
@@ -150,6 +152,7 @@ The email is stored **unverified** and is not a sign-in identifier; verification
 
 | Date & time (YYYY-MM-DD HH:MM, local) | Updated by | Change | Reason |
 |---|---|---|---|
+| 2026-11-06 13:48 | Shil1517 | Added: outbox dispatcher and notifications core (inbox API, dispatch handler) | Foundation leftovers for P1-S1: events are now delivered, and F-MSG-04 / F-MSG-05 have a backend. |
 | 2026-11-05 13:05 | Shil1517 | Added: customer profile and saved-location routes, migration 014, DTO/service tests | F-ACC-06: sign-up collected a name and email but nothing stored them. |
 | 2026-11-05 12:16 | Shil1517 | Added: migrations 004-013 (full Phase 1 schema), upgraded migration runner (advisory lock, checksums, status, guarded rollback), `db:verify`, geography and CFG-register seeds; applied to the Render database | Web and mobile need one consistent store before more APIs are built; production runs need safe, auditable migrations. |
 | 2026-11-05 11:27 | Shil1517 | Added: optional `HOST` setting (default 127.0.0.1) | A hosted deployment must bind to 0.0.0.0 for the platform router to reach the process; local behaviour is unchanged. |
