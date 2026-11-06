@@ -54,6 +54,15 @@ describe("validateEnvironment", () => {
     ]);
   });
 
+  it("drops trailing slashes from CORS_ORIGINS entries", () => {
+    expect(
+      validateEnvironment({
+        ...validEnvironment,
+        CORS_ORIGINS: "https://a.onrender.com/, https://b.onrender.com//",
+      }).CORS_ORIGINS,
+    ).toEqual(["https://a.onrender.com", "https://b.onrender.com"]);
+  });
+
   it("rejects an empty CORS_ORIGINS list", () => {
     expect(() =>
       validateEnvironment({ ...validEnvironment, CORS_ORIGINS: " , " }),

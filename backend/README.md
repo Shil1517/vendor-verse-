@@ -98,14 +98,14 @@ The backend refuses to start if any of these is missing, so a failed deploy usua
 | `NODE_ENV` | **not** `production` while `OTP_PROVIDER=local-test` (the app refuses to start) |
 | `OTP_PROVIDER` | `local-test` until a real provider is chosen |
 | `DATABASE_URL`, `DATABASE_SSL` | the Render Postgres URL; `DATABASE_SSL=true` |
-| `CORS_ORIGINS` | comma-separated `https://` origins of the deployed web **and** mobile sites, no trailing slash (a missing origin makes every browser call fail) |
+| `CORS_ORIGINS` | comma-separated `https://` origins of the deployed web **and** mobile sites (a trailing slash is ignored; a missing origin makes every browser call fail) |
 | `HOST` | `0.0.0.0` |
 | `PORT` | the port Render routes to |
 | `JWT_ISSUER`, `JWT_SECRET`, `OTP_VERIFIER_SECRET`, `SESSION_TOKEN_PEPPER` | your own values; secrets of 32+ bytes |
 | `OTP_CHALLENGE_TTL_SECONDS`, `ACCESS_TOKEN_TTL_SECONDS`, `REFRESH_TOKEN_TTL_SECONDS`, `OTP_REQUEST_WINDOW_SECONDS`, `OTP_REQUEST_MAX`, `OTP_VERIFY_MAX` | no code defaults; owner-chosen policy values |
 | `IDEMPOTENCY_TTL_SECONDS`, `IDEMPOTENCY_LOCK_SECONDS` | no code defaults; omitting them failed an earlier deploy |
 
-The web and mobile static sites need `VITE_API_BASE_URL=https://<backend>.onrender.com/v1`. Vite reads it **at build time**, so set it, then redeploy (Clear build cache & deploy). Without it the app runs on the in-memory mock: screens look fine, but nothing is saved and a reload loses it. After changing `CORS_ORIGINS`, redeploy the backend. Check `https://<backend>.onrender.com/v1/health/live` returns `{"status":"ok"}`.
+The web and mobile static sites need `VITE_API_BASE_URL=https://<backend>.onrender.com/v1`. Vite reads it **at build time**, so set it, then redeploy (Clear build cache & deploy). Without it the app runs on the in-memory mock: screens look fine, but nothing is saved and a reload loses it. After changing `CORS_ORIGINS`, redeploy the backend. `render.yaml` already sets it for both sites. After any deploy run `node infra/check-deploy.cjs https://<backend>.onrender.com https://<mobile site> https://<web site>`: it checks backend health, the CORS preflight for each site, and that each site's bundle contains the API URL (exit code 1 on any failure).
 
 ## Checks
 
@@ -168,3 +168,5 @@ The email is stored **unverified** and is not a sign-in identifier; verification
 | 2026-11-05 16:14 | Shil1517 | Added: roles and permissions routes, permission guard, rbac seed, first-Super-Admin script | F-ADM-04: every admin API needs a deny-by-default permission check and audited role changes. |
 | 2026-11-05 16:31 | Shil1517 | Added: admin taxonomy builder routes and taxonomy.manage seed | F-TAX-02: no categories existed, so listings could not be tried end to end. |
 | 2026-11-05 16:52 | Shil1517 | Added: Render required-variables checklist | A deploy failed on missing idempotency variables and the deployed apps ran on the mock without the API URL. |
+| 2026-11-06 11:37 | Shil1517 | Modified: CORS_ORIGINS parsing ignores trailing slashes | Entries copied from a browser address bar ended in "/" and silently blocked every request from the deployed apps. |
+| 2026-11-06 11:50 | Shil1517 | Added: infra/check-deploy.cjs and the API URL pinned in render.yaml | Web and mobile deploys must reach the backend consistently, and the dashboard-only setting had silently left them on the mock or blocked by CORS. |

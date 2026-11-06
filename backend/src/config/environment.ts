@@ -62,7 +62,9 @@ function requiredList(
 ): string[] {
   const values = requiredString(environment, name)
     .split(",")
-    .map((value) => value.trim())
+    // A browser's Origin header never ends in "/", and CORS matches it exactly,
+    // so "https://app.example.com/" would silently block every request.
+    .map((value) => value.trim().replace(/\/+$/, ""))
     .filter((value) => value !== "");
   if (values.length === 0) {
     throw new Error(`${name} must list at least one origin`);
