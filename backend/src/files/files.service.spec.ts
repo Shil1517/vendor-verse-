@@ -239,4 +239,42 @@ describe("FilesService", () => {
       }),
     );
   });
+
+  it("only lets the verification reviewer download clean attached evidence", async () => {
+    const service = build();
+    const reviewer: AuthenticatedUser = {
+      userId: "reviewer",
+      sessionId: "session",
+    };
+    query.mockResolvedValueOnce({
+      rows: [
+        fileRow({
+          scan_status: "clean",
+          uploaded_at: new Date("2026-11-06T10:01:00Z"),
+        }),
+      ],
+      rowCount: 1,
+    });
+
+    await expect(
+      service.reviewEvidenceDownloadUrl(reviewer, "verification-1", "f1"),
+    ).resolves.toEqual({
+      url: "https://storage.test/dl",
+      expiresInSeconds: 30,
+    });
+    expect(query.mock.calls[0][0]).toContain(
+      "evidence.verification_id = $1 AND file.id = $2",
+    );
+    expect(record).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: "verification.evidence.download",
+        targetId: "f1",
+      }),
+    );
+
+    query.mockResolvedValueOnce({ rows: [], rowCount: 0 });
+    await expect(
+      service.reviewEvidenceDownloadUrl(reviewer, "verification-1", "other"),
+    ).rejects.toBeInstanceOf(NotFoundException);
+  });
 });
