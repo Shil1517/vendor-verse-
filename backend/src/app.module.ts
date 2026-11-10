@@ -12,6 +12,7 @@ import { PlatformModule } from "./platform/platform.module";
 import { RbacModule } from "./rbac/rbac.module";
 import { TaxonomyModule } from "./taxonomy/taxonomy.module";
 import { VendorsModule } from "./vendors/vendors.module";
+import { VerificationModule } from "./verification/verification.module";
 import { validateEnvironment } from "./config/environment";
 
 @Module({
@@ -31,6 +32,7 @@ import { validateEnvironment } from "./config/environment";
     ListingsModule,
     NotificationsModule,
     FilesModule,
+    VerificationModule,
   ],
   controllers: [HealthController],
 })

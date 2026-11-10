@@ -1,11 +1,14 @@
 # VendorVerse backend
 
-The backend is a TypeScript/NestJS modular monolith (D-016). This initial
-implementation contains the auth/account slice and health endpoints. It is
-not production-ready: OTP delivery is not integrated, the fixed OTP adapter is
-local/test-only, privileged accounts fail closed until MFA exists, and
-BUSINESS mode requires business-account verification persistence. Platform
-The audit, outbox, rate-limit and Idempotency-Key plumbing exists in `src/platform/`, but only the account settings writes use the audit trail; the notifications module is the only one that enqueues outbox events, and an in-process dispatcher drains them (no separate worker yet).
+The backend is a TypeScript/NestJS modular monolith (D-016). Implemented slices
+include authentication/accounts, geography, taxonomy, vendor onboarding,
+listings/availability, files, notifications and vendor verification. It is not
+production-ready: OTP delivery is not integrated, the fixed OTP adapter is
+local/test-only, and privileged accounts fail closed until MFA exists.
+BUSINESS mode still requires business-account persistence. Platform audit,
+outbox, rate-limit and Idempotency-Key plumbing exists in `src/platform/`;
+writes use audit selectively, notifications enqueue outbox events, and an
+in-process dispatcher drains them (no separate worker yet).
 
 ## Local setup
 
@@ -46,10 +49,13 @@ These routes are also listed in Swagger UI at `/docs`.
 - `POST /v1/me/mode`
 - `GET /v1/me/sessions`, `DELETE /v1/me/sessions/{sessionId}` (F-ACC-08)
 - `GET|PUT /v1/me/notification-preferences` (F-ACC-07)
-- `POST /v1/files` (declare a file, get a signed upload URL), `POST /v1/files/:id/complete`, `GET /v1/files/:id`, `GET /v1/files/:id/download-url` (clean files only). Files are private and owner-only; there is no admin read yet. Needs migration 015 (`files.uploaded_at`).
+- `POST /v1/files` (declare a file, get a signed upload URL), `POST /v1/files/:id/complete`, `GET /v1/files/:id`, `GET /v1/files/:id/download-url` (clean files only). Files are private and owner-only; verification reviewers can get a short-lived URL only for clean evidence attached to a verification.
 - `GET /v1/me/notifications`, `GET /v1/me/notifications/unread-count`, `POST /v1/me/notifications/:id/read`, `POST /v1/me/notifications/read-all` (F-MSG-04)
 - `GET|POST /v1/me/data-requests`, `POST /v1/me/data-requests/{requestId}/cancel` (F-ACC-04, F-ACC-05; records the request only, no verification or fulfilment)
 - `POST /v1/vendors`, `GET /v1/vendors/mine`, `GET|PATCH /v1/vendors/{vendorId}` (F-VND-01, F-VND-02; owner only; creates a registered, unpublished vendor)
+- `GET|POST /v1/vendors/{vendorId}/documents` (private evidence metadata; uploaded and clean files only)
+- `GET|POST /v1/vendors/{vendorId}/verifications` (F-VND-03; L1-L3 submissions, category-specific requests, evidence references, history and resubmission links)
+- `GET /v1/admin/verifications?status=`, `POST /v1/admin/verifications/{verificationId}/decision`, `GET /v1/admin/verifications/{verificationId}/evidence/{fileId}/download-url` (F-VND-03; requires `verification.review`, reason required and audited, owner cannot review own vendor)
 - `GET /v1/geo/countries`, `/geo/regions?countryCode=`, `/geo/cities?countryCode=&regionId=` (with launchStatus), `/geo/localities?cityId=` (F-GEO-01, F-GEO-02; public)
 - `GET|POST /v1/vendors/{vendorId}/service-areas`, `DELETE /v1/vendors/{vendorId}/service-areas/{areaId}` (F-GEO-06; owner only; city, pincode, region, country, radius or remote, never worldwide)
 - `POST|GET /v1/vendors/{vendorId}/listings`, `GET|PATCH /v1/listings/{listingId}`, `POST /v1/listings/{listingId}/submit|pause|resume|unpublish` (F-VND-06; owner only; drafts are never public)
@@ -68,6 +74,11 @@ that a Super Admin marked always-show. The eligible-listings rule is not applied
 the listings module does not exist, so a category without always-show is hidden. Industries
 come from `npm run db:seed` (the ten Phase 1 industries of F-TAX-05); categories are created by
 the admin taxonomy builder (F-TAX-02) above, so none exist until a Super Admin creates and activates them.
+
+Verification expiries and evidence requirements are recorded when supplied;
+the API does not invent expiry periods or evidence checklists. File uploads and
+downloads still fail closed until storage policy and providers are configured.
+The web and mobile verification screens do not yet call these APIs.
 
 Mode switching supports CUSTOMER and VENDOR when a vendor record is owned by
 the identity. BUSINESS returns 409 until its separately verified account
@@ -155,6 +166,7 @@ The email is stored **unverified** and is not a sign-in identifier; verification
 
 | Date & time (YYYY-MM-DD HH:MM, local) | Updated by | Change | Reason |
 |---|---|---|---|
+| 2026-11-10 13:59 | Amit | Added: vendor verification APIs, reviewer permission and API contract | Deliver the F-VND-03 backend slice without guessing evidence requirements or expiry policy. |
 | 2026-11-06 15:05 | Shil1517 | Added: files module (signed uploads, scan handler), migration 015, optional FILE_* settings | Foundation work for P1-S1: verification evidence and photo review need private, scanned files. Providers and limits stay open owner decisions. |
 | 2026-11-06 13:48 | Shil1517 | Added: outbox dispatcher and notifications core (inbox API, dispatch handler) | Foundation leftovers for P1-S1: events are now delivered, and F-MSG-04 / F-MSG-05 have a backend. |
 | 2026-11-05 13:05 | Shil1517 | Added: customer profile and saved-location routes, migration 014, DTO/service tests | F-ACC-06: sign-up collected a name and email but nothing stored them. |

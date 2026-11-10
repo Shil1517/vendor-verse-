@@ -195,6 +195,42 @@ export class FilesService {
     return { url, expiresInSeconds: policy.downloadTtl };
   }
 
+  async reviewEvidenceDownloadUrl(
+    reviewer: AuthenticatedUser,
+    verificationId: string,
+    fileId: string,
+  ): Promise<{ url: string; expiresInSeconds: number }> {
+    const policy = this.policy();
+    const result = await this.database.query<FileRow>(
+      `SELECT file.id, file.purpose, file.storage_key, file.original_name,
+              file.content_type, file.size_bytes, file.scan_status,
+              file.uploaded_at, file.created_at
+       FROM files AS file
+       JOIN vendor_documents AS document ON document.file_id = file.id
+       JOIN verification_evidence AS evidence
+         ON evidence.document_id = document.id
+       WHERE evidence.verification_id = $1 AND file.id = $2
+         AND file.uploaded_at IS NOT NULL AND file.scan_status = 'clean'`,
+      [verificationId, fileId],
+    );
+    const row = result.rows[0];
+    if (!row) {
+      throw new NotFoundException("No clean evidence file for this verification");
+    }
+    const url = await policy.storage.createDownloadUrl({
+      storageKey: row.storage_key,
+      expiresInSeconds: policy.downloadTtl,
+    });
+    await this.audit.record({
+      actorUserId: reviewer.userId,
+      action: "verification.evidence.download",
+      targetType: "file",
+      targetId: fileId,
+      metadata: { verificationId },
+    });
+    return { url, expiresInSeconds: policy.downloadTtl };
+  }
+
   private async ownRow(
     user: AuthenticatedUser,
     fileId: string,
