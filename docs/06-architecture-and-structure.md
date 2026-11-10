@@ -47,7 +47,7 @@ vendor-verse-/
 |-- web/                      web client (exists; currently the mockup)
 |-- mobile/                   mobile client (exists; currently the mockup)
 |-- backend/
-|   |-- src/                  NestJS application bootstrap and active auth/accounts modules
+|   |-- src/                  NestJS application bootstrap and implemented feature modules
 |   |-- modules/              Phase 1 modules (section 3)
 |   |-- modules-phase2/       Phase 2 modules, empty until Phase 2 starts
 |   |-- platform/             http, idempotency, outbox, audit-hook, rate-limit, config
@@ -65,7 +65,10 @@ vendor-verse-/
 
 `web/` and `mobile/` stay where they are so the Render deploy and the sync matrix keep working. They move under `apps/` only when the mockups are replaced by real clients; that move needs a matrix and registry update.
 
-The NestJS bootstrap is in `backend/src/`; its current auth and account modules are the first implemented module slice. Other business-module folders remain scaffolds under `backend/modules/`.
+The NestJS bootstrap and active modules are in `backend/src/`. The implemented
+feature slices include auth/accounts, geography, taxonomy, vendor onboarding,
+listings/availability, files, notifications and vendor verification. The
+architecture folders under `backend/modules/` remain planned module boundaries.
 
 ## 3. Backend modules and the features they own
 
@@ -174,6 +177,7 @@ Rules:
 
 | Date & time (YYYY-MM-DD HH:MM, local) | Updated by | Change | Reason |
 |---|---|---|---|
+| 2026-11-10 13:59 | Amit | Modified: active backend module status | Vendor verification now has an implemented module under `backend/src/verification/`, not only a planned boundary. |
 | 2026-11-05 12:16 | Shil1517 | Modified: PostgreSQL migration scope reference (migrations 004-013 added) | Schema extended from the auth/vendor/taxonomy slice to the full Phase 1 data model so APIs on web and mobile share one consistent store. |
 | 2026-11-04 15:37 | Amit | Modified: PostgreSQL migration scope reference | Include the auth challenge and request-limit support migration added for the F-ACC implementation slice. |
 | 2026-11-04 15:32 | Amit | Modified: NestJS source layout | Document the application bootstrap and first active modules without changing the modular-monolith boundaries. |

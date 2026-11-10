@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useState } from 'react'
 import { Store, Factory, Wrench, Star, Trophy, ShieldCheck, FileText, Wallet, ClipboardList, Target, Clock, Receipt, RefreshCw, Landmark, CreditCard, Globe, WifiOff, SearchX } from 'lucide-react'
 import { Badge, Banner, Button, Card, Checkbox, EmptyState, Group, HBar, Input, ListRow, Section, Select, Stars, StatusBadge, Toggle, Stat, fmt, cx } from '../ui.jsx'
 import { useApp } from '../store.jsx'
@@ -7,7 +7,6 @@ import { P2Badge, Page, Facts, Links, Checklist, SampleBadge } from './blocks.js
 import { AppealQueue } from './p1-depth.jsx'
 import { computePublicationGates } from '../services/publicationGates.js'
 import { TRUST_LEVELS as TRUST_LEVELS_SVC, levelBadges } from '../services/verification.js'
-import { authService } from '../services/authService.js'
 
 /* ============ vendor onboarding by type (F-VND-01, F-VND-02) ============ */
 const COUNTRY_CODE = { India: 'IN' }
@@ -35,20 +34,11 @@ function TypedRegister({ kind, params = {} }) {
   const { toast } = useApp()
   const svc = kind === 'svc'
   const [f, setF] = useState({ name: params.name || '', type: TYPE_OPTIONS[kind][0][0], cat: svc ? 'Home & facilities' : 'Wholesale and distribution', area: 'Jaipur', moq: '' })
-  const [busy, setBusy] = useState(false)
-  const created = useRef(false) // the vendor record is created once, even if Continue is pressed again
-  const next = async () => {
+  const next = () => {
     if (!f.name.trim()) return toast('Enter your business name', 'warn')
-    if (authService.isRemote && !created.current) {
-      setBusy(true)
-      const r = await authService.createVendor({ registrationCountry: params.country || 'IN', businessType: f.type, legalName: f.name.trim() })
-      setBusy(false)
-      if (!r.ok) return toast(r.message, 'warn')
-      created.current = true
-    }
-    nav.go('v_register', { name: f.name, cat: IND_CAT[f.cat], vendorType: svc ? 'service_provider' : 'manufacturer_supplier' })
+    nav.go('v_register', { name: f.name, cat: IND_CAT[f.cat], vendorType: svc ? 'service_provider' : 'manufacturer_supplier', country: params.country || 'IN', businessType: f.type })
   }
-  return <Page title={svc ? 'Service provider' : 'Manufacturer / supplier'} subtitle="Business details" footer={<Button full disabled={busy} onClick={next}>Continue to verification</Button>}>
+  return <Page title={svc ? 'Service provider' : 'Manufacturer / supplier'} subtitle="Business details" footer={<Button full onClick={next}>Continue to verification</Button>}>
     <Input label="Business name" required value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} />
     <Select label="Business type" value={f.type} onChange={(e) => setF({ ...f, type: e.target.value })} options={TYPE_OPTIONS[kind].map(([value, label]) => ({ value, label }))} />
     <Select label="Industry" value={f.cat} onChange={(e) => setF({ ...f, cat: e.target.value })} options={['Home & facilities', 'Construction', 'Events', 'Professional services', 'Wholesale and distribution']} />

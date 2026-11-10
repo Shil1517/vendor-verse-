@@ -1,10 +1,11 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
   ShieldCheck, Package, Users, Store, FileText, UserPlus, AlertTriangle, ChevronRight, Check, X, Lock, Gavel, Eye, Ban, Flag, Star, MessageSquare, Siren, CreditCard, Trash2, Megaphone, Clock, Copy, Search,
   CircleAlert, Hourglass, UserCheck, ScrollText, FileWarning, Scale, ShieldAlert, BadgeCheck, Undo2, Building2,
 } from 'lucide-react'
 import { useApp } from '../store.jsx'
 import { useNav } from '../nav.jsx'
+import { authService } from '../services/authService.js'
 import { CATS, cat, REPORT, ME } from '../data.jsx'
 import {
   Screen, Card, Section, Button, Thumb, Chips, Segmented, Sheet, Dialog, Input, Select, Toggle, Badge, Banner, EmptyState, Stat, KV, cx, Pill, IconBtn, StatusBadge, ListRow, Group, Timeline, Avatar, DocTile,
@@ -83,10 +84,88 @@ export function Approvals() {
 }
 
 /* ================= VENDOR VERIFICATION QUEUE ================= */
+function RemoteAdminVerificationQueue() {
+  const [status, setStatus] = useState('submitted')
+  const [items, setItems] = useState([])
+  const [nextCursor, setNextCursor] = useState(null)
+  const [reasons, setReasons] = useState({})
+  const [evidenceLinks, setEvidenceLinks] = useState({})
+  const [loading, setLoading] = useState(true)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState('')
+
+  useEffect(() => {
+    let active = true
+    setLoading(true); setError('')
+    authService.listVerificationQueue({ status: status || undefined, limit: 50 }).then((result) => {
+      if (!active) return
+      if (!result.ok) setError(result.message)
+      else { setItems(result.verifications); setNextCursor(result.nextCursor); setReasons({}); setEvidenceLinks({}) }
+    }).finally(() => { if (active) setLoading(false) })
+    return () => { active = false }
+  }, [status])
+
+  const loadNext = async () => {
+    if (!nextCursor || busy) return
+    setBusy(true); setError('')
+    const result = await authService.listVerificationQueue({ status: status || undefined, limit: 50, cursor: nextCursor })
+    setBusy(false)
+    if (!result.ok) { setError(result.message); return }
+    setItems((current) => [...current, ...result.verifications])
+    setNextCursor(result.nextCursor)
+  }
+
+  const decide = async (item, decision) => {
+    const reason = (reasons[item.id] || '').trim()
+    if (!reason) { setError('Enter a review reason before recording a decision.'); return }
+    setBusy(true); setError('')
+    const result = await authService.reviewVerification(item.id, { status: decision, reason })
+    setBusy(false)
+    if (!result.ok) { setError(result.message); return }
+    setItems((current) => current.map((entry) => entry.id === item.id ? result.verification : entry))
+  }
+
+  const openEvidence = async (item, evidence) => {
+    setBusy(true); setError('')
+    const result = await authService.getVerificationEvidenceUrl(item.id, evidence.fileId)
+    setBusy(false)
+    if (!result.ok) { setError(result.message); return }
+    setEvidenceLinks((current) => ({ ...current, [evidence.fileId]: result.url }))
+  }
+
+  return (
+    <Screen title="Vendor verification">
+      <Banner tone="blue">Remote reviewer queue. Each decision requires a reason and is audited.</Banner>
+      <Chips scroll={false} value={status} onChange={setStatus} options={[{ id: 'submitted', label: 'Submitted' }, { id: 'in_review', label: 'In review' }, { id: 'info_requested', label: 'Info requested' }, { id: 'approved', label: 'Approved' }, { id: 'rejected', label: 'Rejected' }, { id: '', label: 'All' }]} />
+      {error && <Banner tone="red" title="Verification request failed">{error}</Banner>}
+      {loading && <p className="text-sm text-ink-500">Loading review queue…</p>}
+      <div className="space-y-3">{items.map((item) => (
+        <Card key={item.id} className="space-y-3 !p-3.5">
+          <div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="text-sm font-bold">{item.level} · Vendor {item.vendorId}</p><p className="mt-1 text-xs text-ink-500">Submitted {new Date(item.submittedAt).toLocaleString()}</p></div><StatusBadge s={item.status} /></div>
+          <div className="space-y-1.5">{item.evidence.map((evidence) => <div key={evidence.documentId} className="flex items-center justify-between gap-2 rounded-lg bg-ink-50 p-2"><p className="truncate text-xs font-semibold">{evidence.documentType}</p>{evidenceLinks[evidence.fileId] ? <a href={evidenceLinks[evidence.fileId]} target="_blank" rel="noreferrer" className="shrink-0 text-xs font-bold text-brand-700">Open file</a> : <Button size="sm" variant="secondary" disabled={busy} onClick={() => openEvidence(item, evidence)}>Get file</Button>}</div>)}</div>
+          {['submitted', 'in_review'].includes(item.status) && <>
+            <Input textarea rows={2} label="Review reason" value={reasons[item.id] || ''} onChange={(event) => setReasons((current) => ({ ...current, [item.id]: event.target.value }))} />
+            <div className="flex flex-wrap gap-2">
+              <Button size="sm" variant="secondary" disabled={busy} onClick={() => decide(item, 'in_review')}>Start review</Button>
+              <Button size="sm" variant="secondary" disabled={busy} onClick={() => decide(item, 'info_requested')}>Request info</Button>
+              <Button size="sm" variant="dangerSoft" disabled={busy} onClick={() => decide(item, 'rejected')}>Reject</Button>
+              <Button size="sm" disabled={busy} onClick={() => decide(item, 'approved')}>Approve</Button>
+            </div>
+          </>}
+          {item.reason && <p className="text-sm text-ink-600">{item.reason}</p>}
+        </Card>
+      ))}</div>
+      {!loading && !items.length && <EmptyState icon={ShieldCheck} title="Queue is clear" />}
+      {nextCursor && <Button full variant="secondary" disabled={busy || loading} onClick={loadNext}>Load more</Button>}
+    </Screen>
+  )
+}
+
 export function AdminVendors({ params = {} }) {
   const nav = useNav()
   const { vendors } = useApp()
   const [f, setF] = useState(params.f || 'queue')
+  if (authService.isRemote) return <RemoteAdminVerificationQueue />
   const expiring = (v) => v.docs.some((d) => d.status === 'expired')
   const list = vendors.filter((v) => (f === 'queue' ? ['submitted', 'more_info'].includes(v.ver) : f === 'expired' ? expiring(v) || v.ver === 'expired' : f === 'rejected' ? ['rejected', 'revoked'].includes(v.ver) : true))
   const cnt = (fn) => vendors.filter(fn).length
