@@ -15,8 +15,10 @@ const ACCOUNT = { userId: 'u1', currentMode: 'CUSTOMER', availableModes: ['CUSTO
 function setup(routes) {
   const calls = []
   const fetchImpl = async (url, init) => {
-    const path = new URL(url).pathname.replace('/v1', '')
-    const request = { path, method: init.method, auth: init.headers.authorization, key: init.headers['idempotency-key'], body: init.body ? JSON.parse(init.body) : undefined }
+    const requestUrl = new URL(url)
+    if (requestUrl.hostname !== 'api.test') return { status: 200, ok: true, json: async () => ({}) }
+    const path = requestUrl.pathname.replace('/v1', '')
+    const request = { path, query: requestUrl.search, method: init.method, auth: init.headers.authorization, key: init.headers['idempotency-key'], body: init.body ? JSON.parse(init.body) : undefined }
     calls.push(request)
     const handler = routes[`${init.method} ${path}`]
     if (!handler) throw new Error(`unexpected ${init.method} ${path}`)
@@ -312,5 +314,49 @@ describe('account settings and vendor onboarding calls', () => {
     expect(calls[0].body).toEqual({ registrationCountry: 'IN', businessType: 'SUPPLIER', legalName: 'Sharma' })
     expect(calls[0].key).toBeTruthy()
     expect((await service.createVendor({ registrationCountry: 'ZZ', businessType: 'SUPPLIER', legalName: 'x' })).code).toBe('INVALID_PROFILE')
+  })
+
+  it('uploads evidence, waits for scan status, registers it, and submits verification', async () => {
+    const { service, calls } = signedIn({
+      'POST /files': reply(201, { file: { id: 'f1' }, upload: { url: 'https://storage.test/signed', method: 'PUT', headers: { 'x-upload': 'yes' } } }),
+      'POST /files/f1/complete': reply(200, { id: 'f1', scanStatus: 'pending' }),
+      'GET /files/f1': reply(200, { id: 'f1', scanStatus: 'clean' }),
+      'POST /vendors/v1/documents': reply(201, { id: 'd1', documentType: 'Certificate' }),
+      'GET /vendors/v1/documents': reply(200, { documents: [{ id: 'd1' }] }),
+      'GET /vendors/v1/verifications': reply(200, { verifications: [] }),
+      'POST /vendors/v1/verifications': reply(201, { id: 'vr1', level: 'L1' }),
+    })
+    const file = new Blob(['evidence'], { type: 'application/pdf' })
+    Object.defineProperties(file, { name: { value: 'certificate.pdf' }, size: { value: 8 } })
+    const uploaded = await service.uploadVendorEvidence(file)
+    expect(uploaded.file.scanStatus).toBe('pending')
+    expect((await service.getFile('f1')).file.scanStatus).toBe('clean')
+    expect((await service.registerVendorDocument('v1', { fileId: 'f1', documentType: 'Certificate' })).document.id).toBe('d1')
+    expect((await service.listVendorDocuments('v1')).documents).toHaveLength(1)
+    expect((await service.listVendorVerifications('v1')).verifications).toEqual([])
+    expect((await service.submitVendorVerification('v1', { level: 'L1', documentIds: ['d1'] })).verification.id).toBe('vr1')
+    expect(calls.map((call) => `${call.method} ${call.path}`)).toEqual([
+      'POST /files',
+      'POST /files/f1/complete',
+      'GET /files/f1',
+      'POST /vendors/v1/documents',
+      'GET /vendors/v1/documents',
+      'GET /vendors/v1/verifications',
+      'POST /vendors/v1/verifications',
+    ])
+    expect(calls[0].body).toMatchObject({ purpose: 'verification-evidence', originalName: 'certificate.pdf', contentType: 'application/pdf', sizeBytes: 8 })
+  })
+
+  it('lists, reviews and retrieves reviewer evidence links', async () => {
+    const { service, calls } = signedIn({
+      'GET /admin/verifications': reply(200, { verifications: [{ id: 'vr1' }], nextCursor: null }),
+      'POST /admin/verifications/vr1/decision': reply(200, { id: 'vr1', status: 'approved' }),
+      'GET /admin/verifications/vr1/evidence/f1/download-url': reply(200, { url: 'https://storage.test/download', expiresInSeconds: 60 }),
+    })
+    expect((await service.listVerificationQueue({ status: 'submitted' })).verifications).toEqual([{ id: 'vr1' }])
+    expect((await service.reviewVerification('vr1', { status: 'approved', reason: 'Evidence verified' })).verification.status).toBe('approved')
+    expect((await service.getVerificationEvidenceUrl('vr1', 'f1')).url).toBe('https://storage.test/download')
+    expect(calls[0].query).toBe('?status=submitted&limit=50')
+    expect(calls[1].body).toEqual({ status: 'approved', reason: 'Evidence verified' })
   })
 })
