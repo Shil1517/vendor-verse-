@@ -212,14 +212,14 @@ export function BizHome() {
   const live = company.status === 'approved'
   const start = () => nav.go(company.eligibility ? 'b_register' : 'b_eligibility')
   return <Page title="Business" subtitle={company.brand || company.legal || me.businessName || me.name} back={false}>
-    <Card className="space-y-3">
+    <Card className="vv-business-company-card space-y-3">
       <div className="flex items-center gap-3"><span className="grid size-12 place-items-center rounded-2xl bg-brand-600 text-white"><Building2 size={24} /></span><div className="min-w-0 flex-1"><p className="truncate text-base font-extrabold">{company.legal || me.businessName || 'Your company'}</p><p className="text-xs text-ink-500">{company.entity ? `${company.entity} · est. ${company.year}` : 'Company profile not set up'}</p></div><SBadge s={company.status} /></div>
-      <div><div className="flex justify-between text-xs font-semibold text-ink-600"><span>Profile completeness</span><span>{pct}%</span></div><div className="mt-1 h-2 overflow-hidden rounded-full bg-ink-100"><div className="h-full rounded-full bg-brand-600" style={{ width: `${pct}%` }} /></div></div>
+      <div><div className="flex justify-between text-xs font-semibold text-ink-600"><span>Profile completeness</span><span>{pct}%</span></div><div className="vv-business-progress mt-1 h-2 overflow-hidden rounded-full bg-ink-100"><div className="vv-business-progress-bar h-full rounded-full bg-brand-600" style={{ width: `${pct}%` }} /></div></div>
       {company.status === 'not_started' && <Button full onClick={start}>{company.eligibility ? 'Set up company profile' : 'Confirm eligibility to start'}</Button>}
       {company.status === 'rejected' && <Banner tone="red" title="Rejected">{company.decision}</Banner>}
       {company.status === 'more_info' && <Banner tone="amber" title="More information needed" action={<Button size="sm" onClick={() => nav.go('b_register')}>Update</Button>}>{company.decision}</Banner>}
     </Card>
-    <div className="grid grid-cols-3 gap-2">{[['Vendor chats', inbox.length, 'b_messages'], ['Unread', unread, 'b_messages'], ['Services', company.serves?.length || 0, 'b_services']].map(([k, n, id]) => <Card key={k} onClick={() => nav.go(id)} className="!p-3 text-center"><p className="text-xl font-extrabold">{n}</p><p className="text-[11px] text-ink-500">{k}</p></Card>)}</div>
+    <div className="vv-business-kpi-grid grid grid-cols-3 gap-2">{[['Vendor chats', inbox.length, 'b_messages'], ['Unread', unread, 'b_messages'], ['Services', company.serves?.length || 0, 'b_services']].map(([k, n, id]) => <Card key={k} onClick={() => nav.go(id)} className="!p-3 text-center"><p className="text-xl font-extrabold">{n}</p><p className="text-[11px] text-ink-500">{k}</p></Card>)}</div>
     <Card className="space-y-1 !p-0">
       <ListRow icon={Building2} title="Company profile" subtitle="Identity, plants, capacity, certifications" onClick={() => nav.go('b_company')} />
       <ListRow icon={Briefcase} tone="violet" title="Services for vendors" subtitle="What vendors can approach you for" onClick={() => nav.go('b_services')} />

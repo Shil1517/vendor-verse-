@@ -79,6 +79,8 @@ Read order: [README](README.md) · this file · [02-phase-scope.md](02-phase-sco
 | F-VND-10 | Vendor dashboard | P1 | Listing states, subscription and lead usage, request inbox, RFQ opportunities, quotes, bookings, contracts, reviews, performance. | §26.8 |
 | F-VND-11 | Profile completeness score | OPEN | PRS requires it; absent from both mockups. Decision O-09. | §26.4.2 |
 | F-VND-12 | Field visibility classes (public / counterparty / private) | OPEN | PRS requires server-enforced classes; not in either mockup. Decision O-09. | §26.4 |
+| F-VND-13 | Workspace color theme presets | P1 | Persistent appearance-only selector for Light, Dark, Midnight, Ocean, Emerald and Sunset across Vendor, Agent and Business workspaces on web and mobile (D-018). Must not alter role data, permissions, routes or workflows. | Owner request 2026-11-10; D-018 |
+| F-VND-14 | Vendor analytics presentation presets | OPEN | Optional appearance selector for existing vendor charts only; must not change analytics data or calculations. Do not implement until O-17 is decided. | Owner request 2026-11-10 |
 
 ## 5. Discovery (DSC)
 
@@ -293,8 +295,11 @@ Every PRS chapter maps to at least one feature, or to a documented non-goal.
 
 | Date & time (YYYY-MM-DD HH:MM, local) | Updated by | Change | Reason |
 |---|---|---|---|
+| 2026-11-11 16:51 | Abhishek Samadhiya | Modified: D-017 and D-018 references | Keep the industry-browsing and workspace-theme decisions distinct after reconciling the branch histories. |
 | 2026-11-11 13:02 | Amit | Modified: F-TAX-01 subcategory visibility | Industry subcategory examples are now shown directly in the browse list on both platforms. |
 | 2026-11-11 12:34 | Amit | Modified: F-TAX-01, F-TAX-05, F-TAX-06 and F-TAX-07 | D-017 moves the full documented industry browser into Phase 1 while preserving current listing workflow scope. |
+| 2026-11-11 11:31 | Abhishek Samadhiya | Modified: F-VND-13 theme presets set to P1 | Owner decision D-018 expands the appearance-only presets across the three workspaces without changing workflows or data. |
+| 2026-11-10 11:02 | Abhishek Samadhiya | Added: F-VND-13 and F-VND-14 | Record requested vendor visual preferences as OPEN until their phases are decided; avoid assuming scope. |
 | 2026-10-30 17:05 | Shil1517 | Modified: F-BIZ-03 moved from OPEN to Phase 2 | Owner decision D-015 (closes O-07). |
 | 2026-10-30 16:42 | Shil1517 | Modified: no feature rules changed; new web screens mapped to features in the sync matrix | Web sync pass of 2026-10-30. The 12 web screens retired under D-009 are now removed from the web code (see matrix section 2). |
 | 2026-10-29 16:27 | Shil1517 | Added: master feature register (all rows) | Web and mobile mockups had drifted and the PRS v3 was out of date; one phase-tagged register is needed so both can be synced. Phases per decisions D-001 to D-014. |

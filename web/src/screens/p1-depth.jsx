@@ -154,11 +154,10 @@ export function AgentPerformance() {
   const risk = leads.filter((l) => l.vendorId && ['grace', 'expired'].includes(subOf(vendors.find((v) => v.id === l.vendorId)).status))
   const pc = (a, b) => `${Math.round((a / (b || 1)) * 100)}%`
   return <Page title="Performance" subtitle="Conversion of your own leads" back={false}>
-    <div className="grid grid-cols-3 gap-2">{[['Registered', reg], ['Approved', appr], ['Subscribed', subd]].map(([a, b]) => <Stat key={a} label={a} value={b} />)}</div>
-    <Card className="space-y-3"><p className="text-sm font-bold">Conversion</p><HBar label="Leads to registered" value={reg} max={total} right={pc(reg, total)} /><HBar label="Registered to approved" value={appr} max={reg || 1} right={pc(appr, reg)} /><HBar label="Approved to subscribed" value={subd} max={appr || 1} right={pc(subd, appr)} /></Card>
+    <div className="vv-agent-performance-kpis grid grid-cols-3 gap-2">{[['Registered', reg], ['Approved', appr], ['Subscribed', subd]].map(([a, b]) => <Stat key={a} label={a} value={b} />)}</div>
+    <Card className="vv-agent-performance-card space-y-3"><p className="text-sm font-bold">Conversion</p><HBar label="Leads to registered" value={reg} max={total} right={pc(reg, total)} /><HBar label="Registered to approved" value={appr} max={reg || 1} right={pc(appr, reg)} /><HBar label="Approved to subscribed" value={subd} max={appr || 1} right={pc(subd, appr)} /></Card>
     {risk.length > 0 && <Section title="Renewals at risk"><Group>{risk.map((l, i) => <ListRow key={l.id} title={l.name} subtitle={`${l.contact} · ${l.city}`} onClick={() => nav.go('a_lead', { id: l.id })} last={i === risk.length - 1} />)}</Group></Section>}
     <Group><ListRow title="Commissions" subtitle="Model not decided yet (O-03)" onClick={() => nav.go('a_earnings')} last /></Group>
     <Banner tone="blue" title="Scope of your access">You see conversion for your own leads only. Subscription status helps vendors renew. You cannot change billing, approve verification or read customer transactions.</Banner>
   </Page>
 }
-

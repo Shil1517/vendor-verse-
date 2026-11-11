@@ -1,0 +1,218 @@
+/* Dark mode theme for VendorVerse mint-glass design */
+
+/* Default (Light mode) - already defined in VX_CSS */
+:root {
+  --bg: #f2fbf8;
+  --ink: #0c2a26;
+  --muted: #5f8279;
+  --soft: #35625a;
+  --line: rgba(16, 150, 120, 0.16);
+  --glass: rgba(255, 255, 255, 0.7);
+  --glass2: rgba(255, 255, 255, 0.9);
+  --mint: #12b48f;
+  --sky: #1796d6;
+  --violet: #6a5ae0;
+  --gold: #d89a1d;
+  --coral: #ff7a5c;
+  --grad: linear-gradient(135deg, #27d9ae, #0fa98a);
+  --r-lg: 30px;
+  --r-md: 24px;
+  --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --sw: 264px;
+}
+
+/* Dark mode theme */
+[data-theme='dark'] {
+  --bg: #0a1a17;
+  --ink: #e8f5f2;
+  --muted: #8fa9a3;
+  --soft: #b0c9c3;
+  --line: rgba(18, 180, 143, 0.2);
+  --glass: rgba(15, 35, 30, 0.7);
+  --glass2: rgba(20, 45, 38, 0.9);
+  --mint: #1dd9ab;
+  --sky: #2ea7e8;
+  --violet: #8b7aff;
+  --gold: #f0b83d;
+  --coral: #ff9278;
+  --grad: linear-gradient(135deg, #1dd9ab, #12b48f);
+}
+
+/* Dark mode specific adjustments */
+[data-theme='dark'] .vx-shell {
+  background: linear-gradient(160deg, #0d211d 0%, #0a1a17 50%, #071310 100%);
+}
+
+[data-theme='dark'] .vx-shell::before {
+  background: radial-gradient(circle, rgba(18, 180, 143, 0.15), transparent 65%);
+  opacity: 0.6;
+}
+
+[data-theme='dark'] .vx-shell::after {
+  background: radial-gradient(circle, rgba(18, 180, 143, 0.12), transparent 65%);
+  opacity: 0.5;
+}
+
+[data-theme='dark'] .vx-side {
+  background: linear-gradient(180deg, rgba(15, 35, 30, 0.92), rgba(10, 25, 22, 0.88));
+  box-shadow: inset 0 1px 0 rgba(18, 180, 143, 0.1), 0 24px 50px rgba(0, 0, 0, 0.4);
+}
+
+[data-theme='dark'] .vx-logo {
+  box-shadow: 0 8px 22px rgba(18, 180, 143, 0.4);
+}
+
+[data-theme='dark'] .vx-pill {
+  box-shadow: 0 10px 24px rgba(18, 180, 143, 0.45);
+}
+
+[data-theme='dark'] .vx-nav-item:hover {
+  background: rgba(18, 180, 143, 0.15);
+}
+
+[data-theme='dark'] .vx-plan {
+  background: rgba(18, 180, 143, 0.1);
+  border-color: var(--line);
+}
+
+[data-theme='dark'] .vx-toggle {
+  background: var(--glass2);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
+}
+
+[data-theme='dark'] .vx-search {
+  background: rgba(15, 35, 30, 0.9);
+  border-color: var(--line);
+}
+
+[data-theme='dark'] .vx-search:focus-within {
+  border-color: rgba(18, 180, 143, 0.7);
+  box-shadow: 0 0 0 4px rgba(18, 180, 143, 0.2);
+}
+
+[data-theme='dark'] .vx-ico {
+  background: rgba(15, 35, 30, 0.9);
+}
+
+[data-theme='dark'] .vx-me {
+  background: rgba(15, 35, 30, 0.9);
+}
+
+[data-theme='dark'] .vx-panel {
+  background: linear-gradient(180deg, rgba(15, 35, 30, 0.82), rgba(10, 25, 22, 0.7));
+  box-shadow: inset 0 1px 0 rgba(18, 180, 143, 0.08);
+}
+
+[data-theme='dark'] .vx-card {
+  background: linear-gradient(160deg, rgba(15, 35, 30, 0.95), rgba(10, 25, 22, 0.85));
+  border-color: rgba(18, 180, 143, 0.15);
+  box-shadow: 0 0 0 1px rgba(18, 180, 143, 0.1), 0 16px 36px rgba(0, 0, 0, 0.3);
+}
+
+[data-theme='dark'] .vx-head h1 {
+  background: linear-gradient(180deg, #e8f5f2, #1dd9ab);
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+
+[data-theme='dark'] .vx-btn.light {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: var(--line);
+  color: var(--ink);
+}
+
+[data-theme='dark'] .vx-btn.light:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+[data-theme='dark'] .vx-btn.dark {
+  box-shadow: 0 10px 26px rgba(18, 180, 143, 0.4);
+}
+
+[data-theme='dark'] .vx-btn.dark:hover {
+  box-shadow: 0 14px 32px rgba(18, 180, 143, 0.55);
+}
+
+[data-theme='dark'] .vx-seg {
+  background: rgba(18, 180, 143, 0.12);
+}
+
+[data-theme='dark'] .vx-seg button.on {
+  box-shadow: 0 6px 16px rgba(18, 180, 143, 0.45);
+}
+
+[data-theme='dark'] .vx-hero {
+  background: radial-gradient(120% 90% at 20% 0%, #1dd9ab 0%, #12b48f 45%, #0a7d6e 100%);
+  box-shadow: 0 26px 50px rgba(0, 0, 0, 0.5);
+}
+
+[data-theme='dark'] .vx-quick button {
+  background: rgba(15, 35, 30, 0.9);
+  border-color: var(--line);
+}
+
+[data-theme='dark'] .vx-quick button:hover {
+  box-shadow: 0 14px 28px rgba(18, 180, 143, 0.25);
+}
+
+[data-theme='dark'] .vx-row {
+  background: rgba(15, 35, 30, 0.8);
+  border-color: var(--line);
+}
+
+[data-theme='dark'] .vx-row:hover {
+  background: rgba(15, 35, 30, 0.95);
+}
+
+/* Toggle button styles */
+.vx-theme-toggle,
+.vx-lang-toggle {
+  position: relative;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: rgba(255, 255, 255, 0.85);
+  border: 1px solid var(--line);
+  color: var(--soft);
+  cursor: pointer;
+  transition: all 0.25s var(--ease);
+}
+
+.vx-theme-toggle:hover,
+.vx-lang-toggle:hover {
+  background: var(--mint);
+  color: #fff;
+  transform: scale(1.08);
+  border-color: var(--mint);
+}
+
+[data-theme='dark'] .vx-theme-toggle,
+[data-theme='dark'] .vx-lang-toggle {
+  background: rgba(15, 35, 30, 0.9);
+  color: var(--mint);
+}
+
+[data-theme='dark'] .vx-theme-toggle:hover,
+[data-theme='dark'] .vx-lang-toggle:hover {
+  background: var(--mint);
+  color: #fff;
+}
+
+.vx-lang-text {
+  font-size: 13px;
+  font-weight: 700;
+  font-family: 'Sora', sans-serif;
+}
+
+/* Smooth theme transition */
+.vx-shell,
+.vx-side,
+.vx-panel,
+.vx-card,
+.vx-btn,
+.vx-theme-toggle,
+.vx-lang-toggle {
+  transition: background 0.3s ease, color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+}
