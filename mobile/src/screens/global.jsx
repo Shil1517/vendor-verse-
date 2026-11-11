@@ -91,27 +91,25 @@ export function Location({ params = {} }) {
 /* ================= CATEGORIES: dynamic, unlimited taxonomy ================= */
 export function Categories() {
   const nav = useNav()
-  const { lang, toast, catRequests, waitlist, setWaitlist } = useApp()
+  const { catRequests } = useApp()
   const [q, setQ] = useState('')
-  const [open, setOpen] = useState(null)
   const list = INDUSTRIES.filter((i) => !q || (i.name + ' ' + i.subs.join(' ')).toLowerCase().includes(q.toLowerCase()))
   const total = INDUSTRIES.reduce((s, i) => s + i.cats, 0)
   const approved = catRequests.filter((c) => c.status === 'approved')
   return (
-    <Screen title="Browse all categories" subtitle={`${INDUSTRIES.length} industries · ${total.toLocaleString('en-IN')}+ categories and growing`} right={<Button size="sm" variant="secondary" icon={Plus} className="mr-2" onClick={() => nav.go('c_cat_suggest')}>Suggest</Button>}>
+    <Screen title="Browse all categories" subtitle={`${INDUSTRIES.length} industries · ${total.toLocaleString('en-IN')} sample categories`} right={<Button size="sm" variant="secondary" icon={Plus} className="mr-2" onClick={() => nav.go('c_cat_suggest')}>Suggest</Button>}>
       <div className="relative"><Search size={17} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-400" /><input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search any industry, product or service" className="h-12 w-full rounded-xl bg-white pl-10 pr-3 text-sm outline-none ring-1 ring-inset ring-ink-200 focus:ring-2 focus:ring-brand-500" /></div>
-      <Banner tone="blue" title="Categories aren’t hard-coded">Admins add industries, categories and attributes as configuration — and anyone can suggest one. At launch we focus on {LAUNCH_CATS.length} priority categories in live cities.</Banner>
+      <Banner tone="blue" title="All 30 industries are live to browse">Subcategory names and category counts are representative examples. Listing and RFQ workflows remain configured for the existing 10 industry groups; supply-building focuses on {LAUNCH_CATS.length} priority groups.</Banner>
       {approved.length > 0 && <Section title="Newly added by the community">{approved.map((c) => <Card key={c.id} className="!p-3.5"><p className="flex items-center gap-2 text-sm font-bold"><Sparkles size={15} className="text-amber-500" />{c.name}</p><p className="text-xs text-ink-500">in {c.parent} · {c.votes} requests</p></Card>)}</Section>}
       <div className="space-y-2.5">
         {list.map((i) => (
-          <Card key={i.id} onClick={() => setOpen(open === i.id ? null : i.id)} className="!p-3.5">
-            <div className="flex items-center gap-3"><Thumb tone={i.tone} icon={i.icon} size={46} round="rounded-xl" /><div className="min-w-0 flex-1"><p className="text-sm font-bold leading-snug">{i.name}</p><p className="text-xs text-ink-500">{i.cats} categories</p></div><PhaseTag p={i.phase} />{open === i.id ? <ChevronUp size={17} className="text-ink-300" /> : <ChevronDown size={17} className="text-ink-300" />}</div>
-            {open === i.id && (
-              <div className="mt-3 border-t border-ink-100 pt-3" onClick={(e) => e.stopPropagation()}>
-                <div className="flex flex-wrap gap-1.5">{i.subs.map((s) => <Pill key={s}>{s}</Pill>)}</div>
-                {i.cat ? <Button size="sm" className="mt-3" icon={ArrowRight} onClick={() => nav.go('c_category', { id: i.cat })}>See vendors</Button> : <div className="mt-3"><p className="mb-2 text-xs text-ink-500">Opening soon in launch cities. Join the waitlist and we’ll invite verified vendors for you.</p><Button size="sm" variant="secondary" icon={BellRing} onClick={() => { setWaitlist([...waitlist, i.id]); toast('We’ll notify you when this category opens') }}>{waitlist.includes(i.id) ? 'On the waitlist ✓' : 'Notify me'}</Button></div>}
-              </div>
-            )}
+          <Card key={i.id} className="!p-3.5">
+            <div className="flex items-center gap-3"><Thumb tone={i.tone} icon={i.icon} size={46} round="rounded-xl" /><div className="min-w-0 flex-1"><p className="text-sm font-bold leading-snug">{i.name}</p><p className="text-xs text-ink-500">{i.cats} sample categories · {i.subs.length} examples</p></div><Badge tone="green">Live</Badge></div>
+            <div className="mt-3 border-t border-ink-100 pt-3">
+              <p className="mb-2 text-xs font-semibold text-ink-500">Example subcategories</p>
+              <div className="flex flex-wrap gap-1.5">{i.subs.map((s) => <Pill key={s}>{s}</Pill>)}</div>
+              {i.cat ? <Button size="sm" className="mt-3" icon={ArrowRight} onClick={() => nav.go('c_category', { id: i.cat })}>See vendors</Button> : <p className="mt-3 text-xs text-ink-500">Browseable now; listing and RFQ workflows are not configured for this industry yet.</p>}
+            </div>
           </Card>
         ))}
         {!list.length && <EmptyState icon={Search} title="No category matches" body="Can’t find yours? Suggest it — admins review suggestions and add attributes." action={<Button size="sm" onClick={() => nav.go('c_cat_suggest', { name: q })}>Suggest “{q}”</Button>} />}
