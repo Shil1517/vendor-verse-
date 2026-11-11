@@ -220,6 +220,11 @@ export const GLOBAL_LISTINGS = [
 ]
 export const KIND_LABEL = { service: 'Service provider', supplier: 'Supplier / distributor', manufacturer: 'Manufacturer', contractor: 'Contractor' }
 
+/* Vendor roles (D-022): a vendor holds one or more roles; a role is public only once verified (D-019, D-020).
+   Records with `roles: [{ id, status }]` use per-role status; seeded vendors without `roles` fall back to their single `kind`. */
+export const vendorRoles = (v) => (v?.roles ? v.roles : v?.kind ? [{ id: v.kind, status: 'verified' }] : [])
+export const publicRoleLabels = (v) => vendorRoles(v).filter((r) => r.status === 'verified').map((r) => KIND_LABEL[r.id]).filter(Boolean)
+
 /* ---------- Postal-code detection: pincode / ZIP / postcode → country, state, city ---------- */
 const IN_PIN = { 302: ['Jaipur', 'Rajasthan'], 303: ['Jaipur', 'Rajasthan'], 305: ['Ajmer', 'Rajasthan'], 332: ['Sikar', 'Rajasthan'], 342: ['Jodhpur', 'Rajasthan'], 324: ['Kota', 'Rajasthan'], 313: ['Udaipur', 'Rajasthan'],
   110: ['Delhi NCR', 'Delhi NCR'], 122: ['Gurugram', 'Delhi NCR'], 201: ['Noida', 'Delhi NCR'], 400: ['Mumbai', 'Maharashtra'], 401: ['Mumbai', 'Maharashtra'], 411: ['Pune', 'Maharashtra'], 560: ['Bengaluru', 'Karnataka'], 226: ['Lucknow', 'Uttar Pradesh'] }

@@ -12,7 +12,7 @@ import {
 } from '../ui.jsx'
 import { Logo } from './auth.jsx'
 import { NotifBell, ListingCard, VendorRow, VerifiedBadge, useGate, useStartChat, Coverage, ModeChip, RatingOrNew } from './shared.jsx'
-import { country, KIND_LABEL, INDUSTRIES, BOOKING_TYPES, fmtC } from '../globaldata.jsx'
+import { country, KIND_LABEL, publicRoleLabels, INDUSTRIES, BOOKING_TYPES, fmtC } from '../globaldata.jsx'
 import { TrustCard } from './profiles.jsx'
 import { PhaseTag, Badge } from '../ui.jsx'
 import { Globe as GlobeIcon, Factory as FactoryIcon, Handshake, Zap, Building2 } from 'lucide-react'
@@ -553,7 +553,7 @@ export function VendorProfile({ params }) {
           <div className="mt-1.5 flex flex-wrap items-center gap-2"><VerifiedBadge id={v.id} />{v.rating > 0 ? <Rating value={v.rating} count={v.reviews} size={14} /> : <Missing>Not yet rated</Missing>}</div>
           <p className="mt-2 flex items-center gap-1 text-sm text-ink-500"><MapPin size={14} />{v.city} · serves {v.areas.join(', ')}</p>
         </div>
-        <p className="text-sm text-ink-600">{country(v.country).flag} {KIND_LABEL[v.kind]}{v.team ? ` · ${v.team} people` : ''}</p>
+        <p className="text-sm text-ink-600">{country(v.country).flag} {publicRoleLabels(v).join(' · ') || 'Roles pending verification'}{v.team ? ` · ${v.team} people` : ''}</p>
         {v.tagline && <p className="text-sm italic text-ink-600">“{v.tagline}”</p>}
         <TrustCard v={v} />
         {v.ver !== 'approved' && c.verifyReq && <Banner tone="amber" title="Not verified">{v.ver === 'expired' ? 'A required credential has expired. This vendor’s listings are hidden until it is renewed.' : 'This vendor has not completed verification, so it is not shown as Verified.'}</Banner>}
