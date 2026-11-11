@@ -105,7 +105,7 @@ export function VendorRegister({ params = {} }) {
   const nav = useNav()
   const { me, setMe, setVendors, notify, toast, stamp } = useApp()
   const [step, setStep] = useState(0)
-  const [vroles, setVroles] = useState(params.type ? [params.type] : []) // D-022: one or more vendor roles
+  const [vroles, setVroles] = useState(params.type ? [params.type] : []) // D-023: one or more vendor roles
   const vtype = vroles[0] || null // primary role: the backend still takes a single business type
   const [f, setF] = useState({ country: 'India', name: me.biz || '', owner: me.name || '', gstin: '', pan: '', email: '', years: '2020', cats: ['home'], subs: [], areas: ['Jaipur'], pins: '', ans: {}, lang: ['English', 'Hindi'], contact: 'chat' })
   const [docs, setDocs] = useState({})
@@ -115,7 +115,7 @@ export function VendorRegister({ params = {} }) {
   const createdId = useRef(null)
   const c = cat(f.cats[0])
   const goods = vroles.some((r) => VENDOR_TYPES[r]?.offer === 'products')
-  // D-018: only the documents the chosen roles require, combined without duplicates
+  // D-019: only the documents the chosen roles require, combined without duplicates
   const docList = vroles.length ? [...new Set(vroles.flatMap((r) => (r === 'service' ? c.docs : VENDOR_TYPES[r].docs)))] : c.docs
   const fieldKeys = [...c.fields, ...(goods ? ['Minimum order quantity', 'Lead time (days)', 'Certifications', 'Delivery regions'] : [])]
   const set = (k) => (e) => { setF({ ...f, [k]: e?.target ? e.target.value : e }); setErrs({ ...errs, [k]: '' }) }

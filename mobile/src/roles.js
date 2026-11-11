@@ -14,8 +14,8 @@ export const ROLES = [
 /* Admin is kept in the codebase but hidden from every role picker and the screen directory.
    Flip to false to bring it back. */
 export const HIDE_ADMIN = true
-/* Vendor and Business are merged (D-022): the Business account is hidden from every picker and the screen directory.
-   Its screens stay in the codebase until the open details in O-17 are decided. */
+/* Vendor and Business are merged (D-023): the Business account is hidden from every picker and the screen directory.
+   Its screens stay in the codebase until the open details in O-19 are decided. */
 export const HIDE_BUSINESS = true
 export const isHiddenRole = (id) => (HIDE_ADMIN && id === 'admin') || (HIDE_BUSINESS && id === 'business')
 export const VISIBLE_ROLES = ROLES.filter((r) => !isHiddenRole(r.id))

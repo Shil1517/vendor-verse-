@@ -89,7 +89,7 @@ Both apps are Vite single-page apps, `type: module`, with the same dependency se
 - Rendered in a phone frame with a status bar (battery, signal, wifi) and a screen directory; the intended native clients (Android, iOS) are not built, and the client technology is open (O-13).
 - Screens are grouped by area: `auth`, `customer1`, `customer_book`, `customer_rfq`, `customer_misc`, `customer_biz`, `explore`, `vendor_a`, `vendor_b`, `agent`, `admin_a/b/c`, `business`, `catbuilder`, `contracts`, `payments`, `profiles`, `global`, `mvp`, `ops`, `shared`.
 - The admin role exists in code but is hidden from role pickers and the directory (`HIDE_ADMIN = true`). Web shows it. Aligning this is O-11.
-- Business is merged into Vendor by D-022 (supersedes D-005): two account types, Customer and Vendor. Mobile hides the Business account (`HIDE_BUSINESS` in `mobile/src/roles.js`) and keeps its screens; web and the backend still implement Business as a separate account until the details in O-17 are closed.
+- Business is merged into Vendor by D-023 (supersedes D-005): two account types, Customer and Vendor. Mobile hides the Business account (`HIDE_BUSINESS` in `mobile/src/roles.js`) and keeps its screens; web and the backend still implement Business as a separate account until the details in O-19 are closed.
 
 ### 4.4 Build and deploy
 
@@ -160,8 +160,8 @@ A feature is done when: the spec row has one phase; the matrix maps its web and 
 
 | Date & time (YYYY-MM-DD HH:MM, local) | Updated by | Change | Reason |
 |---|---|---|---|
-| 2026-11-11 17:25 | Sahil Soni | Modified: Business account description | Mobile hides the Business account (D-022). |
-| 2026-11-11 16:52 | Sahil Soni | Modified: Business account description | Vendor and Business merged (D-022); code unchanged. |
+| 2026-11-11 17:25 | Sahil Soni | Modified: Business account description | Mobile hides the Business account (D-023). |
+| 2026-11-11 16:52 | Sahil Soni | Modified: Business account description | Vendor and Business merged (D-023); code unchanged. |
 | 2026-11-06 15:05 | Shil1517 | Modified: files status | Files module added to the backend; storage provider and limits remain undecided. |
 | 2026-11-06 13:48 | Shil1517 | Modified: outbox and notifications status | Outbox dispatcher and notifications core added to the backend. |
 | 2026-11-05 17:30 | Shil1517 | Modified: listings, availability, gates and waitlist APIs noted | Backend now covers the vendor listing lifecycle up to review. |

@@ -220,7 +220,7 @@ export const GLOBAL_LISTINGS = [
 ]
 export const KIND_LABEL = { service: 'Service provider', supplier: 'Supplier / distributor', manufacturer: 'Manufacturer', contractor: 'Contractor' }
 
-/* Vendor roles (D-022): a vendor holds one or more roles; a role is public only once verified (D-019, D-020).
+/* Vendor roles (D-023): a vendor holds one or more roles; a role is public only once verified (D-020, D-021).
    Records with `roles: [{ id, status }]` use per-role status; seeded vendors without `roles` fall back to their single `kind`. */
 export const vendorRoles = (v) => (v?.roles ? v.roles : v?.kind ? [{ id: v.kind, status: 'verified' }] : [])
 export const publicRoleLabels = (v) => vendorRoles(v).filter((r) => r.status === 'verified').map((r) => KIND_LABEL[r.id]).filter(Boolean)
