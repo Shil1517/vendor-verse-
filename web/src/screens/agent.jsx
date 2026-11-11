@@ -7,7 +7,7 @@ import { useApp } from '../store.jsx'
 import { useNav } from '../nav.jsx'
 import { STAGES, STAGE_TONE, cat, CATS } from '../data.jsx'
 import {
-  Screen, Card, Section, Button, Thumb, Chips, Segmented, Sheet, Dialog, Input, Select, Badge, Banner, EmptyState, Stat, KV, fmt, cx, BarChart,
+  Screen, Card, Section, Button, Thumb, Chips, Segmented, Sheet, Dialog, Input, Select, Badge, Banner, EmptyState, Stat, KV, fmt, cx,
   Pill, IconBtn, StatusBadge, ListRow, Group, Timeline, Avatar, DocTile, Stepper, HBar, Checkbox, SearchBar, SOFT,
 } from '../ui.jsx'
 import { NotifBell } from './shared.jsx'
@@ -60,7 +60,7 @@ export function PipelineFunnel({ leads, onPick }) {
   const lost = leads.filter((l) => l.stage === 'Lost').length
   const idle = leads.filter((l) => l.stage === 'Inactive').length
   return (
-    <Card className="!p-4">
+    <Card className="vv-agent-pipeline-card !p-4">
       <div className="flex items-end justify-between">
         <div><p className="text-2xl font-extrabold leading-none">{leads.length}<span className="ml-1.5 text-sm font-semibold text-ink-400">leads</span></p><p className="mt-1 text-xs text-ink-500">{cum[0]} in active pipeline</p></div>
         <div className="text-right"><p className="text-2xl font-extrabold leading-none text-emerald-600">{win}%</p><p className="mt-1 text-xs text-ink-500">overall conversion</p></div>
@@ -73,7 +73,7 @@ export function PipelineFunnel({ leads, onPick }) {
                 <ArrowDown size={11} />{cum[i - 1] ? Math.round((cum[i] / cum[i - 1]) * 100) : 0}% move on
               </div>
             )}
-            <button onClick={() => onPick(s)} className="grid w-full grid-cols-[76px_1fr_46px] items-center gap-2 text-left active:opacity-70">
+            <button onClick={() => onPick(s)} className="grid w-full grid-cols-[minmax(58px,76px)_minmax(0,1fr)_minmax(38px,46px)] items-center gap-2 text-left active:opacity-70">
               <span className="text-[12px] font-bold text-ink-700">{SHORT[i]}</span>
               <span className="flex justify-center">
                 <span className={cx('flex h-9 items-center justify-center rounded-lg bg-gradient-to-r text-sm font-extrabold text-white shadow-sm transition-all', FUNNEL[i])} style={{ width: `${Math.max((cum[i] / base) * 100, 16)}%` }}>{cum[i]}</span>
@@ -112,6 +112,59 @@ export function StageTracker({ stage }) {
   )
 }
 
+function AgentLeadAnalytics({ leads }) {
+  const vendorCount = leads.filter((lead) => lead.type === 'vendor').length
+  const customerCount = leads.filter((lead) => lead.type === 'customer').length
+  const vendorShare = leads.length ? (vendorCount / leads.length) * 100 : 0
+  const sourceCounts = Object.entries(leads.reduce((counts, lead) => {
+    const source = lead.source?.trim() || 'Other'
+    counts[source] = (counts[source] || 0) + 1
+    return counts
+  }, {})).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).slice(0, 5)
+  const maxSourceCount = sourceCounts[0]?.[1] || 1
+  const donut = leads.length
+    ? `conic-gradient(var(--vv-theme-accent) 0deg ${vendorShare * 3.6}deg, var(--vv-theme-accent-2) ${vendorShare * 3.6}deg 360deg)`
+    : 'var(--vv-theme-line)'
+
+  return (
+    <div className="vv-agent-analytics-grid">
+      <Card className="vv-agent-analytics-card vv-agent-source-card">
+        <div className="vv-agent-analytics-heading">
+          <div><p className="text-sm font-bold">Lead source mix</p><p className="text-xs text-ink-500">Top source channels by lead count</p></div>
+          <span className="vv-agent-analytics-total">{leads.length} total</span>
+        </div>
+        {sourceCounts.length ? (
+          <div className="vv-agent-source-list">
+            {sourceCounts.map(([source, count]) => (
+              <div className="vv-agent-source-row" key={source}>
+                <div className="vv-agent-source-label"><span>{source}</span><b>{count}</b></div>
+                <div className="vv-agent-source-track" role="img" aria-label={`${source}: ${count} leads, ${Math.round((count / (leads.length || 1)) * 100)} percent`}>
+                  <span style={{ width: `${(count / maxSourceCount) * 100}%` }} />
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : <p className="vv-agent-analytics-empty">Lead-source analytics will appear when leads are added.</p>}
+      </Card>
+      <Card className="vv-agent-analytics-card vv-agent-portfolio-card">
+        <div className="vv-agent-analytics-heading">
+          <div><p className="text-sm font-bold">Portfolio split</p><p className="text-xs text-ink-500">Vendor and customer prospects</p></div>
+          <span className="vv-agent-analytics-total">By lead type</span>
+        </div>
+        <div className="vv-agent-portfolio-content">
+          <div className="vv-agent-portfolio-donut" role="img" aria-label={`${vendorCount} vendor leads and ${customerCount} customer leads`} style={{ background: donut }}>
+            <span><b>{leads.length}</b><small>LEADS</small></span>
+          </div>
+          <div className="vv-agent-portfolio-legend">
+            <div><span className="vv-agent-legend-dot is-vendor" /><span>Vendor</span><b>{vendorCount}</b></div>
+            <div><span className="vv-agent-legend-dot is-customer" /><span>Customer</span><b>{customerCount}</b></div>
+          </div>
+        </div>
+      </Card>
+    </div>
+  )
+}
+
 /* ================= HOME ================= */
 export function AgentHome() {
   const nav = useNav()
@@ -122,19 +175,16 @@ export function AgentHome() {
   const pend = commissions.filter((c) => ['pending', 'awaiting', 'approved'].includes(c.status)).reduce((s, c) => s + c.amount, 0)
   return (
     <Screen headerless pad={false}>
-      <div className="bg-gradient-to-b from-brand-700 to-brand-600 px-4 pb-14 pt-3 text-white">
+      <div className="vv-agent-hero bg-gradient-to-b from-brand-700 to-brand-600 px-4 pb-14 pt-3 text-white">
         <div className="flex items-center justify-between"><div><p className="text-sm text-white/75">{t('hello')},</p><h1 className="text-xl font-extrabold">{(me.name || 'Neha Verma').split(' ')[0]} 👋</h1></div><div className="[&_button]:text-white [&_button:hover]:bg-white/15 [&_span]:ring-brand-700"><NotifBell role="agent" /></div></div>
       </div>
-      <div className="-mt-10 space-y-4 px-4 pb-6">
-        <div className="grid grid-cols-2 gap-3"><Stat label="Active leads" value={active.length} icon={Users} tone="sky" onClick={() => nav.go('a_leads')} /><Stat label="Follow-ups due" value={today.length} icon={CalendarClock} tone="amber" onClick={() => nav.go('a_followups')} /><Stat label="Converted" value={conv} icon={BadgeCheck} tone="emerald" delta="+1" /><Stat label="Commission due" value={fmt(pend)} icon={Wallet} tone="violet" onClick={() => nav.go('a_earnings')} /></div>
+      <div className="vv-agent-dashboard-content space-y-4 px-4 pb-6">
+        <div className="vv-agent-kpi-grid grid grid-cols-2 gap-3"><Stat label="Active leads" value={active.length} icon={Users} tone="sky" onClick={() => nav.go('a_leads')} /><Stat label="Follow-ups due" value={today.length} icon={CalendarClock} tone="amber" onClick={() => nav.go('a_followups')} /><Stat label="Converted" value={conv} icon={BadgeCheck} tone="emerald" /><Stat label="Commission due" value={fmt(pend)} icon={Wallet} tone="violet" onClick={() => nav.go('a_earnings')} /></div>
         <Button full size="lg" icon={Plus} onClick={() => nav.go('a_lead_new')}>Add new lead</Button>
         <Section title="Pipeline" action="Board" onAction={() => nav.go('a_leads')}>
           <PipelineFunnel leads={leads} onPick={(s) => nav.go('a_leads', { stage: s })} />
         </Section>
-        <Card className="vv-agent-chart-card">
-          <div className="flex items-start justify-between gap-3"><div><p className="text-sm font-bold">Lead activity</p><p className="text-xs text-ink-500">New and converted leads · last 6 weeks</p></div><Badge tone="teal">Live pipeline</Badge></div>
-          <div className="mt-4"><BarChart data={[{ label: 'W1', value: 8 }, { label: 'W2', value: 12 }, { label: 'W3', value: 10 }, { label: 'W4', value: 16 }, { label: 'W5', value: 14 }, { label: 'W6', value: Math.max(18, active.length) }]} height={126} /></div>
-        </Card>
+        <AgentLeadAnalytics leads={leads} />
         <Section title="Today’s follow-ups" action="All" onAction={() => nav.go('a_followups')}>
           <div className="space-y-2.5">{today.slice(0, 3).map((l) => <LeadCard key={l.id} l={l} onClick={() => nav.go('a_lead', { id: l.id })} />)}{today.length === 0 && <Card className="text-center text-sm text-ink-500">Nothing due — great job! 🎉</Card>}</div>
         </Section>

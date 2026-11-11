@@ -22,6 +22,7 @@ Every scope decision lives here, with who made it and why. Features reference th
 | D-014 | 2026-10-29 | Claude (derived from D-001), awaiting Shil1517 | **PRS items marked "Future" map to Phase 3** (cart checkout, enterprise procurement, AI, field tools, advanced ads). | D-001 defines Phase 3 as future roadmap. This is an inference, listed under O-12 for confirmation. |
 | D-015 | 2026-10-30 | Shil1517 | **Company storefront ordering (F-BIZ-03) is Phase 2.** Customers can order directly from a verified company storefront; screens carry the "Phase 2" badge on both clients. Payment stays direct between customer and company. | Closes O-07. Owner chose Phase 2 with badge (D-010) when asked during the web sync. The mobile storefront screens need the badge. |
 | D-016 | 2026-11-04 | Amit | **Use TypeScript with NestJS for the backend modular monolith.** Keep the documented hard module boundaries, REST/OpenAPI contracts, and PostgreSQL data layer proposal. | Owner approved the recommended backend stack so implementation can start; mobile client technology remains open under O-13. |
+| D-017 | 2026-11-11 | Abhishek Samadhiya | **F-VND-13 is Phase 1 and provides six persistent appearance-only themes (Light, Dark, Midnight, Ocean, Emerald, Sunset) across Vendor, Agent and Business workspaces.** | Owner requested the six themes and explicitly excluded edits to `mobile/` in this change. Web is implemented first; mobile remains outstanding P1 parity work under D-013. Theme presets do not change data, roles, routes or workflows. |
 
 ## 2. Open decisions
 
@@ -44,6 +45,8 @@ Nothing in these rows is built, changed or removed until the decision is closed.
 | O-13 | Which mobile client technology should be used: native, React Native or a web app? | docs/06-architecture-and-structure.md | Backend language and framework were decided by D-016. The mobile client choice remains open; do not assume or implement a mobile technology. |
 | O-14 | What may an account in each state do: Pending verification, Restricted, Suspended, Deletion requested? | F-ACC-03 | PRS §3.2 gives only general behaviour (restrict sensitive actions; disable some capabilities with a user-facing explanation; block relevant activity but keep records). No capability list per state exists, so only Active accounts can sign in or use the API and no other state is enforced. The server needs the capability list, and the user-facing explanation copy, before it can enforce them. |
 | O-15 | Which object storage and malware-scan providers are used, and what are the upload limits (maximum size, accepted file types) and the lifetimes of signed upload and download URLs? | F-VND-03, F-VND-07, F-RFQ-01, F-TRU-03 | PRS §16 requires private, scanned uploads but names no provider or limits, and none may be invented. The files API (migration 015) is built and answers 503 until the owner sets `FILE_STORAGE_PROVIDER`, `FILE_MAX_BYTES`, `FILE_ALLOWED_CONTENT_TYPES` and the two URL lifetimes; only local/test stand-ins exist. |
+| O-16 | Closed by D-017. Which phase should include vendor workspace color-theme presets (Lavender Dream, Mint Breeze, Arctic Pearl, Peach Blossom and Midnight Violet, each with light/dark variants)? | F-VND-13 | Owner's 2026-11-11 decision specifies six named themes across Vendor, Agent and Business workspaces in Phase 1. |
+| O-17 | Which phase should include vendor analytics appearance presets, and should the 3D option be limited to existing data-backed visuals? | F-VND-14 | Requested 2026-11-10. Existing vendor data has no trustworthy geographic activity coordinates, so a geographic globe must not invent locations or statistics; do not build the selector until its phase and 3D scope are decided. |
 
 ## 3. Where these decisions differ from the PRS v3.0
 
@@ -76,6 +79,8 @@ The PRS is not edited (D-012). Until it is reissued, the decision wins.
 
 | Date & time (YYYY-MM-DD HH:MM, local) | Updated by | Change | Reason |
 |---|---|---|---|
+| 2026-11-11 11:31 | Abhishek Samadhiya | Added: D-017; closed O-16 | Owner requested six appearance-only themes for the three web workspaces and explicitly excluded mobile files from this change. |
+| 2026-11-10 11:02 | Abhishek Samadhiya | Added: O-16 and O-17 | Record owner phase and 3D analytics-scope decisions required before new preference controls can be built. |
 | 2026-11-06 15:05 | Shil1517 | Added: O-15 | The files module needs owner decisions on storage and scan providers, upload limits and URL lifetimes; none are invented. |
 | 2026-11-06 13:48 | Shil1517 | Added: O-14 | Account-state enforcement cannot be built without a per-state capability list; PRS §3.2 is not specific enough. |
 | 2026-11-04 15:24 | Amit | Added: D-016; narrowed O-13 to mobile client technology | Owner approved TypeScript and NestJS for the modular-monolith backend; mobile technology remains undecided. |

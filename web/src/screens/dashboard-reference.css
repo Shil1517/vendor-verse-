@@ -54,7 +54,7 @@
 }
 
 /* The reference uses an airy KPI strip rather than a narrow two-column stack. */
-.vv-agent-route .vv-screen-scroll > div > .-mt-10 > .grid-cols-2,
+.vv-agent-route .vv-screen-scroll > div > .vv-agent-dashboard-content > .grid-cols-2,
 .vv-admin-route .vv-screen-scroll > div > .-mt-10 > .grid-cols-2 {
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 16px;
@@ -87,7 +87,7 @@
 }
 
 @media (max-width: 1080px) {
-  .vv-agent-route .vv-screen-scroll > div > .-mt-10 > .grid-cols-2,
+  .vv-agent-route .vv-screen-scroll > div > .vv-agent-dashboard-content > .grid-cols-2,
   .vv-admin-route .vv-screen-scroll > div > .-mt-10 > .grid-cols-2,
   .vv-admin-route .vv-screen-scroll > div > .-mt-10 > .grid-cols-2 {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -95,7 +95,7 @@
 }
 
 @media (max-width: 680px) {
-  .vv-agent-route .vv-screen-scroll > div > .-mt-10 > .grid-cols-2,
+  .vv-agent-route .vv-screen-scroll > div > .vv-agent-dashboard-content > .grid-cols-2,
   .vv-admin-route .vv-screen-scroll > div > .-mt-10 > .grid-cols-2 {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 10px;
@@ -103,7 +103,7 @@
 }
 
 @media (max-width: 380px) {
-  .vv-agent-route .vv-screen-scroll > div > .-mt-10 > .grid-cols-2,
+  .vv-agent-route .vv-screen-scroll > div > .vv-agent-dashboard-content > .grid-cols-2,
   .vv-admin-route .vv-screen-scroll > div > .-mt-10 > .grid-cols-2 {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -190,4 +190,525 @@
 
 @media (prefers-reduced-motion: reduce) {
   .vv-agent-shell *, .vv-admin-shell *, .vv-vendor-workspace-route *, .vv-vendor-message-route * { transition-duration: .01ms !important; animation-duration: .01ms !important; }
+}
+
+/* Match the vendor dashboard's light glass workspace without changing agent flows. */
+.vv-agent-shell {
+  gap: 12px;
+  padding: 12px;
+  background: #fff;
+}
+.vv-agent-shell .vv-agent-sidebar {
+  height: 100%;
+  border: 1px solid rgba(11, 113, 128, .15);
+  border-radius: 22px;
+  background: rgba(255, 255, 255, .9);
+  box-shadow: 0 16px 42px rgba(23, 95, 76, .09);
+}
+.vv-agent-shell .vv-agent-sidebar-brand-copy b,
+.vv-agent-shell .vv-agent-sidebar-user b { color: #193543; }
+.vv-agent-shell .vv-agent-sidebar-brand-copy span,
+.vv-agent-shell .vv-agent-sidebar-user small { color: #627985; }
+.vv-agent-shell .vv-agent-sidebar-toggle {
+  border-color: #d8e4e8;
+  background: #fff;
+  color: #536d79;
+}
+.vv-agent-shell .vv-agent-sidebar-link { color: #536d79; }
+.vv-agent-shell .vv-agent-sidebar-link svg { background: #eef5f6; color: #0b7180; }
+.vv-agent-shell .vv-agent-sidebar-link:hover { background: #f2f8f8; color: #0b7180; }
+.vv-agent-shell .vv-agent-sidebar-link.is-active {
+  background: linear-gradient(135deg, #0b7180, #54a99f);
+  color: #fff;
+  box-shadow: 0 8px 18px rgba(22, 125, 132, .2);
+}
+.vv-agent-shell .vv-agent-sidebar-link.is-active svg {
+  background: transparent;
+  color: #fff;
+  box-shadow: none;
+}
+.vv-agent-shell .vv-agent-sidebar-user {
+  border-color: rgba(11, 113, 128, .12);
+  background: rgba(255, 255, 255, .78);
+  box-shadow: 0 8px 18px rgba(12, 34, 51, .06);
+}
+.vv-agent-shell .vv-agent-sidebar-avatar { background: linear-gradient(135deg, #0b7180, #54a99f); }
+.vv-agent-main { gap: 12px; padding: 0 0 0 0; }
+.vv-agent-main > header {
+  min-height: 68px;
+  margin-right: 0;
+  border: 1px solid rgba(11, 113, 128, .12);
+  border-radius: 22px;
+  background: rgba(255, 255, 255, .82);
+  box-shadow: 0 12px 32px rgba(12, 34, 51, .06);
+}
+.vv-agent-main > main {
+  overflow: hidden;
+  border: 1px solid rgba(11, 113, 128, .1);
+  border-radius: 22px;
+  background: #fff;
+}
+.vv-agent-route {
+  background: #fff;
+  color: #193543;
+}
+.vv-agent-route .vv-screen-scroll {
+  background: #fff;
+  scrollbar-color: #91aeb2 #e9f0f1;
+}
+.vv-agent-route .vv-screen-layout > header {
+  background: rgba(255, 255, 255, .92);
+  box-shadow: 0 8px 22px rgba(12, 34, 51, .045);
+}
+.vv-agent-route .vv-screen-scroll > div > .bg-gradient-to-b {
+  background: linear-gradient(120deg, #0b7180, #278c91 56%, #54a99f);
+  box-shadow: 0 18px 34px rgba(22, 125, 132, .2);
+}
+.vv-agent-route .vv-screen-scroll [class*="shadow-[0_1px"] {
+  border-color: rgba(11, 113, 128, .12);
+  background: rgba(255, 255, 255, .92);
+  box-shadow: 0 12px 30px rgba(12, 34, 51, .07);
+}
+.vv-agent-route .vv-screen-scroll [class*="shadow-[0_1px"]:hover {
+  border-color: rgba(11, 113, 128, .24);
+  box-shadow: 0 16px 34px rgba(12, 34, 51, .1);
+}
+
+@media (max-width: 820px) {
+  .vv-agent-shell { gap: 0; padding: 0; }
+  .vv-agent-main { gap: 0; padding: 0; }
+  .vv-agent-main > header,
+  .vv-agent-main > main { border-radius: 0; }
+}
+
+/* Keep workspace brand accents blue while leaving status colors meaningful. */
+.vv-agent-shell .vv-agent-sidebar {
+  border-color: rgba(23, 105, 170, .16);
+  box-shadow: 0 16px 42px rgba(23, 105, 170, .08);
+}
+.vv-agent-shell .vv-agent-sidebar-brand-copy b,
+.vv-agent-shell .vv-agent-sidebar-user b { color: #193b59; }
+.vv-agent-shell .vv-agent-sidebar-brand-copy span,
+.vv-agent-shell .vv-agent-sidebar-user small { color: #637b90; }
+.vv-agent-shell .vv-agent-sidebar-toggle {
+  border-color: #d7e5f1;
+  color: #526e85;
+}
+.vv-agent-shell .vv-agent-sidebar-link { color: #526e85; }
+.vv-agent-shell .vv-agent-sidebar-link svg { background: #eaf3fb; color: #1769aa; }
+.vv-agent-shell .vv-agent-sidebar-link:hover { background: #edf6fd; color: #1769aa; }
+.vv-agent-shell .vv-agent-sidebar-link.is-active {
+  background: linear-gradient(135deg, #1769aa, #2786d3);
+  box-shadow: 0 8px 18px rgba(23, 105, 170, .22);
+}
+.vv-agent-shell .vv-agent-sidebar-user { border-color: rgba(23, 105, 170, .14); }
+.vv-agent-shell .vv-agent-sidebar-avatar { background: linear-gradient(135deg, #1769aa, #2786d3); }
+.vv-agent-main > header,
+.vv-agent-main > main { border-color: rgba(23, 105, 170, .13); }
+.vv-agent-main > header [class*="text-brand-"] { color: #1769aa !important; }
+.vv-agent-route .vv-screen-scroll {
+  scrollbar-color: #82afd5 #eaf3fb;
+}
+.vv-agent-route .vv-screen-scroll::-webkit-scrollbar-thumb {
+  background-color: #82afd5;
+}
+.vv-agent-route .vv-screen-scroll > div > .bg-gradient-to-b {
+  background: linear-gradient(120deg, #1769aa, #2786d3 56%, #69afe8);
+  box-shadow: 0 18px 34px rgba(23, 105, 170, .2);
+}
+.vv-agent-route [class*="text-brand-"] { color: #1769aa !important; }
+.vv-agent-route [class~="bg-brand-50"] { background-color: #edf6fd !important; }
+.vv-agent-route [class~="bg-brand-100"] { background-color: #dceeff !important; }
+.vv-agent-route [class~="bg-brand-600"],
+.vv-agent-route [class~="bg-brand-700"] { background-color: #1769aa !important; }
+.vv-agent-route [class~="hover:bg-brand-700"]:hover { background-color: #12588f !important; }
+.vv-agent-shell nav[class~="z-20"] [class~="bg-brand-600"] {
+  background-color: #1769aa !important;
+  box-shadow: 0 6px 14px rgba(23, 105, 170, .28) !important;
+}
+.vv-agent-route .vv-screen-scroll .grid-cols-2 > button > div > span[class~="size-8"] {
+  background: #eaf3fb !important;
+  color: #1769aa !important;
+}
+.vv-agent-route .vv-screen-scroll .grid-cols-2 > button > div > span[class~="size-8"] svg {
+  color: #1769aa !important;
+}
+.vv-agent-route .vv-screen-scroll .bg-gradient-to-r {
+  background-image: linear-gradient(90deg, #1769aa, #3b94dc) !important;
+}
+.vv-agent-route .vv-agent-chart-card {
+  border-color: rgba(23, 105, 170, .14);
+}
+
+.vv-business-workspace-route {
+  background: #f7fbff !important;
+  --v-bg: #f7fbff;
+  --v-panel: rgba(255, 255, 255, .86);
+  --v-card: rgba(255, 255, 255, .96);
+  --v-ink: #173a57;
+  --v-muted: #61798d;
+  --v-line: rgba(23, 105, 170, .16);
+  --v-accent: #1769aa;
+}
+.vv-business-workspace-route:has(.vv-vendor-workspace.vx-shell[data-theme='dark']) {
+  background: #081725 !important;
+  --vv-canvas: linear-gradient(145deg, #081725, #0d263b 58%, #102a40);
+  --v-bg: #081725;
+  --v-panel: rgba(17, 40, 58, .92);
+  --v-card: rgba(19, 43, 62, .94);
+  --v-ink: #e8f5ff;
+  --v-muted: #a4bfd2;
+  --v-line: rgba(111, 176, 226, .16);
+  --v-accent: #75b9ea;
+}
+.vv-business-workspace-route .vv-vendor-workspace.vx-shell {
+  --bg: #fff;
+  --mint: #1769aa;
+  --sky: #2786d3;
+  --grad: linear-gradient(135deg, #1769aa, #2786d3);
+  --v-accent: #1769aa;
+  --vv-screen-canvas: linear-gradient(160deg, #fff, #f4f9fe 58%, #e8f3fc);
+  --vv-ws-canvas: radial-gradient(ellipse at 12% 8%, rgba(122, 190, 239, .2), transparent 34%), radial-gradient(ellipse at 88% 92%, rgba(116, 177, 231, .16), transparent 36%), linear-gradient(145deg, #fbfdff, #edf5fc 58%, #f7fbff);
+  --vv-scroll-thumb: #82afd5;
+  --vv-scroll-track: #eaf3fb;
+  --vv-ws-edge: rgba(43, 123, 191, .16);
+  --vv-ws-side-edge: rgba(43, 123, 191, .16);
+  --vv-ws-side-bg: linear-gradient(165deg, rgba(255,255,255,.94), rgba(239,247,254,.88));
+  --vv-ws-side-shadow: 0 24px 56px rgba(35, 91, 137, .1), inset 0 1px 0 #fff;
+  --vv-ws-top-edge: rgba(43, 123, 191, .15);
+  --vv-ws-top-bg: linear-gradient(135deg, rgba(255,255,255,.96), rgba(239,247,254,.9));
+  --vv-ws-top-shadow: 0 16px 38px rgba(35, 91, 137, .08), inset 0 1px 0 #fff;
+  --vv-ws-control-edge: rgba(23, 105, 170, .16);
+  --vv-ws-control-bg: rgba(255,255,255,.8);
+  --vv-ws-control-shadow: inset 0 1px 0 #fff, 0 5px 16px rgba(35, 91, 137, .04);
+  --vv-ws-plan-edge: rgba(23, 105, 170, .2);
+  --vv-ws-plan-bg: linear-gradient(145deg, rgba(225, 240, 253, .8), rgba(255,255,255,.7));
+  --vv-ws-plan-shadow: inset 0 1px 0 #fff;
+  --vv-ws-hover-edge: rgba(23, 105, 170, .16);
+  --vv-ws-hover-bg: rgba(226, 241, 254, .55);
+  --vv-ws-card-edge: rgba(43, 123, 191, .14);
+  --vv-ws-card-bg: linear-gradient(145deg, rgba(255,255,255,.96), rgba(242,248,254,.9));
+  --vv-ws-action-bg: linear-gradient(145deg, #fff, #edf6fd);
+  --vv-ws-nav-hover: rgba(39, 134, 211, .1);
+  --vv-ws-focus: rgba(23, 105, 170, .68);
+  --vv-ws-focus-ring: #1769aa;
+  --vv-ws-nav-ink: #315574;
+  --vv-ws-nav-icon: #1769aa;
+  --vv-ws-group-ink: #718ba2;
+  --vv-ws-nav-active: linear-gradient(135deg, #1769aa, #2786d3);
+  --vv-ws-nav-active-shadow: 0 10px 24px rgba(23, 105, 170, .24);
+  --vv-ws-nav-active-ink: #fff;
+  --vv-ws-badge-bg: rgba(39, 134, 211, .13);
+  --vv-ws-badge-ink: #155e9b;
+  --vv-ws-avatar-shadow: 0 7px 18px rgba(23, 105, 170, .22);
+  --vv-ws-hero-bg: radial-gradient(ellipse at 86% 20%, rgba(183, 219, 248, .48), transparent 34%), linear-gradient(112deg, #fff, #f4f9fe 54%, #e8f3fc);
+  --vv-ws-hero-edge: rgba(43, 123, 191, .15);
+  --vv-ws-hero-shadow: 0 18px 48px rgba(35, 91, 137, .08), inset 0 1px 0 #fff;
+  --vv-ws-hero-label: #587994;
+  --vv-ws-hero-copy: #5b7891;
+  --vv-ws-hero-strong: #294d6b;
+  --vv-ws-kpi-bg: linear-gradient(150deg, #fff, #f0f7fd);
+  --vv-ws-kpi-edge: rgba(43, 123, 191, .14);
+  --vv-ws-kpi-shadow: 0 10px 26px rgba(35, 91, 137, .05), inset 0 1px 0 #fff;
+  --vv-ws-kpi-hover-shadow: 0 18px 34px rgba(35, 91, 137, .1), inset 0 1px 0 #fff;
+  --vv-ws-kpi-icon-bg: rgba(39, 134, 211, .1);
+  --vv-ws-kpi-icon-edge: rgba(23, 105, 170, .14);
+  --vv-ws-kpi-icon-ink: #1769aa;
+  --vv-ws-kpi-value: #173a57;
+  --vv-ws-kpi-label: #315574;
+  --vv-ws-kpi-caption: #71889b;
+  --vv-ws-chart-axis: #6f879a;
+  --vv-ws-chart-grid: rgba(39, 116, 177, .16);
+  --vv-ws-chart-line: #1979bf;
+  --vv-ws-chart-point: #fff;
+  --vv-ws-chart-area-start: rgba(39, 134, 211, .3);
+  --vv-ws-chart-area-end: rgba(39, 134, 211, 0);
+  --vv-ws-chart-glow: rgba(23, 105, 170, .2);
+  --vv-ws-donut-track: rgba(39, 134, 211, .12);
+  --vv-ws-legend-ink: #587994;
+  --vv-ws-range-bg: rgba(39, 134, 211, .07);
+  --vv-ws-range-edge: rgba(23, 105, 170, .15);
+  --vv-ws-range-active: linear-gradient(135deg, #1769aa, #2786d3);
+  --vv-ws-range-active-shadow: 0 5px 12px rgba(23, 105, 170, .2);
+  --vv-ws-row-edge: rgba(23, 105, 170, .12);
+  --vv-ws-row-bg: rgba(255,255,255,.8);
+  --vv-ws-row-hover-bg: rgba(255,255,255,.98);
+  --vv-ws-row-hover-shadow: 0 8px 18px rgba(35, 91, 137, .07);
+  --vv-ws-quick-edge: rgba(23, 105, 170, .13);
+  --vv-ws-quick-bg: linear-gradient(145deg, #fff, #edf6fd);
+  --vv-ws-quick-hover-shadow: 0 12px 24px rgba(35, 91, 137, .1);
+  --vv-ws-quick-icon-bg: rgba(39, 134, 211, .12);
+  --vv-ws-quick-icon-edge: rgba(23, 105, 170, .14);
+  --vv-ws-quick-icon-ink: #1769aa;
+  --vv-ws-empty-bg: rgba(39, 134, 211, .045);
+  --vv-ws-count-bg: rgba(39, 134, 211, .12);
+  --vv-ws-count-ink: #1769aa;
+  --vv-ws-work-link: #1769aa;
+}
+.vv-business-workspace-route .vv-vendor-workspace.vx-shell[data-theme='dark'] {
+  --bg: #081725;
+  --mint: #75b9ea;
+  --sky: #2786d3;
+  --grad: linear-gradient(135deg, #1769aa, #12588f);
+  --v-bg: #081725;
+  --v-panel: rgba(17, 40, 58, .92);
+  --v-card: rgba(19, 43, 62, .94);
+  --v-ink: #e8f5ff;
+  --v-muted: #a4bfd2;
+  --v-line: rgba(111, 176, 226, .16);
+  --v-accent: #75b9ea;
+  --vv-screen-canvas: linear-gradient(160deg, #081725, #102a40 58%, #10273a);
+  --vv-ws-canvas: radial-gradient(ellipse at 12% 8%, rgba(25, 91, 145, .22), transparent 34%), radial-gradient(ellipse at 88% 92%, rgba(25, 78, 124, .2), transparent 36%), linear-gradient(145deg, #071522, #0b1d2c 56%, #0c2032);
+  --vv-scroll-thumb: #438bc1;
+  --vv-scroll-track: #102a40;
+  --vv-ws-edge: rgba(111, 176, 226, .15);
+  --vv-ws-side-edge: rgba(111, 176, 226, .16);
+  --vv-ws-side-bg: linear-gradient(165deg, rgba(17, 40, 58, .92), rgba(10, 29, 46, .88));
+  --vv-ws-side-shadow: 0 24px 56px rgba(0,0,0,.24), inset 0 1px 0 rgba(255,255,255,.05);
+  --vv-ws-top-edge: rgba(111, 176, 226, .15);
+  --vv-ws-top-bg: linear-gradient(135deg, rgba(17, 40, 58, .92), rgba(10, 29, 46, .88));
+  --vv-ws-top-shadow: 0 16px 38px rgba(0,0,0,.2), inset 0 1px 0 rgba(255,255,255,.04);
+  --vv-ws-control-edge: rgba(111, 176, 226, .16);
+  --vv-ws-control-bg: rgba(6, 21, 34, .72);
+  --vv-ws-control-shadow: inset 0 1px 0 rgba(255,255,255,.04);
+  --vv-ws-plan-edge: rgba(72, 151, 213, .22);
+  --vv-ws-plan-bg: linear-gradient(145deg, rgba(20, 57, 84, .72), rgba(10, 31, 49, .72));
+  --vv-ws-plan-shadow: inset 0 1px 0 rgba(255,255,255,.035);
+  --vv-ws-hover-edge: rgba(111, 176, 226, .16);
+  --vv-ws-hover-bg: rgba(255,255,255,.05);
+  --vv-ws-card-edge: rgba(111, 176, 226, .16);
+  --vv-ws-card-bg: linear-gradient(145deg, rgba(19, 43, 62, .94), rgba(11, 31, 48, .9));
+  --vv-ws-action-bg: linear-gradient(145deg, rgba(19, 43, 62, .94), rgba(11, 31, 48, .9));
+  --vv-ws-nav-hover: rgba(57, 145, 216, .14);
+  --vv-ws-focus: rgba(92, 175, 237, .8);
+  --vv-ws-focus-ring: #7bc2f4;
+  --vv-ws-nav-ink: #b6d2e7;
+  --vv-ws-nav-icon: #77b9eb;
+  --vv-ws-group-ink: #829fb5;
+  --vv-ws-nav-active: linear-gradient(135deg, #1769aa, #12588f);
+  --vv-ws-nav-active-shadow: 0 10px 24px rgba(0,0,0,.3), inset 0 1px 0 rgba(255,255,255,.1);
+  --vv-ws-nav-active-ink: #f3f9ff;
+  --vv-ws-badge-bg: rgba(80, 164, 225, .17);
+  --vv-ws-badge-ink: #9bd4ff;
+  --vv-ws-avatar-shadow: 0 7px 20px rgba(0,0,0,.28);
+  --vv-ws-hero-bg: radial-gradient(ellipse at 86% 20%, rgba(29, 93, 143, .3), transparent 36%), linear-gradient(112deg, #0e263a, #102d45 58%, #10283e);
+  --vv-ws-hero-edge: rgba(111, 176, 226, .18);
+  --vv-ws-hero-shadow: 0 18px 48px rgba(0,0,0,.22), inset 0 1px 0 rgba(255,255,255,.04);
+  --vv-ws-hero-label: #a4c4d9;
+  --vv-ws-hero-copy: #a5bfd2;
+  --vv-ws-hero-strong: #e5f3ff;
+  --vv-ws-kpi-bg: linear-gradient(145deg, rgba(20, 43, 61, .96), rgba(11, 30, 47, .92));
+  --vv-ws-kpi-edge: rgba(111, 176, 226, .16);
+  --vv-ws-kpi-shadow: 0 12px 30px rgba(0,0,0,.18), inset 0 1px 0 rgba(255,255,255,.04);
+  --vv-ws-kpi-hover-shadow: 0 18px 34px rgba(0,0,0,.28), inset 0 1px 0 rgba(255,255,255,.06);
+  --vv-ws-kpi-icon-bg: rgba(56, 145, 216, .16);
+  --vv-ws-kpi-icon-edge: rgba(111, 176, 226, .2);
+  --vv-ws-kpi-icon-ink: #8bcaff;
+  --vv-ws-kpi-value: #e8f5ff;
+  --vv-ws-kpi-label: #c3d9e9;
+  --vv-ws-kpi-caption: #99b4c8;
+  --vv-ws-chart-axis: #a4bdcf;
+  --vv-ws-chart-grid: rgba(145, 185, 218, .17);
+  --vv-ws-chart-line: #65b8f5;
+  --vv-ws-chart-point: #eaf6ff;
+  --vv-ws-chart-area-start: rgba(68, 155, 221, .32);
+  --vv-ws-chart-area-end: rgba(68, 155, 221, 0);
+  --vv-ws-chart-glow: rgba(72, 160, 229, .26);
+  --vv-ws-donut-track: rgba(162, 199, 226, .14);
+  --vv-ws-legend-ink: #b6cedd;
+  --vv-ws-range-bg: rgba(66, 145, 201, .1);
+  --vv-ws-range-edge: rgba(132, 182, 216, .17);
+  --vv-ws-range-active: linear-gradient(135deg, #1769aa, #12588f);
+  --vv-ws-range-active-shadow: 0 5px 12px rgba(0,0,0,.24), inset 0 1px 0 rgba(255,255,255,.1);
+  --vv-ws-row-edge: rgba(111, 176, 226, .15);
+  --vv-ws-row-bg: rgba(8, 25, 40, .78);
+  --vv-ws-row-hover-bg: rgba(17, 42, 62, .95);
+  --vv-ws-row-hover-shadow: 0 8px 20px rgba(0,0,0,.2);
+  --vv-ws-quick-edge: rgba(111, 176, 226, .16);
+  --vv-ws-quick-bg: linear-gradient(145deg, rgba(20, 45, 64, .94), rgba(12, 32, 50, .92));
+  --vv-ws-quick-hover-shadow: 0 12px 26px rgba(0,0,0,.26);
+  --vv-ws-quick-icon-bg: rgba(56, 145, 216, .16);
+  --vv-ws-quick-icon-edge: rgba(111, 176, 226, .2);
+  --vv-ws-quick-icon-ink: #8bcaff;
+  --vv-ws-empty-bg: rgba(53, 137, 197, .08);
+  --vv-ws-count-bg: rgba(74, 153, 213, .17);
+  --vv-ws-count-ink: #9bd4ff;
+  --vv-ws-work-link: #8bcaff;
+}
+.vv-business-workspace-route .vx-side { scrollbar-color: rgba(75, 148, 204, .5) transparent; }
+.vv-business-workspace-route .vv-workspace-theme-toggle:hover {
+  border-color: #1769aa;
+  background: #e5f2fd;
+  color: #1769aa;
+  transform: none;
+}
+.vv-business-workspace-route .vv-vendor-workspace.vx-shell[data-theme='dark'] .vv-workspace-theme-toggle:hover {
+  border-color: #5094c7;
+  background: #173d5c;
+  color: #a3d4ff;
+}
+.vv-business-workspace-route [class*="text-brand-"] { color: #1769aa !important; }
+.vv-business-workspace-route [class~="bg-brand-50"] { background-color: #edf6fd !important; }
+.vv-business-workspace-route [class~="bg-brand-100"] { background-color: #dceeff !important; }
+.vv-business-workspace-route [class~="bg-brand-600"],
+.vv-business-workspace-route [class~="bg-brand-700"] { background-color: #1769aa !important; }
+.vv-business-workspace-route [class~="hover:bg-brand-700"]:hover { background-color: #12588f !important; }
+.vv-business-shell nav[class~="z-20"] [class~="bg-brand-600"] {
+  background-color: #1769aa !important;
+  box-shadow: 0 6px 14px rgba(23, 105, 170, .28) !important;
+}
+.vv-business-workspace-route .vv-screen-scroll span[class~="size-9"]:not([class~="bg-red-50"]) {
+  background-color: #eaf3fb !important;
+  color: #1769aa !important;
+}
+.vv-business-workspace-route .vv-screen-scroll span[class~="size-9"]:not([class~="bg-red-50"]) svg {
+  color: #1769aa !important;
+}
+.vv-business-workspace-route .vx-logo {
+  background: linear-gradient(135deg, #1769aa, #2786d3) !important;
+}
+.vv-business-workspace-route .vv-workspace-global-header [class*="text-brand-"] { color: #1769aa !important; }
+.vv-business-workspace-route .vv-workspace-global-header {
+  border-color: var(--vv-ws-top-edge);
+  background: var(--vv-ws-top-bg);
+  box-shadow: var(--vv-ws-top-shadow);
+}
+
+/* Give the Agent desktop shell the same spacious glass framing as Vendor. */
+.vv-agent-shell {
+  gap: 14px;
+  padding: 14px;
+  background:
+    radial-gradient(ellipse at 10% 8%, rgba(122, 190, 239, .18), transparent 34%),
+    radial-gradient(ellipse at 88% 92%, rgba(116, 177, 231, .14), transparent 36%),
+    linear-gradient(145deg, #fff, #f1f7fc 58%, #f8fbff);
+}
+.vv-agent-shell .vv-agent-sidebar {
+  width: 252px;
+  min-width: 252px;
+  height: auto;
+  align-self: stretch;
+  gap: 14px;
+  padding: 14px 10px;
+  border: 1px solid rgba(43, 123, 191, .16);
+  border-radius: 20px;
+  background: linear-gradient(165deg, rgba(255,255,255,.94), rgba(239,247,254,.88));
+  box-shadow: 0 18px 42px rgba(35, 91, 137, .09), inset 0 1px 0 #fff;
+  backdrop-filter: blur(26px) saturate(155%);
+  -webkit-backdrop-filter: blur(26px) saturate(155%);
+}
+.vv-agent-shell .vv-agent-sidebar.is-collapsed {
+  width: 76px;
+  min-width: 76px;
+  padding-inline: 10px;
+}
+.vv-agent-sidebar-brand > svg { width: 32px; height: 32px; border-radius: 10px; }
+.vv-agent-shell .vv-agent-sidebar-brand { padding: 4px 8px 12px; }
+.vv-agent-shell .vv-agent-sidebar-toggle {
+  width: 34px;
+  height: 34px;
+  border-color: rgba(23, 105, 170, .16);
+  border-radius: 10px;
+  background: rgba(255,255,255,.8);
+  color: #526e85;
+}
+.vv-agent-shell .vv-agent-sidebar-toggle:hover {
+  border-color: rgba(23, 105, 170, .3);
+  background: #edf6fd;
+  color: #1769aa;
+}
+.vv-agent-shell .vv-agent-sidebar-nav { gap: 3px; }
+.vv-agent-shell .vv-agent-sidebar-link {
+  min-height: 40px;
+  gap: 10px;
+  padding: 5px 9px;
+  border-radius: 12px;
+  font-size: 12px;
+}
+.vv-agent-shell .vv-agent-sidebar-link svg {
+  width: 30px;
+  height: 30px;
+  padding: 7px;
+  border-radius: 9px;
+}
+.vv-agent-shell .vv-agent-sidebar-link.is-active {
+  background: linear-gradient(135deg, #1769aa, #2786d3);
+  color: #fff;
+  box-shadow: 0 8px 18px rgba(23, 105, 170, .2);
+}
+.vv-agent-shell .vv-agent-sidebar-user {
+  padding: 9px 8px;
+  border: 1px solid rgba(23, 105, 170, .14);
+  border-radius: 13px;
+  background: linear-gradient(145deg, rgba(255,255,255,.94), rgba(237,246,253,.82));
+  box-shadow: 0 8px 18px rgba(35, 91, 137, .06);
+}
+.vv-agent-shell .vv-agent-sidebar-avatar { width: 32px; height: 32px; border-radius: 10px; }
+.vv-agent-shell .vv-agent-sidebar-logout {
+  min-height: 40px;
+  border-radius: 11px;
+}
+.vv-agent-shell .vv-agent-sidebar-logout:hover { transform: none; }
+.vv-agent-main {
+  gap: 14px;
+  padding: 0;
+}
+.vv-agent-main > header {
+  min-height: 68px;
+  border: 1px solid rgba(43, 123, 191, .15);
+  border-radius: 20px;
+  background: linear-gradient(135deg, rgba(255,255,255,.96), rgba(239,247,254,.9));
+  box-shadow: 0 14px 34px rgba(35, 91, 137, .08), inset 0 1px 0 #fff;
+  backdrop-filter: blur(24px) saturate(155%);
+  -webkit-backdrop-filter: blur(24px) saturate(155%);
+}
+.vv-agent-main > main {
+  overflow: hidden;
+  border: 1px solid rgba(43, 123, 191, .14);
+  border-radius: 20px;
+  background: #fff;
+  box-shadow: 0 14px 34px rgba(35, 91, 137, .07);
+}
+.vv-agent-route {
+  background: linear-gradient(145deg, #fff, #f4f9fe 58%, #f9fcff);
+}
+.vv-agent-route .vv-screen-scroll {
+  background: linear-gradient(160deg, #fff 0%, #f7fbff 62%, #eef6fd 100%);
+}
+.vv-agent-route .vv-screen-layout > header {
+  border-color: rgba(43, 123, 191, .14);
+  background: rgba(255,255,255,.9);
+  box-shadow: 0 8px 22px rgba(35, 91, 137, .055);
+}
+.vv-agent-route .vv-screen-scroll > div > .bg-gradient-to-b {
+  border: 1px solid rgba(255,255,255,.52);
+  border-radius: 20px;
+  background: linear-gradient(120deg, #1769aa, #2786d3 58%, #69afe8);
+  box-shadow: 0 18px 36px rgba(23, 105, 170, .2);
+}
+.vv-agent-route .vv-screen-scroll [class*="shadow-[0_1px"] {
+  border-color: rgba(43, 123, 191, .13);
+  background: linear-gradient(145deg, rgba(255,255,255,.98), rgba(244,249,254,.94));
+  box-shadow: 0 10px 26px rgba(35, 91, 137, .065), inset 0 1px 0 #fff;
+}
+.vv-agent-route .vv-screen-scroll [class*="shadow-[0_1px"]:hover {
+  border-color: rgba(23, 105, 170, .26);
+  box-shadow: 0 15px 32px rgba(35, 91, 137, .1), inset 0 1px 0 #fff;
+}
+.vv-agent-route .vv-screen-scroll input,
+.vv-agent-route .vv-screen-scroll textarea,
+.vv-agent-route .vv-screen-scroll select {
+  border-color: rgba(23, 105, 170, .2);
+}
+.vv-agent-route .vv-screen-scroll :is(input, textarea, select):focus {
+  border-color: #1769aa;
+  box-shadow: 0 0 0 3px rgba(23, 105, 170, .14);
+}
+
+@media (max-width: 820px) {
+  .vv-agent-shell { gap: 0; padding: 0; background: #fff; }
+  .vv-agent-main { gap: 0; padding: 0; }
+  .vv-agent-main > header,
+  .vv-agent-main > main { border-radius: 0; }
+  .vv-agent-main > main { border: 0; box-shadow: none; }
 }

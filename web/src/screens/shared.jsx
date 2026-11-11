@@ -1,4 +1,4 @@
-import { Bell, Heart, MapPin, ShieldCheck, ShieldAlert, Package, CalendarDays, Clock } from 'lucide-react'
+import { ArrowRight, Bell, Heart, MapPin, ShieldCheck, ShieldAlert, Package, CalendarDays, Clock } from 'lucide-react'
 import { useApp } from '../store.jsx'
 import { useNav } from '../nav.jsx'
 import { remoteInbox, useUnreadCount } from '../useInbox.js'
@@ -108,7 +108,7 @@ export function ListingCard({ l, onClick, showVendor = true }) {
   )
 }
 
-export function VendorRow({ v, onClick }) {
+export function VendorRow({ v, onClick, showProfileAction = false }) {
   const nav = useNav()
   const c = cat(v.cat)
   const cover = v.cover || ({ elec: 'https://images.unsplash.com/photo-1621905252507-b35492cc74b4?auto=format&fit=crop&w=900&q=80', build: 'https://images.unsplash.com/photo-1504307651254-35680f356dfd?auto=format&fit=crop&w=900&q=80', office: 'https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=900&q=80', clean: 'https://images.unsplash.com/photo-1581578731548-c64695cc6952?auto=format&fit=crop&w=900&q=80', home: 'https://images.unsplash.com/photo-1581244277943-fe4a9c777189?auto=format&fit=crop&w=900&q=80', event: 'https://images.unsplash.com/photo-1519167758481-83f550bb49b3?auto=format&fit=crop&w=900&q=80' }[v.cat] || 'https://images.unsplash.com/photo-1497366811353-6870744d04b2?auto=format&fit=crop&w=900&q=80')
@@ -126,6 +126,7 @@ export function VendorRow({ v, onClick }) {
             <VerifiedBadge id={v.id} />
             {v.rating > 0 && <Rating value={v.rating} count={v.reviews} />}
           </div>
+          {showProfileAction && <span className="vendor-card-cta">View profile <ArrowRight size={14} /></span>}
         </div>
       </div>
     </Card>
@@ -199,4 +200,3 @@ export function orderBreakdown(o, l, settings, calcPrice) {
 export function Tag({ children, tone = 'bg-ink-100 text-ink-600' }) {
   return <span className={cx('rounded-md px-2 py-0.5 text-[11px] font-semibold', tone)}>{children}</span>
 }
-

@@ -32,7 +32,7 @@ Where the same capability starts in Phase 1 and grows in Phase 2, it is split in
 
 <!-- BEGIN GENERATED: do not edit by hand, run check_docs.py --write -->
 
-### Phase 1 (launch scope): 101 features
+### Phase 1 (launch scope): 102 features
 
 | ID | Feature | Area |
 |---|---|---|
@@ -63,6 +63,7 @@ Where the same capability starts in Phase 1 and grows in Phase 2, it is split in
 | F-VND-08 | Service areas and availability | Vendor onboarding, verification and listings |
 | F-VND-09 | Vendor public profile and trust display | Vendor onboarding, verification and listings |
 | F-VND-10 | Vendor dashboard | Vendor onboarding, verification and listings |
+| F-VND-13 | Workspace color theme presets | Vendor onboarding, verification and listings |
 | F-DSC-01 | Home with search, intent tabs and category explorer | Discovery |
 | F-DSC-02 | Search, filters, ranking, pagination | Discovery |
 | F-DSC-03 | Search error, offline and no-result flows | Discovery |
@@ -177,7 +178,7 @@ Where the same capability starts in Phase 1 and grows in Phase 2, it is split in
 | F-AGT-08 | Field and offline tools for agents | Sales agents |
 | F-XCT-07 | UK/US/EU/APAC launches, predictive pricing, multi-vendor project plans, trade finance | Cross-cutting |
 
-### Phase not decided (OPEN): 13 features
+### Phase not decided (OPEN): 14 features
 
 | ID | Feature | Area |
 |---|---|---|
@@ -185,6 +186,7 @@ Where the same capability starts in Phase 1 and grows in Phase 2, it is split in
 | F-GEO-05 | Market activation checklist | Geography and markets |
 | F-VND-11 | Profile completeness score | Vendor onboarding, verification and listings |
 | F-VND-12 | Field visibility classes (public / counterparty / private) | Vendor onboarding, verification and listings |
+| F-VND-14 | Vendor analytics presentation presets | Vendor onboarding, verification and listings |
 | F-DSC-08 | Saved searches and saved-vendor alerts | Discovery |
 | F-DSC-09 | Web SEO landing pages per country/state/city/category | Discovery |
 | F-GDS-05 | PO "payment failed" state | Goods, purchase orders and supplier trade |
@@ -217,5 +219,6 @@ Where this file and the PRS disagree, this file wins and the difference is recor
 
 | Date & time (YYYY-MM-DD HH:MM, local) | Updated by | Change | Reason |
 |---|---|---|---|
+| 2026-11-11 11:33 | Abhishek Samadhiya | Modified: generated phase lists for F-VND-13 | Regenerate the Phase 1 and OPEN counts after owner decision D-017. |
 | 2026-10-30 11:34 | Shil1517 | Modified: restored docs, web/src and mobile/src to commit 06ab837 | Owner did not want web and mobile UIs matched; reverted the sync work and its doc changes. |
 | 2026-10-29 16:27 | Shil1517 | Added: phase definitions, split-capability table, generated phase lists | The old docs gave the phase split in three places that disagreed; one view per phase now comes from the spec. |

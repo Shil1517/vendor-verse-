@@ -312,11 +312,11 @@ export function Explore({ params = {}, supplierOnlyOverride, hideVendorMode = fa
           {(applied > 0 || c !== 'all' || q) && <button className="font-bold text-brand-700" onClick={() => { setF(DEFAULT_F); setC('all'); setQ(''); setCoverage('local') }}>{t('clearAll')}</button>}
         </div>
         {showVendors && vs.length > 0 && (
-          <Section title={mode === 'vendors' ? undefined : supplierOnly ? 'Business suppliers' : 'Vendors'}><div className="vv-explore-card-grid">{vs.map((v) => <VendorRow key={v.id} v={v} />)}</div></Section>
+          <Section title={mode === 'vendors' ? undefined : supplierOnly ? 'Business suppliers' : 'Vendors'}><div className="vv-explore-card-grid vv-explore-vendor-grid">{vs.map((v) => <VendorRow key={v.id} v={v} showProfileAction={hideVendorMode} />)}</div></Section>
         )}
         {showItems && items.length > 0 && (
           <Section title={mode === 'all' ? 'Products & services' : undefined}>
-            <div className="vv-explore-card-grid">{items.map((l) => <ListingCard key={l.id} l={l} />)}</div>
+            <div className="vv-explore-card-grid vv-explore-listing-grid">{items.map((l) => <ListingCard key={l.id} l={l} />)}</div>
           </Section>
         )}
         {(showItems ? items.length : 0) + (showVendors ? vs.length : 0) === 0 && (
@@ -476,6 +476,3 @@ const METHODS = [{ id: 'upi', label: 'UPI', sub: 'GPay, PhonePe, Paytm', icon: S
 
 
 /* ================= BOOK SERVICE ================= */
-
-
-

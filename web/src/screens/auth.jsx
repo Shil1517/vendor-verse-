@@ -8,13 +8,13 @@ import { Button, Input, Segmented, Screen, Checkbox, Banner, useForm, cx } from 
 import { authService, isEmail, isPhone, normalizePhone, roleForMode } from '../services/authService.js'
 import './auth-visuals.css'
 
-export function Logo({ size = 64, light }) {
+export function Logo({ size = 64, light, blue = false }) {
   return (
     <svg width={size} height={size} viewBox="0 0 64 64" fill="none">
-      <rect width="64" height="64" rx="18" fill={light ? '#fff' : '#00857c'} />
-      <circle cx="32" cy="32" r="21" stroke={light ? '#00857c' : '#fff'} strokeOpacity=".28" strokeWidth="2" />
-      <path d="M18 21h8.2l5.8 15.6L37.8 21H46L35.5 46h-7L18 21Z" fill={light ? '#00857c' : '#fff'} />
-      <circle cx="48" cy="19" r="4.5" fill={light ? '#14284b' : '#ffd166'} />
+      <rect width="64" height="64" rx="18" fill={blue ? '#1769aa' : light ? '#fff' : '#00857c'} />
+      <circle cx="32" cy="32" r="21" stroke={blue ? '#fff' : light ? '#00857c' : '#fff'} strokeOpacity=".28" strokeWidth="2" />
+      <path d="M18 21h8.2l5.8 15.6L37.8 21H46L35.5 46h-7L18 21Z" fill={blue ? '#fff' : light ? '#00857c' : '#fff'} />
+      <circle cx="48" cy="19" r="4.5" fill={blue ? '#9ccfff' : light ? '#14284b' : '#ffd166'} />
     </svg>
   )
 }
