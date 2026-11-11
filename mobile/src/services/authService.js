@@ -391,7 +391,85 @@ export function createApiAuthService({ baseUrl, fetchImpl = (...args) => globalT
     return r.status === 200 ? { ok: true, vendor: r.data } : profileFail(r)
   }
 
-  return { requestOtp, verifyOtp, endSession, getProfile, saveProfile, listLocations, addLocation, updateLocation, removeLocation, listSessions, revokeSession, getNotificationPreferences, saveNotificationPreferences, listDataRequests, requestDataRequest, cancelDataRequest, listNotifications, getUnreadNotificationCount, markNotificationRead, markAllNotificationsRead, createVendor, listMyVendors, updateVendor, isRemote: true }
+  /* ---- F-VND-03 verification ---- */
+  const verificationFail = (r) => ({
+    ok: false,
+    code: r.status === 0 ? AUTH_ERRORS.NETWORK : r.status === 503 ? 'UNAVAILABLE' : r.status === 403 ? 'FORBIDDEN' : r.status === 404 ? AUTH_ERRORS.NOT_FOUND : r.status === 409 ? AUTH_ERRORS.CONFLICT : AUTH_ERRORS.PROVIDER_ERROR,
+    message: r.data?.detail || r.data?.message || (r.status === 503 ? 'Evidence storage is not configured yet.' : r.status === 403 ? 'You are not allowed to review this verification.' : r.status === 0 ? AUTH_MESSAGES.NETWORK : AUTH_MESSAGES.PROVIDER_ERROR),
+  })
+
+  async function listVendorDocuments(vendorId) {
+    const r = await authed(`/vendors/${encodeURIComponent(vendorId)}/documents`, { method: 'GET' })
+    return r.status === 200 ? { ok: true, documents: r.data.documents } : verificationFail(r)
+  }
+
+  async function listVendorVerifications(vendorId) {
+    const r = await authed(`/vendors/${encodeURIComponent(vendorId)}/verifications`, { method: 'GET' })
+    return r.status === 200 ? { ok: true, verifications: r.data.verifications } : verificationFail(r)
+  }
+
+  async function submitVendorVerification(vendorId, body) {
+    const r = await authed(`/vendors/${encodeURIComponent(vendorId)}/verifications`, { method: 'POST', body, headers: { 'idempotency-key': newKey() } })
+    return r.status === 201 ? { ok: true, verification: r.data } : verificationFail(r)
+  }
+
+  async function uploadVendorEvidence(file) {
+    const declared = await authed('/files', {
+      body: { purpose: 'verification-evidence', originalName: file.name, contentType: file.type || 'application/octet-stream', sizeBytes: file.size },
+      headers: { 'idempotency-key': newKey() },
+    })
+    if (declared.status !== 201 || !declared.data?.file?.id || !declared.data?.upload?.url) return verificationFail(declared)
+
+    let uploaded
+    try {
+      uploaded = await fetchImpl(declared.data.upload.url, {
+        method: declared.data.upload.method || 'PUT',
+        headers: declared.data.upload.headers || {},
+        body: file,
+        redirect: 'error',
+      })
+    } catch {
+      return { ok: false, code: AUTH_ERRORS.NETWORK, message: 'Could not upload the evidence file. Try again.' }
+    }
+    if (!uploaded.ok) return { ok: false, code: AUTH_ERRORS.PROVIDER_ERROR, message: 'The evidence upload did not complete.' }
+
+    const completed = await authed(`/files/${encodeURIComponent(declared.data.file.id)}/complete`)
+    return completed.status === 200 ? { ok: true, file: completed.data } : verificationFail(completed)
+  }
+
+  async function getFile(fileId) {
+    const r = await authed(`/files/${encodeURIComponent(fileId)}`, { method: 'GET' })
+    return r.status === 200 ? { ok: true, file: r.data } : verificationFail(r)
+  }
+
+  async function registerVendorDocument(vendorId, { fileId, documentType }) {
+    const r = await authed(`/vendors/${encodeURIComponent(vendorId)}/documents`, { body: { fileId, documentType } })
+    return r.status === 201 ? { ok: true, document: r.data } : verificationFail(r)
+  }
+
+  async function listVerificationQueue({ status, limit = 50, cursor } = {}) {
+    const q = new URLSearchParams()
+    if (status) q.set('status', status)
+    if (limit) q.set('limit', String(limit))
+    if (cursor) q.set('cursor', cursor)
+    const r = await authed(`/admin/verifications${q.size ? `?${q}` : ''}`, { method: 'GET' })
+    return r.status === 200 ? { ok: true, ...r.data } : verificationFail(r)
+  }
+
+  async function reviewVerification(id, { status, reason, expiresAt } = {}) {
+    const r = await authed(`/admin/verifications/${encodeURIComponent(id)}/decision`, {
+      body: { status, reason, ...(expiresAt ? { expiresAt } : {}) },
+      headers: { 'idempotency-key': newKey() },
+    })
+    return r.status === 200 ? { ok: true, verification: r.data } : verificationFail(r)
+  }
+
+  async function getVerificationEvidenceUrl(verificationId, fileId) {
+    const r = await authed(`/admin/verifications/${encodeURIComponent(verificationId)}/evidence/${encodeURIComponent(fileId)}/download-url`, { method: 'GET' })
+    return r.status === 200 ? { ok: true, ...r.data } : verificationFail(r)
+  }
+
+  return { requestOtp, verifyOtp, endSession, getProfile, saveProfile, listLocations, addLocation, updateLocation, removeLocation, listSessions, revokeSession, getNotificationPreferences, saveNotificationPreferences, listDataRequests, requestDataRequest, cancelDataRequest, listNotifications, getUnreadNotificationCount, markNotificationRead, markAllNotificationsRead, createVendor, listMyVendors, updateVendor, listVendorDocuments, listVendorVerifications, submitVendorVerification, uploadVendorEvidence, getFile, registerVendorDocument, listVerificationQueue, reviewVerification, getVerificationEvidenceUrl, isRemote: true }
 }
 
 const apiBaseUrl = import.meta.env?.VITE_API_BASE_URL

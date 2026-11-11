@@ -1,5 +1,7 @@
 import {
-  Zap, Hammer, Monitor, Wrench, UtensilsCrossed, Users, Truck, Car, HeartPulse, Sprout,
+  Briefcase, Building2, Car, Cpu, Dumbbell, Factory, FlaskConical, Gem, GraduationCap, Hammer, HardHat, HeartPulse, Hotel, Landmark,
+  Laptop, Megaphone, Monitor, PartyPopper, Pickaxe, Plane, Printer, Radio, Recycle, ShieldCheck, Ship, Shirt, Sparkles, Sprout,
+  Truck, UtensilsCrossed, Users, Wrench, Zap,
 } from 'lucide-react'
 
 export const ME = { customer: 'Aarav Mehta', vendor: 'Rakesh Sharma', business: 'Atlas Industrial Supply Co.', agent: 'Neha Verma', admin: 'Priya Nair' }
@@ -19,9 +21,39 @@ export const CATS = [
   P1('clean', 'Healthcare, education & wellness', 'स्वास्थ्य, शिक्षा और वेलनेस', HeartPulse, 'emerald', 'service', ['Physiotherapy', 'Tutors', 'Yoga & fitness', 'Home nursing'], ['Qualification', 'Mode', 'Session length'], true, ['Need', 'Schedule']),
   P1('agri', 'Agriculture, energy & environment', 'कृषि, ऊर्जा और पर्यावरण', Sprout, 'lime', 'service', ['Solar installation', 'Agri equipment', 'Waste & recycling', 'Water treatment'], ['Capacity', 'Certification', 'Coverage'], true, ['Site details', 'Capacity needed', 'Timeline']),
 ]
-/* Later industries stay visible with a phase marker (F-TAX-06, F-TAX-07). */
-export const P2_INDUSTRIES = ['Manufacturing & OEM', 'Textiles, apparel & fashion', 'Chemicals, plastics & materials', 'Food, beverage & agri-processing', 'Education & training providers', 'Finance, insurance & real estate', 'Marketing, media & printing', 'Power, utilities & electrical', 'Packaging & printing']
-export const P3_INDUSTRIES = ['Mining, metals & minerals', 'Hospitality, travel & tourism', 'Real estate & property services', 'Beauty, salon & personal care', 'Sports, fitness & recreation', 'Security & safety services', 'Telecom & networking', 'Aerospace & defence suppliers', 'Marine & shipbuilding', 'Recycling & circular economy', 'Jewellery, gifts & luxury']
+/* Browse taxonomy: counts and subcategories are representative samples, not full inventories. */
+export const INDUSTRIES = [
+  { id: 'i_home', name: 'Home & household services', icon: Wrench, tone: 'sky', cat: 'home', cats: 84, subs: ['Electrician', 'Plumbing', 'Cleaning & pest control', 'Carpentry', 'Painting', 'Appliance repair'], phase: 'MVP' },
+  { id: 'i_constr', name: 'Construction & infrastructure', icon: HardHat, tone: 'orange', cat: 'build', cats: 126, subs: ['Civil contractors', 'Interior fit-out', 'Electrical projects', 'Waterproofing', 'Roads & bridges'], phase: 'MVP' },
+  { id: 'i_events', name: 'Events & entertainment', icon: PartyPopper, tone: 'rose', cat: 'event', cats: 58, subs: ['Catering', 'Decoration', 'Photography', 'Venues', 'Artists & DJs'], phase: 'MVP' },
+  { id: 'i_prof', name: 'Professional & business services', icon: Briefcase, tone: 'indigo', cat: 'staff', cats: 92, subs: ['CA & tax', 'Legal', 'Architects', 'Consultants', 'Translation'], phase: 'MVP' },
+  { id: 'i_it', name: 'IT, software & digital', icon: Laptop, tone: 'violet', cat: 'office', cats: 110, subs: ['Web & app development', 'IT support', 'Digital marketing', 'Cybersecurity', 'Cloud & DevOps'], phase: 'MVP' },
+  { id: 'i_whole', name: 'Wholesale, suppliers & distribution', icon: Factory, tone: 'slate', cat: 'elec', cats: 140, subs: ['Electrical supplies', 'Building materials', 'Packaging', 'Industrial machinery', 'Office supplies'], phase: 'MVP' },
+  { id: 'i_manu', name: 'Manufacturing & OEM', icon: Cpu, tone: 'teal', cat: 'elec', cats: 168, subs: ['Electronics & PCB', 'CNC & machining', 'Plastics & moulding', 'Metal fabrication', 'Auto components'], phase: 'MVP' },
+  { id: 'i_logi', name: 'Logistics, freight & shipping', icon: Truck, tone: 'teal', cat: 'print', cats: 47, subs: ['Packers & movers', 'Freight forwarding', 'Courier', 'Customs clearance', 'Warehousing'], phase: 'MVP' },
+  { id: 'i_auto', name: 'Automotive & mobility', icon: Car, tone: 'amber', cat: 'auto', cats: 52, subs: ['Car service', 'Towing', 'Driver hire', 'Vehicle rental', 'Fleet maintenance'], phase: 'MVP' },
+  { id: 'i_health', name: 'Healthcare, education & wellness', icon: HeartPulse, tone: 'emerald', cat: 'clean', cats: 73, subs: ['Physiotherapy', 'Tutors', 'Yoga & fitness', 'Home nursing', 'Diagnostics'], phase: 'MVP' },
+  { id: 'i_agri', name: 'Agriculture, energy & environment', icon: Sprout, tone: 'lime', cat: 'agri', cats: 64, subs: ['Solar installation', 'Agri equipment', 'Soil testing', 'Waste & recycling', 'Water treatment'], phase: 'MVP' },
+  { id: 'i_textile', name: 'Textiles, apparel & fashion', icon: Shirt, tone: 'rose', cats: 61, subs: ['Garment manufacturing', 'Fabrics & yarn', 'Embroidery', 'Uniforms'], phase: 'MVP' },
+  { id: 'i_chem', name: 'Chemicals, plastics & materials', icon: FlaskConical, tone: 'violet', cats: 55, subs: ['Industrial chemicals', 'Polymers', 'Adhesives', 'Paints & coatings'], phase: 'MVP' },
+  { id: 'i_food', name: 'Food, beverage & agri-processing', icon: UtensilsCrossed, tone: 'amber', cats: 49, subs: ['Packaged food', 'Spices', 'Beverages', 'Cold storage'], phase: 'MVP' },
+  { id: 'i_edu', name: 'Education & training providers', icon: GraduationCap, tone: 'indigo', cats: 38, subs: ['Corporate training', 'Test prep', 'Vocational skills'], phase: 'MVP' },
+  { id: 'i_fin', name: 'Finance, insurance & real estate', icon: Landmark, tone: 'slate', cats: 44, subs: ['Accounting', 'Insurance brokers', 'Property consultants', 'Valuation'], phase: 'MVP' },
+  { id: 'i_media', name: 'Marketing, media & printing', icon: Megaphone, tone: 'rose', cats: 57, subs: ['Branding', 'Video production', 'Printing & packaging', 'Signage'], phase: 'MVP' },
+  { id: 'i_energy', name: 'Power, utilities & electrical', icon: Zap, tone: 'amber', cats: 41, subs: ['Transformers', 'Switchgear', 'Generators', 'EV charging'], phase: 'MVP' },
+  { id: 'i_mining', name: 'Mining, metals & minerals', icon: Pickaxe, tone: 'orange', cats: 33, subs: ['Steel & alloys', 'Aggregates', 'Industrial minerals'], phase: 'MVP' },
+  { id: 'i_hosp', name: 'Hospitality, travel & tourism', icon: Hotel, tone: 'sky', cats: 46, subs: ['Hotels', 'Tour operators', 'Travel desks'], phase: 'MVP' },
+  { id: 'i_real', name: 'Real estate & property services', icon: Building2, tone: 'teal', cats: 36, subs: ['Facility management', 'Interior design', 'Property inspection'], phase: 'MVP' },
+  { id: 'i_beauty', name: 'Beauty, salon & personal care', icon: Sparkles, tone: 'rose', cats: 29, subs: ['Salon at home', 'Spa', 'Makeup artists'], phase: 'MVP' },
+  { id: 'i_sport', name: 'Sports, fitness & recreation', icon: Dumbbell, tone: 'emerald', cats: 27, subs: ['Coaches', 'Equipment', 'Turf & courts'], phase: 'MVP' },
+  { id: 'i_print', name: 'Security & safety services', icon: ShieldCheck, tone: 'indigo', cats: 31, subs: ['Guards', 'CCTV', 'Fire safety'], phase: 'MVP' },
+  { id: 'i_telecom', name: 'Telecom & networking', icon: Radio, tone: 'violet', cats: 35, subs: ['Network cabling', 'Telecom towers', 'ISP services'], phase: 'MVP' },
+  { id: 'i_aero', name: 'Aerospace & defence suppliers', icon: Plane, tone: 'slate', cats: 22, subs: ['Aero components', 'MRO'], phase: 'MVP' },
+  { id: 'i_marine', name: 'Marine & shipbuilding', icon: Ship, tone: 'sky', cats: 19, subs: ['Ship repair', 'Marine equipment'], phase: 'MVP' },
+  { id: 'i_env', name: 'Recycling & circular economy', icon: Recycle, tone: 'lime', cats: 24, subs: ['E-waste', 'Scrap trading', 'Upcycling'], phase: 'MVP' },
+  { id: 'i_lux', name: 'Jewellery, gifts & luxury', icon: Gem, tone: 'amber', cats: 26, subs: ['Jewellery makers', 'Corporate gifting'], phase: 'MVP' },
+  { id: 'i_print2', name: 'Packaging & printing', icon: Printer, tone: 'violet', cats: 43, subs: ['Corrugated boxes', 'Labels', 'Custom packaging'], phase: 'MVP' },
+]
 export const cat = (id) => CATS.find((c) => c.id === id) || CATS[0]
 
 /* ---------- vendors ---------- */

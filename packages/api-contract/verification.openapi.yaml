@@ -1,0 +1,418 @@
+openapi: 3.1.0
+info:
+  title: VendorVerse Verification API
+  version: 0.1.0
+  summary: Phase 1 vendor verification submissions and review.
+  description: |
+    Owner-scoped evidence and verification history, plus permission-gated
+    reviewer actions. This contract does not invent credential requirements,
+    review deadlines, evidence expiry periods, or verification fees.
+  x-feature-ids:
+    - F-VND-03
+  x-change-log:
+    - date-time: "2026-11-10 13:56"
+      updated-by: Amit
+      change: "Added: F-VND-03 vendor verification API"
+      reason: "Define evidence submission, verification history, and audited reviewer actions for Phase 1."
+servers:
+  - url: /v1
+    description: Versioned API base path
+tags:
+  - name: Vendor verification
+    description: Owner-submitted verification and private evidence.
+  - name: Admin verification
+    description: Super Admin review actions (verification.review).
+paths:
+  /vendors/{vendorId}/documents:
+    get:
+      operationId: listVendorVerificationDocuments
+      tags: [Vendor verification]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/VendorId"
+      responses:
+        "200":
+          description: The vendor's private evidence-document metadata.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [documents]
+                properties:
+                  documents:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/VendorDocument"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    post:
+      operationId: addVendorVerificationDocument
+      tags: [Vendor verification]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/VendorId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VendorDocumentInput"
+      responses:
+        "201":
+          description: The private evidence-document metadata.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VendorDocument"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /vendors/{vendorId}/verifications:
+    get:
+      operationId: listVendorVerifications
+      tags: [Vendor verification]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/VendorId"
+      responses:
+        "200":
+          description: Verification history, newest first.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [verifications]
+                properties:
+                  verifications:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Verification"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    post:
+      operationId: submitVendorVerification
+      tags: [Vendor verification]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/VendorId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VerificationInput"
+      responses:
+        "201":
+          description: The submitted verification.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Verification"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+  /admin/verifications:
+    get:
+      operationId: listVerificationReviewQueue
+      tags: [Admin verification]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            enum:
+              [submitted, in_review, info_requested, approved, rejected, expired, revoked]
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+        - name: cursor
+          in: query
+          required: false
+          description: Opaque cursor returned by the previous page.
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 255
+      responses:
+        "200":
+          description: Verification submissions, oldest first.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [verifications]
+                properties:
+                  verifications:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Verification"
+                  nextCursor:
+                    type: [string, "null"]
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+  /admin/verifications/{verificationId}/decision:
+    post:
+      operationId: reviewVendorVerification
+      tags: [Admin verification]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: verificationId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VerificationReview"
+      responses:
+        "200":
+          description: The updated verification.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Verification"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+  /admin/verifications/{verificationId}/evidence/{fileId}/download-url:
+    get:
+      operationId: getVerificationEvidenceDownloadUrl
+      tags: [Admin verification]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: verificationId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: fileId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Short-lived URL for clean evidence attached to this verification.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [url, expiresInSeconds]
+                properties:
+                  url:
+                    type: string
+                    format: uri
+                  expiresInSeconds:
+                    type: integer
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "503":
+          $ref: "#/components/responses/Unavailable"
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  parameters:
+    VendorId:
+      name: vendorId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: false
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 255
+  schemas:
+    VendorDocumentInput:
+      type: object
+      additionalProperties: false
+      required: [documentType, fileId]
+      properties:
+        documentType:
+          type: string
+          minLength: 1
+          maxLength: 100
+        fileId:
+          type: string
+          format: uuid
+        issuedBy:
+          type: string
+          minLength: 1
+          maxLength: 200
+        expiresAt:
+          type: string
+          format: date-time
+    VendorDocument:
+      allOf:
+        - $ref: "#/components/schemas/VendorDocumentInput"
+        - type: object
+          required: [id, vendorId, submittedAt]
+          properties:
+            id:
+              type: string
+              format: uuid
+            vendorId:
+              type: string
+              format: uuid
+            submittedAt:
+              type: string
+              format: date-time
+    VerificationInput:
+      type: object
+      additionalProperties: false
+      required: [level]
+      properties:
+        level:
+          type: string
+          enum: [L1, L2, L3]
+        categoryId:
+          type: string
+          format: uuid
+        documentIds:
+          type: array
+          uniqueItems: true
+          items:
+            type: string
+            format: uuid
+    VerificationReview:
+      type: object
+      additionalProperties: false
+      required: [status, reason]
+      properties:
+        status:
+          type: string
+          enum: [in_review, info_requested, approved, rejected]
+        reason:
+          type: string
+          minLength: 1
+          maxLength: 2000
+        expiresAt:
+          type: string
+          format: date-time
+    Verification:
+      type: object
+      required:
+        - id
+        - vendorId
+        - level
+        - status
+        - submittedAt
+        - evidence
+      properties:
+        id:
+          type: string
+          format: uuid
+        vendorId:
+          type: string
+          format: uuid
+        categoryId:
+          type: [string, "null"]
+          format: uuid
+        level:
+          type: string
+          enum: [L1, L2, L3]
+        status:
+          type: string
+          enum:
+            [submitted, in_review, info_requested, approved, rejected, expired, revoked]
+        reviewerUserId:
+          type: [string, "null"]
+          format: uuid
+        reason:
+          type: [string, "null"]
+        resubmissionOfId:
+          type: [string, "null"]
+          format: uuid
+        submittedAt:
+          type: string
+          format: date-time
+        decidedAt:
+          type: [string, "null"]
+          format: date-time
+        expiresAt:
+          type: [string, "null"]
+          format: date-time
+        evidence:
+          type: array
+          items:
+            type: object
+            required: [documentId, documentType, fileId]
+            properties:
+              documentId:
+                type: string
+                format: uuid
+              documentType:
+                type: string
+              fileId:
+                type: string
+                format: uuid
+  responses:
+    BadRequest:
+      description: Invalid request.
+    Unauthorized:
+      description: Access token missing or invalid.
+    Forbidden:
+      description: Missing verification.review permission.
+    NotFound:
+      description: Vendor, verification or evidence not found for this caller.
+    Conflict:
+      description: The verification is already active or no longer reviewable.
+    Unavailable:
+      description: Private file storage is not configured.

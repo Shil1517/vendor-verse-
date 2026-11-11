@@ -1,5 +1,5 @@
 ﻿import { UsageMeter } from './p1-depth.jsx'
-import { createContext, Fragment, useContext, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { createContext, Fragment, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import {
   Package, CalendarCheck, FileText, IndianRupee, Plus, AlertTriangle, ChevronRight, Store, ShieldCheck, Clock, MessageCircle, Truck, Check, X, Briefcase, Building2,
   Upload, Wallet, BarChart3, Star, Settings, LogOut, MapPin, Boxes, CalendarClock, Crown, Download, Trash2, ImagePlus, Phone, TrendingUp, BadgeCheck, Minus, Info,
@@ -7,6 +7,7 @@ import {
 } from 'lucide-react'
 import { useApp } from '../store.jsx'
 import { useNav } from '../nav.jsx'
+import { authService } from '../services/authService.js'
 import { CATS, cat, listing as findListing, calcPrice, VENDOR_TX, PAYOUTS, SLOTS, ME } from '../data.jsx'
 import {
   Screen, Card, Section, Button, Thumb, Chips, Segmented, Sheet, Dialog, Input, Select, Toggle, Badge, Rating, Banner, EmptyState, Stat, KV, fmt, cx,
@@ -884,6 +885,118 @@ export function BusinessOnboarding() {
 
 /* ================= REGISTRATION WIZARD ================= */
 const DOCS = ['GST Registration Certificate', 'PAN Card', 'Shop & Establishment Licence', 'Cancelled Cheque / Bank Proof']
+const VERIFICATION_LEVEL_OPTIONS = ['L1', 'L2', 'L3'].map((level) => ({ value: level, label: level }))
+
+async function loadRemoteVerification(vendorId) {
+  const [documents, verifications] = await Promise.all([
+    authService.listVendorDocuments(vendorId),
+    authService.listVendorVerifications(vendorId),
+  ])
+  if (!documents.ok) return documents
+  if (!verifications.ok) return verifications
+  return { ok: true, documents: documents.documents, verifications: verifications.verifications }
+}
+
+function RemoteVendorVerification({ vendor }) {
+  const [documents, setDocuments] = useState([])
+  const [verifications, setVerifications] = useState([])
+  const [pendingFiles, setPendingFiles] = useState([])
+  const [level, setLevel] = useState('L1')
+  const [documentType, setDocumentType] = useState('')
+  const [loading, setLoading] = useState(true)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState('')
+
+  const refresh = async () => {
+    const result = await loadRemoteVerification(vendor.id)
+    if (!result.ok) { setError(result.message); return false }
+    setDocuments(result.documents)
+    setVerifications(result.verifications)
+    setError('')
+    return true
+  }
+
+  useEffect(() => {
+    let active = true
+    setLoading(true)
+    loadRemoteVerification(vendor.id).then((result) => {
+      if (!active) return
+      if (!result.ok) setError(result.message)
+      else { setDocuments(result.documents); setVerifications(result.verifications); setError('') }
+    }).finally(() => { if (active) setLoading(false) })
+    return () => { active = false }
+  }, [vendor.id])
+
+  const registerFile = async (file) => {
+    const result = await authService.registerVendorDocument(vendor.id, { fileId: file.fileId, documentType: file.documentType })
+    if (!result.ok) { setError(result.message); return false }
+    setPendingFiles((items) => items.filter((item) => item.fileId !== file.fileId))
+    await refresh()
+    return true
+  }
+
+  const upload = async (event) => {
+    const file = event.target.files?.[0]
+    event.target.value = ''
+    if (!file) return
+    setBusy(true); setError('')
+    const result = await authService.uploadVendorEvidence(file)
+    setBusy(false)
+    if (!result.ok) { setError(result.message); return }
+    const pending = { fileId: result.file.id, fileName: file.name, documentType: documentType.trim() || file.name }
+    if (result.file.scanStatus === 'clean') await registerFile(pending)
+    else if (['infected', 'failed'].includes(result.file.scanStatus)) setError('The evidence file did not pass the security scan. Choose a different file.')
+    else setPendingFiles((items) => [...items, pending])
+  }
+
+  const checkScan = async (file) => {
+    setBusy(true); setError('')
+    const result = await authService.getFile(file.fileId)
+    setBusy(false)
+    if (!result.ok) { setError(result.message); return }
+    if (result.file.scanStatus === 'clean') await registerFile(file)
+    else if (['infected', 'failed'].includes(result.file.scanStatus)) {
+      setPendingFiles((items) => items.filter((item) => item.fileId !== file.fileId))
+      setError('The evidence file did not pass the security scan. Choose a different file.')
+    } else setError('The security scan is still in progress. Check again later.')
+  }
+
+  const submit = async () => {
+    setBusy(true); setError('')
+    const result = await authService.submitVendorVerification(vendor.id, { level, documentIds: documents.map((document) => document.id) })
+    setBusy(false)
+    if (!result.ok) { setError(result.message); return }
+    await refresh()
+  }
+
+  const latest = verifications[0]
+  const statusLabels = { submitted: 'Submitted — awaiting review', in_review: 'In review', info_requested: 'More information requested', approved: 'Approved', rejected: 'Rejected', expired: 'Expired', revoked: 'Revoked' }
+
+  return (
+    <Screen title="Verification" footer={<Button full size="lg" disabled={busy || loading} onClick={submit}>Submit {level} for review</Button>}>
+      <Banner tone="blue">Upload evidence below, then submit an L1–L3 verification request. Files are attached only after the security scan passes.</Banner>
+      {error && <Banner tone="red" title="Verification request failed">{error}</Banner>}
+      <Card><div className="flex items-center justify-between gap-3"><div><p className="text-xs font-bold uppercase text-ink-400">Current status</p><p className="mt-1 text-sm font-bold">{latest ? statusLabels[latest.status] || latest.status : 'Not submitted'}</p></div>{latest && <Badge tone={latest.status === 'approved' ? 'green' : latest.status === 'rejected' || latest.status === 'revoked' ? 'red' : latest.status === 'info_requested' ? 'amber' : 'blue'}>{latest.level}</Badge>}</div>{latest?.reason && <p className="mt-3 rounded-xl bg-amber-50 p-3 text-sm text-amber-900">{latest.reason}</p>}{latest?.expiresAt && <p className="mt-2 text-xs text-ink-500">Expires {new Date(latest.expiresAt).toLocaleDateString()}</p>}</Card>
+      <Section title="Evidence documents">
+        <Input label="Evidence label" value={documentType} onChange={(event) => setDocumentType(event.target.value)} placeholder="e.g. Business registration" />
+        <label className="mt-2 flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed border-ink-300 bg-white px-4 py-4 text-sm font-semibold text-brand-700">
+          <Upload size={17} />{busy ? 'Uploading or checking scan…' : 'Choose evidence file'}
+          <input type="file" className="sr-only" disabled={busy} onChange={upload} />
+        </label>
+        {pendingFiles.map((file) => <Card key={file.fileId} className="mt-2 !p-3"><div className="flex items-center justify-between gap-3"><div className="min-w-0"><p className="truncate text-sm font-semibold">{file.fileName}</p><p className="text-xs text-ink-500">Security scan pending</p></div><Button size="sm" variant="secondary" disabled={busy} onClick={() => checkScan(file)}>Check</Button></div></Card>)}
+        {loading && <p className="mt-3 text-sm text-ink-500">Loading verification records…</p>}
+        {!loading && documents.length === 0 && <p className="mt-3 text-sm text-ink-500">No evidence documents registered yet.</p>}
+        <div className="mt-3 space-y-2">{documents.map((document) => <Card key={document.id} className="!p-3"><p className="text-sm font-semibold">{document.documentType}</p><p className="mt-1 text-xs text-ink-500">Uploaded {new Date(document.submittedAt).toLocaleString()}</p></Card>)}</div>
+      </Section>
+      <Select label="Verification level" value={level} onChange={(event) => setLevel(event.target.value)} options={VERIFICATION_LEVEL_OPTIONS} />
+      <Section title="Submission history">
+        {verifications.length === 0 && <p className="text-sm text-ink-500">No verification requests yet.</p>}
+        <div className="space-y-2">{verifications.map((verification) => <Card key={verification.id} className="!p-3"><div className="flex items-center justify-between gap-3"><p className="text-sm font-bold">{verification.level} · {statusLabels[verification.status] || verification.status}</p><Badge tone="gray">{new Date(verification.submittedAt).toLocaleDateString()}</Badge></div>{verification.reason && <p className="mt-2 text-sm text-ink-600">{verification.reason}</p>}</Card>)}</div>
+      </Section>
+    </Screen>
+  )
+}
+
 export function VendorRegister({ params = {} }) {
   const nav = useNav()
   const { me, setMe, vendors, setVendors, notify, toast, stamp } = useApp()
@@ -896,6 +1009,8 @@ export function VendorRegister({ params = {} }) {
   const [errs, setErrs] = useState({})
   const [paying, setPaying] = useState(null)
   const [paidPlan, setPaidPlan] = useState(null)
+  const [busy, setBusy] = useState(false)
+  const created = useRef(false)
   const set = (k) => (e) => { setF({ ...f, [k]: e?.target ? e.target.value : e }); setErrs({ ...errs, [k]: '' }) }
   const validate = () => {
     const e = {}
@@ -906,24 +1021,35 @@ export function VendorRegister({ params = {} }) {
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(f.email)) e.email = 'Enter a valid business email'
     }
     if (step === 1) { if (!f.areas.length) e.areas = 'Select at least one service area'; if (!f.branches.length) e.branches = 'Add at least one branch / outlet' }
-    if (step === 2) { const miss = DOCS.filter((d) => !docs[d]); if (miss.length) e.docs = `${miss.length} required document${miss.length > 1 ? 's' : ''} missing` }
+    if (step === 2 && !authService.isRemote) { const miss = DOCS.filter((d) => !docs[d]); if (miss.length) e.docs = `${miss.length} required document${miss.length > 1 ? 's' : ''} missing` }
     if (step === 3 && !consent) e.consent = 'Please confirm to submit'
     setErrs(e)
     return Object.keys(e).length === 0
   }
-  const next = () => {
+  const next = async () => {
     if (!validate()) return
     if (step < 3) return setStep(step + 1)
-    const rec = { id: 'v-new', name: f.name, owner: f.owner, vendorType: f.vendorType, cat: f.cat, city: f.areas[0], areas: f.areas, branches: f.branches.length, rating: 0, reviews: 0, status: 'submitted', tone: cat(f.cat).tone, since: +f.years, gstin: f.gstin.toUpperCase(), phone: me.phone || '+91 98290 00099', email: f.email, plan: 'Starter', certifications: f.certifications, docs: DOCS.map((d) => ({ name: d, status: 'pending' })), history: [{ s: 'submitted', at: stamp(), by: f.owner }] }
-    setVendors((vs) => [rec, ...vs.filter((x) => x.id !== 'v-new')])
+    let vendorId = 'v-new'
+    if (authService.isRemote && !created.current) {
+      setBusy(true)
+      const businessType = params.businessType || (f.vendorType === 'manufacturer_supplier' ? 'MANUFACTURER' : 'SERVICE_PROVIDER')
+      const result = await authService.createVendor({ registrationCountry: params.country || 'IN', businessType, legalName: f.name.trim() })
+      setBusy(false)
+      if (!result.ok) return toast(result.message, 'warn')
+      if (!result.vendor?.id) return toast('Vendor was created without an ID; reload and contact support before continuing.', 'warn')
+      vendorId = result.vendor.id
+      created.current = true
+    }
+    const rec = { id: vendorId, name: f.name, owner: f.owner, vendorType: f.vendorType, cat: f.cat, city: f.areas[0], areas: f.areas, branches: f.branches.length, rating: 0, reviews: 0, status: authService.isRemote ? 'pending' : 'submitted', tone: cat(f.cat).tone, since: +f.years, gstin: f.gstin.toUpperCase(), phone: me.phone || '+91 98290 00099', email: f.email, plan: 'Starter', certifications: f.certifications, docs: authService.isRemote ? [] : DOCS.map((d) => ({ name: d, status: 'pending' })), history: authService.isRemote ? [] : [{ s: 'submitted', at: stamp(), by: f.owner }] }
+    setVendors((vs) => [rec, ...vs.filter((x) => x.id !== vendorId && x.id !== 'v-new')])
     const fromCustomer = me.role === 'customer'
-    setMe({ ...me, role: fromCustomer ? 'vendor' : me.role, loggedIn: true, guest: false, vendorId: 'v-new', vendorName: f.name, customerName: fromCustomer ? me.name : me.customerName, hasVendorAccount: true, buyerMode: false })
-    notify('admin', 'Vendor awaiting review', `${f.name} submitted for verification.`, 'onboarding')
-    toast('Submitted for verification')
+    setMe({ ...me, role: fromCustomer ? 'vendor' : me.role, loggedIn: true, guest: false, vendorId, vendorName: f.name, customerName: fromCustomer ? me.name : me.customerName, hasVendorAccount: true, buyerMode: false })
+    if (authService.isRemote) toast('Vendor profile created — upload evidence and submit verification')
+    else { notify('admin', 'Vendor awaiting review', `${f.name} submitted for verification.`, 'onboarding'); toast('Submitted for verification') }
     nav.reset(fromCustomer ? 'v_dash' : 'v_verify')
   }
   return (
-    <Screen title="Vendor registration" subtitle={`Step ${step + 1} of 4`} back={step > 0} right={step === 0 ? null : null} footer={<div className="flex gap-2">{step > 0 && <Button variant="secondary" onClick={() => setStep(step - 1)}>Back</Button>}<Button className="flex-1" size="lg" onClick={next}>{step === 3 ? 'Submit for verification' : 'Continue'}</Button></div>}>
+    <Screen title="Vendor registration" subtitle={`Step ${step + 1} of 4`} back={step > 0} right={step === 0 ? null : null} footer={<div className="flex gap-2">{step > 0 && <Button variant="secondary" onClick={() => setStep(step - 1)}>Back</Button>}<Button className="flex-1" size="lg" disabled={busy} onClick={next}>{busy ? 'Creating profile…' : step === 3 ? authService.isRemote ? 'Create vendor profile' : 'Submit for verification' : 'Continue'}</Button></div>}>
       <Stepper steps={['Business', 'Locations', 'Documents', 'Review']} current={step} />
       {step === 0 && (
         <div className="space-y-4">
@@ -951,14 +1077,16 @@ export function VendorRegister({ params = {} }) {
       )}
       {step === 2 && (
         <div className="space-y-3">
-          <Banner tone="blue">Upload clear PDF or photo copies. Documents are stored securely and visible only to verification staff.</Banner>
-          {DOCS.map((d) => <DocTile key={d} name={d} status={docs[d] ? 'pending' : 'missing'} onAction={() => setDocs({ ...docs, [d]: !docs[d] })} actionLabel={docs[d] ? 'Remove' : 'Upload'} note={docs[d] ? 'Uploaded Â· awaiting review' : 'Required'} />)}
-          {errs.docs && <p className="text-xs font-medium text-red-600">{errs.docs}</p>}
+          {authService.isRemote
+            ? <Banner tone="blue">Evidence files are uploaded from the verification screen after your vendor profile is created. No evidence is submitted in this mock registration step.</Banner>
+            : <><Banner tone="blue">Upload clear PDF or photo copies. Documents are stored securely and visible only to verification staff.</Banner>
+              {DOCS.map((d) => <DocTile key={d} name={d} status={docs[d] ? 'pending' : 'missing'} onAction={() => setDocs({ ...docs, [d]: !docs[d] })} actionLabel={docs[d] ? 'Remove' : 'Upload'} note={docs[d] ? 'Uploaded · awaiting review' : 'Required'} />)}
+              {errs.docs && <p className="text-xs font-medium text-red-600">{errs.docs}</p>}</>}
         </div>
       )}
       {step === 3 && (
         <div className="space-y-4">
-          <Card><KV rows={[['Business', f.name], ['Vendor type', f.vendorType === 'manufacturer_supplier' ? 'Manufacturer / supplier' : 'Service provider'], ['Category', cat(f.cat).name], ['GSTIN', f.gstin.toUpperCase()], ['PAN', f.pan.toUpperCase()], ['Coverage', f.areas.join(', ')], ['Branches', f.branches.length], ['Certifications', f.certifications || 'To be reviewed'], ['Documents', `${Object.values(docs).filter(Boolean).length}/4 uploaded`]]} /></Card>
+          <Card><KV rows={ [['Business', f.name], ['Vendor type', f.vendorType === 'manufacturer_supplier' ? 'Manufacturer / supplier' : 'Service provider'], ['Category', cat(f.cat).name], ['GSTIN', f.gstin.toUpperCase()], ['PAN', f.pan.toUpperCase()], ['Coverage', f.areas.join(', ')], ['Branches', f.branches.length], ['Certifications', f.certifications || 'To be reviewed'], ['Documents', authService.isRemote ? 'Upload from verification after profile creation' : `${Object.values(docs).filter(Boolean).length}/4 uploaded`]]} /></Card>
           <Banner tone="amber" title="What happens next">Super Admin reviews your application and will approve, reject with a reason, or request more information. You will not be shown as Verified until approved.</Banner>
           <div><Checkbox checked={consent} onChange={(v) => { setConsent(v); setErrs({}) }}>I confirm the details are accurate and consent to VendorVerse verifying my documents.</Checkbox>{errs.consent && <p className="mt-1 text-xs font-medium text-red-600">{errs.consent}</p>}</div>
         </div>
@@ -976,6 +1104,7 @@ export function VendorVerify() {
   const [paying, setPaying] = useState(null)
   const [paidPlan, setPaidPlan] = useState(null)
   if (!v) return <VendorWorkspace><Screen title="Verification"><EmptyState icon={ShieldCheck} title="No application yet" action={<Button onClick={() => nav.go('v_register')}>Start registration</Button>} /></Screen></VendorWorkspace>
+  if (authService.isRemote) return <VendorWorkspace><RemoteVendorVerification vendor={v} /></VendorWorkspace>
   const meta = {
     submitted: ['blue', 'Under review', 'We usually respond within 1â€“2 business days.'],
     info: ['amber', 'More information needed', 'Please correct the items below and resubmit.'],

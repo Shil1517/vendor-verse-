@@ -8,7 +8,7 @@ The phase of every feature is set in one place: the `Phase` column of [01-featur
 |---|---|---|
 | Phase 1 | Launch scope on web, Android and iOS together. India launch cities (Jaipur, Ajmer, Sikar, Delhi NCR), English and Hindi. Customers pay vendors directly (Mode A), or by invoice / offline terms for contracts (Mode B). Platform revenue is vendor subscriptions and sponsored visibility. | "MVP", PRS "Release 1", PRS "Wave 1" |
 | Phase 2 | Platform-facilitated payments and commission, more countries and languages, cross-border trade, team roles, L4 verification, contract renewal and amendment. | Mobile "Phase 2", PRS "Wave 2/3" where decided |
-| Phase 3 | Direction only: AI, enterprise procurement, cart checkout, more regions, remaining industries. | Mobile "Phase 3", PRS "Future" (see D-014) |
+| Phase 3 | Direction only: AI, enterprise procurement, cart checkout and more regions. | Mobile "Phase 3", PRS "Future" (see D-014) |
 | OPEN | Not decided. Not built, not removed. | none |
 
 ## 2. Where one capability spans phases
@@ -22,7 +22,7 @@ Where the same capability starts in Phase 1 and grows in Phase 2, it is split in
 | Verification | Levels L0 to L3 (F-VND-03) | L4 and third-party KYB (F-VND-04) |
 | Geography | India launch cities and the picker, waitlist, rollout manager (F-GEO-01 to F-GEO-03, F-GEO-06) | More countries and metros; multi-currency display (F-GEO-07, F-GEO-08) |
 | Languages | English, Hindi (F-XCT-01) | Arabic (RTL), Spanish, French, German, Chinese (F-XCT-02) |
-| Industries | 10 industries, 5 live at go-live (F-TAX-05) | 9 industries (F-TAX-06) |
+| Industries | All 30 documented industries browseable (F-TAX-05 to F-TAX-07); 10 workflow groups configured, 5 prioritized | No additional industries |
 | Trade | Domestic goods: catalogue, goods RFQ, PO (F-GDS-01 to F-GDS-04, F-GDS-06) | Incoterms, multi-currency quotes, samples, customs, trade documents (F-RFQ-07, F-GDS-07) |
 | Business accounts | Separate business account, owner-only (F-BIZ-01, F-BIZ-02, F-BIZ-04) | Team roles, approvals, vendor staff (F-BIZ-06) |
 | Support tooling | Cases, SLA fields, appeals (F-TRU-03 to F-TRU-05) | Helpdesk macros and SLA timers (F-TRU-06) |
@@ -32,7 +32,7 @@ Where the same capability starts in Phase 1 and grows in Phase 2, it is split in
 
 <!-- BEGIN GENERATED: do not edit by hand, run check_docs.py --write -->
 
-### Phase 1 (launch scope): 102 features
+### Phase 1 (launch scope): 104 features
 
 | ID | Feature | Area |
 |---|---|---|
@@ -52,7 +52,9 @@ Where the same capability starts in Phase 1 and grows in Phase 2, it is split in
 | F-TAX-02 | Admin taxonomy builder | Taxonomy and categories |
 | F-TAX-03 | Per-category configuration | Taxonomy and categories |
 | F-TAX-04 | Vendor suggests a category | Taxonomy and categories |
-| F-TAX-05 | Phase 1 industries (10) | Taxonomy and categories |
+| F-TAX-05 | Core Phase 1 industries (10) | Taxonomy and categories |
+| F-TAX-06 | Additional industries (9; formerly Phase 2) | Taxonomy and categories |
+| F-TAX-07 | Additional industries (11; formerly Phase 3) | Taxonomy and categories |
 | F-TAX-08 | Schema-driven dynamic forms | Taxonomy and categories |
 | F-VND-01 | Onboarding wizard by vendor type | Vendor onboarding, verification and listings |
 | F-VND-02 | "Become a vendor" asks country first | Vendor onboarding, verification and listings |
@@ -139,13 +141,12 @@ Where the same capability starts in Phase 1 and grows in Phase 2, it is split in
 | F-XCT-06 | Customer dashboard | Cross-cutting |
 | F-MCK-01 | Scope, vision and journeys review screens | Mockup tooling |
 
-### Phase 2: 21 features
+### Phase 2: 20 features
 
 | ID | Feature | Area |
 |---|---|---|
 | F-GEO-07 | More countries live (UAE, Singapore, more Indian metros) | Geography and markets |
 | F-GEO-08 | Multi-currency display and conversion | Geography and markets |
-| F-TAX-06 | Phase 2 industries (9) | Taxonomy and categories |
 | F-VND-04 | Verification L4 and third-party KYB | Vendor onboarding, verification and listings |
 | F-RFQ-07 | Multi-currency quotes, Incoterms, samples workflow | RFQ and quotations |
 | F-GDS-07 | Cross-border trade: customs, export markets, trade-document vault | Goods, purchase orders and supplier trade |
@@ -165,11 +166,10 @@ Where the same capability starts in Phase 1 and grows in Phase 2, it is split in
 | F-ADM-12 | Cohort and funnel analytics, event-tracking console | Admin and governance |
 | F-XCT-02 | Additional languages and right-to-left layout | Cross-cutting |
 
-### Phase 3 (roadmap): 8 features
+### Phase 3 (roadmap): 7 features
 
 | ID | Feature | Area |
 |---|---|---|
-| F-TAX-07 | Phase 3 industries (11) | Taxonomy and categories |
 | F-DSC-10 | Personalised home and AI search | Discovery |
 | F-GDS-08 | Cart, inventory checkout, shipping and returns | Goods, purchase orders and supplier trade |
 | F-GDS-09 | Enterprise procurement: approval chains, budgets, cost centres | Goods, purchase orders and supplier trade |
@@ -219,6 +219,9 @@ Where this file and the PRS disagree, this file wins and the difference is recor
 
 | Date & time (YYYY-MM-DD HH:MM, local) | Updated by | Change | Reason |
 |---|---|---|---|
-| 2026-11-11 11:33 | Abhishek Samadhiya | Modified: generated phase lists for F-VND-13 | Regenerate the Phase 1 and OPEN counts after owner decision D-017. |
+| 2026-11-11 16:51 | Abhishek Samadhiya | Modified: generated phase lists for D-017 and D-018 | Regenerate the launch scope with the industry and workspace-theme decisions recorded under separate IDs. |
+| 2026-11-11 12:49 | Amit | Modified: Industry phase boundary | D-017 moves all 30 documented industries into Phase 1 browsing; generated feature lists refreshed from the spec. |
+| 2026-11-11 12:34 | Amit | Modified: Industry phase boundary | D-017 moves all 30 documented industries into Phase 1 browsing; generated feature lists refreshed from the spec. |
+| 2026-11-11 11:33 | Abhishek Samadhiya | Modified: generated phase lists for F-VND-13 | Regenerate the Phase 1 and OPEN counts after owner decision D-018. |
 | 2026-10-30 11:34 | Shil1517 | Modified: restored docs, web/src and mobile/src to commit 06ab837 | Owner did not want web and mobile UIs matched; reverted the sync work and its doc changes. |
 | 2026-10-29 16:27 | Shil1517 | Added: phase definitions, split-capability table, generated phase lists | The old docs gave the phase split in three places that disagreed; one view per phase now comes from the spec. |

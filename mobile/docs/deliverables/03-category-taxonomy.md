@@ -18,7 +18,7 @@ Industry  →  Category  →  Subcategory  →  Attribute schema (per category)
 
 ## 2. Industries and subcategories
 
-### Launch (MVP)
+### Phase 1 browse catalog — core industries
 
 | Industry | Sample subcategories | Categories |
 |---|---|---|
@@ -33,9 +33,9 @@ Industry  →  Category  →  Subcategory  →  Attribute schema (per category)
 | Healthcare, education & wellness | Physiotherapy, Tutors, Yoga & fitness, Home nursing, Diagnostics | 73 |
 | Agriculture, energy & environment | Solar installation, Agri equipment, Soil testing, Waste & recycling, Water treatment | 64 |
 
-**Priority launch categories (live at go-live):** Home, Construction, Events, Professional, Wholesale.
+**Supply-building priority groups:** Home, Construction, Events, Professional, Wholesale. All 30 industries are browseable in Phase 1 under D-017; vendor listing and RFQ workflows remain configured for the existing 10 groups.
 
-### Phase 2
+### Additional Phase 1 industries (formerly Phase 2)
 
 | Industry | Sample subcategories | Categories |
 |---|---|---|
@@ -49,7 +49,7 @@ Industry  →  Category  →  Subcategory  →  Attribute schema (per category)
 | Power, utilities & electrical | Transformers, Switchgear, Generators, EV charging | 41 |
 | Packaging & printing | Corrugated boxes, Labels, Custom packaging | 43 |
 
-### Phase 3
+### Additional Phase 1 industries (formerly Phase 3)
 
 | Industry | Sample subcategories | Categories |
 |---|---|---|
@@ -112,4 +112,5 @@ Field types: short text, number, single choice, multiple choice, yes/no, file up
 
 | Date & time (YYYY-MM-DD HH:MM, local) | Updated by | Change | Reason |
 |---|---|---|---|
+| 2026-11-11 12:34 | Amit | Modified: industry phase headings and launch scope | D-017 makes the full 30-industry taxonomy browseable in Phase 1 while retaining existing workflow configuration. |
 | 2026-10-29 16:27 | Shil1517 | Modified: added pointer banner | Added pointer to the new docs/ set; content review still outstanding |
