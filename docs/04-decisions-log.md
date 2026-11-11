@@ -22,6 +22,7 @@ Every scope decision lives here, with who made it and why. Features reference th
 | D-014 | 2026-10-29 | Claude (derived from D-001), awaiting Shil1517 | **PRS items marked "Future" map to Phase 3** (cart checkout, enterprise procurement, AI, field tools, advanced ads). | D-001 defines Phase 3 as future roadmap. This is an inference, listed under O-12 for confirmation. |
 | D-015 | 2026-10-30 | Shil1517 | **Company storefront ordering (F-BIZ-03) is Phase 2.** Customers can order directly from a verified company storefront; screens carry the "Phase 2" badge on both clients. Payment stays direct between customer and company. | Closes O-07. Owner chose Phase 2 with badge (D-010) when asked during the web sync. The mobile storefront screens need the badge. |
 | D-016 | 2026-11-04 | Amit | **Use TypeScript with NestJS for the backend modular monolith.** Keep the documented hard module boundaries, REST/OpenAPI contracts, and PostgreSQL data layer proposal. | Owner approved the recommended backend stack so implementation can start; mobile client technology remains open under O-13. |
+| D-017 | 2026-11-11 | Amit | **All 30 documented industries and their example subcategories are Phase 1 browseable.** Manufacturing & OEM remains browse-mapped to Wholesale; only the existing 10 industry configurations support listing workflows, with five priority groups for supply-building. | Owner requested the full documented taxonomy to be live in the browser without inventing configuration for new listing workflows; closes O-10. |
 
 ## 2. Open decisions
 
@@ -38,7 +39,7 @@ Nothing in these rows is built, changed or removed until the decision is closed.
 | O-07 | **Closed by D-015.** Can customers order directly from a company storefront, or do vendors only message companies? | F-BIZ-03 | Mobile scope doc says message only. The mobile mockup has a company directory, storefront and an "Order from a company" flow with company-side order handling. |
 | O-08 | Are contract suspend/resume and expiry in Phase 1 or Phase 2? | F-CON-05 | D-004 named the other lifecycle parts but not these. |
 | O-09 | Phase for PRS-required items that neither mockup has and no document placed: profile completeness, field visibility classes, saved searches and alerts, web SEO landing pages, chat attachments / scanning / read receipts, automated content screening. | F-VND-11, F-VND-12, F-DSC-08, F-DSC-09, F-MSG-03, F-TRU-07 | Each is a PRS "must" for the release wave in which it is enabled. |
-| O-10 | Do manufacturers launch under the Wholesale industry in Phase 1 while "Manufacturing and OEM" opens in Phase 2? | F-TAX-05, F-TAX-06 | Open item from the mobile scope doc (decision 7). |
+| O-10 | **Closed by D-017.** Do manufacturers launch under the Wholesale industry in Phase 1 while "Manufacturing and OEM" opens in Phase 2? | F-TAX-05, F-TAX-06 | Manufacturing & OEM is browseable as its own Phase 1 industry and retains its existing Wholesale workflow mapping. |
 | O-11 | Is the admin role visible in the mockup role picker on both apps? | sync matrix section 3 | Web shows it; mobile hides it (`HIDE_ADMIN`). Needed so both demo the same journeys. |
 | O-12 | Confirm D-014 (PRS "Future" = Phase 3) and whether the PRS should be reissued as v3.1. | F-GDS-08, F-GDS-09, F-DSC-10 and others | The PRS is dated 24 Oct 2026 and is out of step with decisions D-003, D-005, D-006, D-011, D-013. |
 | O-13 | Which mobile client technology should be used: native, React Native or a web app? | docs/06-architecture-and-structure.md | Backend language and framework were decided by D-016. The mobile client choice remains open; do not assume or implement a mobile technology. |
@@ -76,6 +77,7 @@ The PRS is not edited (D-012). Until it is reissued, the decision wins.
 
 | Date & time (YYYY-MM-DD HH:MM, local) | Updated by | Change | Reason |
 |---|---|---|---|
+| 2026-11-11 12:34 | Amit | Added: D-017; closed O-10 | Owner selected all 30 industries and their documented example subcategories for Phase 1 browsing while retaining existing listing workflows. |
 | 2026-11-06 15:05 | Shil1517 | Added: O-15 | The files module needs owner decisions on storage and scan providers, upload limits and URL lifetimes; none are invented. |
 | 2026-11-06 13:48 | Shil1517 | Added: O-14 | Account-state enforcement cannot be built without a per-state capability list; PRS §3.2 is not specific enough. |
 | 2026-11-04 15:24 | Amit | Added: D-016; narrowed O-13 to mobile client technology | Owner approved TypeScript and NestJS for the modular-monolith backend; mobile technology remains undecided. |

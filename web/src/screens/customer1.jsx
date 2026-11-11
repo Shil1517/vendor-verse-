@@ -7,7 +7,7 @@ import {
 import { useApp } from '../store.jsx'
 import { useNav } from '../nav.jsx'
 import { findCity } from '../geo.js'
-import { CATS, P2_INDUSTRIES, P3_INDUSTRIES, cat, calcPrice, BUSY_SLOTS, SLOTS, listing as findListing } from '../data.jsx'
+import { CATS, INDUSTRIES, cat, calcPrice, BUSY_SLOTS, SLOTS, listing as findListing } from '../data.jsx'
 import {
   Screen, Card, Section, Button, Thumb, Chips, Segmented, Sheet, Input, Select, Toggle, Badge, Rating, Banner, EmptyState,
   PriceBreakdown, KV, fmt, cx, Pill, SearchBar, IconBtn, StatusBadge, Stars, ListRow, Group, Meta, SOFT, GRAD, Carousel, Avatar,
@@ -126,27 +126,29 @@ export function CustomerHome() {
 /* ================= CATEGORIES ================= */
 export function Categories() {
   const nav = useNav()
+  const total = INDUSTRIES.reduce((sum, i) => sum + i.cats, 0)
   return (
-    <Screen title="All categories">
-      {CATS.map((c) => (
-        <Card key={c.id} onClick={() => nav.go('c_category', { id: c.id })}>
+    <Screen title="All industries and categories" subtitle={`${INDUSTRIES.length} industries · ${total.toLocaleString('en-IN')} sample categories`}>
+      <Banner tone="blue" title="All 30 industries are live to browse">Subcategory names and category counts are representative examples. Listing and RFQ workflows remain configured for the existing 10 industry groups; supply-building focuses on the 5 priority groups.</Banner>
+      {INDUSTRIES.map((i) => {
+        const configured = CATS.some((c) => c.id === i.cat)
+        return (
+        <Card key={i.id} onClick={configured ? () => nav.go('c_category', { id: i.cat }) : undefined}>
           <div className="flex items-center gap-3">
-            <Thumb tone={c.tone} icon={c.icon} size={52} />
+            <Thumb tone={i.tone} icon={i.icon} size={52} />
             <div className="min-w-0 flex-1">
-              <p className="text-sm font-bold">{c.name}</p>
-              <p className="text-xs text-ink-500">{c.type === 'service' ? 'Services' : 'Products'} · {c.subs.length} subcategories</p>
+              <p className="text-sm font-bold">{i.name}</p>
+              <p className="text-xs text-ink-500">{i.cats} sample categories · {i.subs.length} examples</p>
             </div>
-            <ChevronRight size={18} className="text-ink-300" />
+            <Badge tone="green">Live</Badge>
+            {configured && <ChevronRight size={18} className="text-ink-300" />}
           </div>
-          <div className="mt-3 flex flex-wrap gap-1.5">{c.subs.map((s) => <Pill key={s}>{s}</Pill>)}</div>
+          <p className="mb-2 mt-3 text-xs font-semibold text-ink-500">Example subcategories</p>
+          <div className="flex flex-wrap gap-1.5">{i.subs.map((s) => <Pill key={s}>{s}</Pill>)}</div>
+          {!configured && <p className="mt-3 text-xs text-ink-500">Browseable now; listing and RFQ workflows are not configured for this industry yet.</p>}
         </Card>
-      ))}
-      <Section title="Coming in Phase 2">
-        <div className="flex flex-wrap gap-1.5">{P2_INDUSTRIES.map((n) => <Pill key={n}>{n} · Phase 2</Pill>)}</div>
-      </Section>
-      <Section title="Roadmap (Phase 3)">
-        <div className="flex flex-wrap gap-1.5">{P3_INDUSTRIES.map((n) => <Pill key={n}>{n}</Pill>)}</div>
-      </Section>
+        )
+      })}
     </Screen>
   )
 }
@@ -476,6 +478,5 @@ const METHODS = [{ id: 'upi', label: 'UPI', sub: 'GPay, PhonePe, Paytm', icon: S
 
 
 /* ================= BOOK SERVICE ================= */
-
 
 

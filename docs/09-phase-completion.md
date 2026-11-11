@@ -2,7 +2,7 @@
 
 What "done" means for each phase, the work streams inside it, and where progress is recorded. It does not define scope or assign phases: the phase of every feature is set only in [01-feature-spec.md](01-feature-spec.md), and the generated lists are in [02-phase-scope.md](02-phase-scope.md). It adds no dates; dates stay open until the owner sets them.
 
-Snapshot at 2026-11-06 (from the spec): Phase 1 = 101 features, Phase 2 = 21, Phase 3 = 8, OPEN = 13. Current state: web and mobile mockups, plus a NestJS backend (not production-deployed) that covers about 20 of the 101 Phase 1 features fully or in part (auth and account settings, vendor onboarding, geography and waitlist, listings and gates, taxonomy, RBAC, notification inbox). The mockups call it only for sign-in, account settings, profile, vendor onboarding and the notification inbox; the other screens still use browser-held seed data. Matrix screen statuses for Phase 1: web 58 Done / 41 Partial / 2 Missing, mobile 85 Done / 6 Partial / 8 Missing / 2 Unverified (mockup-level, not backend completion). No stage is Done and no Phase 1 exit criterion is met yet (see [07-technical-documentation.md](07-technical-documentation.md)).
+Feature scope updated 2026-11-11: Phase 1 = 103 features, Phase 2 = 20, Phase 3 = 7, OPEN = 13. Implementation snapshot at 2026-11-06: web and mobile mockups, plus a NestJS backend (not production-deployed) that covered about 20 of the then 101 Phase 1 features fully or in part (auth and account settings, vendor onboarding, geography and waitlist, listings and gates, taxonomy, RBAC, notification inbox). The mockups call it only for sign-in, account settings, profile, vendor onboarding and the notification inbox; the other screens still use browser-held seed data. Matrix screen statuses at that time: web 58 Done / 41 Partial / 2 Missing, mobile 85 Done / 6 Partial / 8 Missing / 2 Unverified (mockup-level, not backend completion). No stage is Done and no Phase 1 exit criterion is met yet (see [07-technical-documentation.md](07-technical-documentation.md)).
 
 Status values: `Not started`, `In progress`, `In QA` (merged to `qa`, testing), `Done` (released on `main`), `Hold` (blocked, reason stated).
 
@@ -54,7 +54,7 @@ Exit criteria: every `P2` feature `Done` on both platforms; checker passes; acce
 
 ## 3. Phase 3: direction only
 
-AI, enterprise procurement, cart checkout, more regions, remaining industries (D-014, awaiting confirmation under O-12). No stages are planned. Planning starts only after Phase 2 sign-off and an owner decision.
+AI, enterprise procurement, cart checkout and more regions (D-014, awaiting confirmation under O-12). All documented industries are in the Phase 1 browse catalog per D-017. No Phase 3 stages are planned. Planning starts only after Phase 2 sign-off and an owner decision.
 
 ## 4. OPEN features
 
@@ -79,6 +79,7 @@ AI, enterprise procurement, cart checkout, more regions, remaining industries (D
 
 | Date & time (YYYY-MM-DD HH:MM, local) | Updated by | Change | Reason |
 |---|---|---|---|
+| 2026-11-11 12:41 | Amit | Modified: phase scope snapshot and Phase 3 summary | D-017 moves the full documented industry browser into Phase 1. |
 | 2026-11-06 15:05 | Shil1517 | Modified: P1-S1 and P1-S2 progress notes | Files module landed; verification is no longer blocked by it. |
 | 2026-11-06 15:00 | Shil1517 | Modified: progress snapshot | Replaced the out-of-date "no backend" line with the current backend coverage and matrix status counts. |
 | 2026-11-06 13:48 | Shil1517 | Modified: P1-S1 progress note | Outbox dispatcher and notifications core landed; account-state enforcement is blocked on an owner decision (O-14). |
