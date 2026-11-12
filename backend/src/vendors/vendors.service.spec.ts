@@ -61,13 +61,43 @@ describe("VendorsService", () => {
       expect(record).not.toHaveBeenCalled();
     });
 
+    it("rejects an unknown or retired role before writing the vendor", async () => {
+      clientQuery
+        .mockResolvedValueOnce(result([{ "?column?": 1 }]))
+        .mockResolvedValueOnce(result());
+      await expect(service.create(user, request)).rejects.toBeInstanceOf(
+        BadRequestException,
+      );
+      expect(clientQuery).toHaveBeenCalledTimes(2);
+      expect(record).not.toHaveBeenCalled();
+    });
+
+    it("saves every role as pending, primary first without duplicates", async () => {
+      clientQuery
+        .mockResolvedValueOnce(result([{ "?column?": 1 }]))
+        .mockResolvedValueOnce(
+          result([{ code: "SUPPLIER" }, { code: "WHOLESALER" }]),
+        )
+        .mockResolvedValue(result());
+      query.mockResolvedValueOnce(result([vendorRow()]));
+      await service.create(user, {
+        ...request,
+        roleCodes: ["WHOLESALER", "SUPPLIER"],
+      });
+      const roles = clientQuery.mock.calls.find((call) =>
+        String(call[0]).includes("INSERT INTO vendor_roles"),
+      );
+      expect(roles?.[1][1]).toEqual(["SUPPLIER", "WHOLESALER"]);
+    });
+
     it("creates the vendor owned by the caller, audits, and returns it", async () => {
       clientQuery
         .mockResolvedValueOnce(result([{ "?column?": 1 }]))
+        .mockResolvedValueOnce(result([{ code: "SUPPLIER" }]))
         .mockResolvedValue(result());
       query.mockResolvedValueOnce(result([vendorRow()]));
       const view = await service.create(user, request);
-      const insert = clientQuery.mock.calls[1];
+      const insert = clientQuery.mock.calls[2];
       expect(insert[0]).toContain("INSERT INTO vendors");
       expect(insert[1].slice(1)).toEqual([
         "u1",
@@ -128,6 +158,48 @@ describe("VendorsService", () => {
     });
   });
 
+  describe("getPublic", () => {
+    const publicRow = (roles: unknown[]) => ({
+      id: "v1",
+      legal_name: "Sharma Electricals Pvt Ltd",
+      registration_country: "IN",
+      trading_name: "Sharma Electricals",
+      description: null,
+      languages: null,
+      year_established: 2012,
+      roles,
+    });
+
+    it("shows the vendor with its verified roles only", async () => {
+      query.mockResolvedValueOnce(
+        result([
+          publicRow([
+            { roleCode: "SUPPLIER", label: "Supplier", offerType: "products" },
+          ]),
+        ]),
+      );
+      const view = await service.getPublic("v1");
+      expect(String(query.mock.calls[0][0])).toContain("r.status = 'verified'");
+      expect(view).toMatchObject({
+        name: "Sharma Electricals",
+        languages: [],
+        roles: [{ roleCode: "SUPPLIER" }],
+      });
+      expect(view).not.toHaveProperty("ownerUserId");
+    });
+
+    it("404s a vendor with no verified role, and an unknown vendor", async () => {
+      query.mockResolvedValueOnce(result([publicRow([])]));
+      await expect(service.getPublic("v1")).rejects.toBeInstanceOf(
+        NotFoundException,
+      );
+      query.mockResolvedValueOnce(result());
+      await expect(service.getPublic("nope")).rejects.toBeInstanceOf(
+        NotFoundException,
+      );
+    });
+  });
+
   describe("validation", () => {
     const errors = async (cls: new () => object, plain: object) =>
       (await validate(plainToInstance(cls, plain))).map((e) => e.property);
@@ -143,7 +215,7 @@ describe("VendorsService", () => {
       expect(
         await errors(CreateVendorDto, {
           registrationCountry: "india",
-          businessType: "SHOP",
+          businessType: "shop",
           legalName: "  ",
         }),
       ).toEqual(
@@ -160,9 +232,18 @@ describe("VendorsService", () => {
         await errors(CreateVendorDto, {
           registrationCountry: "IN",
           businessType: "CONTRACTOR",
+          roleCodes: ["WHOLESALER"],
           legalName: "A",
         }),
       ).toEqual([]);
+      expect(
+        await errors(CreateVendorDto, {
+          registrationCountry: "IN",
+          businessType: "CONTRACTOR",
+          roleCodes: ["wholesaler"],
+          legalName: "A",
+        }),
+      ).toEqual(["roleCodes"]);
       expect(
         await errors(UpdateVendorDto, { legalName: null, languages: ["fr"] }),
       ).toEqual(expect.arrayContaining(["legalName", "languages"]));
