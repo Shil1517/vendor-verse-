@@ -375,9 +375,9 @@ export function createApiAuthService({ baseUrl, fetchImpl = (...args) => globalT
   }
 
   /* ---- F-VND-01 / F-VND-02 vendor onboarding ---- */
-  /** POST /vendors. Country first; businessType is one of SERVICE_PROVIDER|CONTRACTOR|SUPPLIER|WHOLESALER|MANUFACTURER|DISTRIBUTOR|OTHER. */
-  async function createVendor({ registrationCountry, businessType, legalName, tradingName }) {
-    const r = await authed('/vendors', { method: 'POST', body: { registrationCountry, businessType, legalName, ...(tradingName ? { tradingName } : {}) }, headers: { 'idempotency-key': newKey() } })
+  /** POST /vendors. Country first; businessType is the primary vendor role code and roleCodes adds more (D-023). Role codes come from GET /vendor-roles. */
+  async function createVendor({ registrationCountry, businessType, roleCodes, legalName, tradingName }) {
+    const r = await authed('/vendors', { method: 'POST', body: { registrationCountry, businessType, ...(roleCodes?.length ? { roleCodes } : {}), legalName, ...(tradingName ? { tradingName } : {}) }, headers: { 'idempotency-key': newKey() } })
     return r.status === 201 ? { ok: true, vendor: r.data } : profileFail(r)
   }
 
@@ -389,6 +389,62 @@ export function createApiAuthService({ baseUrl, fetchImpl = (...args) => globalT
   async function updateVendor(id, patch) {
     const r = await authed(`/vendors/${encodeURIComponent(id)}`, { method: 'PATCH', body: patch })
     return r.status === 200 ? { ok: true, vendor: r.data } : profileFail(r)
+  }
+
+  /** GET /vendors/{id}/public needs no sign-in. Only verified roles are shown (D-020, D-021); a vendor with none answers not found. */
+  async function getPublicVendor(vendorId) {
+    const r = await call(`/vendors/${encodeURIComponent(vendorId)}/public`, { method: 'GET' })
+    return r.status === 200 ? { ok: true, vendor: r.data } : profileFail(r)
+  }
+
+  /* ---- vendor roles (D-023, D-024): the catalogue is data, so clients read it instead of hardcoding ---- */
+  async function listVendorRoleCatalogue() {
+    const r = await authed('/vendor-roles', { method: 'GET' })
+    return r.status === 200 ? { ok: true, roles: r.data.roles } : profileFail(r)
+  }
+
+  /** The caller's roles for one vendor. Only `verified` roles are public (D-020, D-021). */
+  async function listVendorRoles(vendorId) {
+    const r = await authed(`/vendors/${encodeURIComponent(vendorId)}/roles`, { method: 'GET' })
+    return r.status === 200 ? { ok: true, roles: r.data.roles } : profileFail(r)
+  }
+
+  /** Adds a role as pending; a rejected or revoked role is resubmitted. */
+  async function addVendorRole(vendorId, roleCode) {
+    const r = await authed(`/vendors/${encodeURIComponent(vendorId)}/roles`, { method: 'POST', body: { roleCode } })
+    return r.status === 201 ? { ok: true, roles: r.data.roles } : profileFail(r)
+  }
+
+  async function removeVendorRole(vendorId, roleCode) {
+    const r = await authed(`/vendors/${encodeURIComponent(vendorId)}/roles/${encodeURIComponent(roleCode)}`, { method: 'DELETE' })
+    return r.status === 200 ? { ok: true, roles: r.data.roles } : profileFail(r)
+  }
+
+  /** Reviewer queue and decision for vendor roles (needs the verification.review permission). */
+  async function listVendorRoleReviews(status = 'pending') {
+    const r = await authed(`/admin/vendor-role-reviews?status=${encodeURIComponent(status)}`, { method: 'GET' })
+    return r.status === 200 ? { ok: true, roles: r.data.roles } : verificationFail(r)
+  }
+
+  async function decideVendorRole(vendorId, roleCode, decision, reason) {
+    const r = await authed(`/admin/vendor-role-reviews/${encodeURIComponent(vendorId)}/${encodeURIComponent(roleCode)}/decision`, { method: 'POST', body: { decision, reason } })
+    return r.status === 200 ? { ok: true, role: r.data } : verificationFail(r)
+  }
+
+  /** Role definitions for administrators (needs the vendor_roles.manage permission). */
+  async function listVendorRoleDefinitions() {
+    const r = await authed('/admin/vendor-roles', { method: 'GET' })
+    return r.status === 200 ? { ok: true, roles: r.data.roles } : verificationFail(r)
+  }
+
+  async function createVendorRoleDefinition(role) {
+    const r = await authed('/admin/vendor-roles', { method: 'POST', body: role })
+    return r.status === 201 ? { ok: true, role: r.data } : verificationFail(r)
+  }
+
+  async function updateVendorRoleDefinition(code, patch) {
+    const r = await authed(`/admin/vendor-roles/${encodeURIComponent(code)}`, { method: 'PATCH', body: patch })
+    return r.status === 200 ? { ok: true, role: r.data } : verificationFail(r)
   }
 
   /* ---- F-VND-03 verification ---- */
@@ -469,7 +525,7 @@ export function createApiAuthService({ baseUrl, fetchImpl = (...args) => globalT
     return r.status === 200 ? { ok: true, ...r.data } : verificationFail(r)
   }
 
-  return { requestOtp, verifyOtp, endSession, getProfile, saveProfile, listLocations, addLocation, updateLocation, removeLocation, listSessions, revokeSession, getNotificationPreferences, saveNotificationPreferences, listDataRequests, requestDataRequest, cancelDataRequest, listNotifications, getUnreadNotificationCount, markNotificationRead, markAllNotificationsRead, createVendor, listMyVendors, updateVendor, listVendorDocuments, listVendorVerifications, submitVendorVerification, uploadVendorEvidence, getFile, registerVendorDocument, listVerificationQueue, reviewVerification, getVerificationEvidenceUrl, isRemote: true }
+  return { requestOtp, verifyOtp, endSession, getProfile, saveProfile, listLocations, addLocation, updateLocation, removeLocation, listSessions, revokeSession, getNotificationPreferences, saveNotificationPreferences, listDataRequests, requestDataRequest, cancelDataRequest, listNotifications, getUnreadNotificationCount, markNotificationRead, markAllNotificationsRead, createVendor, listMyVendors, updateVendor, getPublicVendor, listVendorRoleCatalogue, listVendorRoles, addVendorRole, removeVendorRole, listVendorRoleReviews, decideVendorRole, listVendorRoleDefinitions, createVendorRoleDefinition, updateVendorRoleDefinition, listVendorDocuments, listVendorVerifications, submitVendorVerification, uploadVendorEvidence, getFile, registerVendorDocument, listVerificationQueue, reviewVerification, getVerificationEvidenceUrl, isRemote: true }
 }
 
 const apiBaseUrl = import.meta.env?.VITE_API_BASE_URL

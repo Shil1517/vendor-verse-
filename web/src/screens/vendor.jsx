@@ -18,6 +18,7 @@ import { ThemeToggle } from '../components/ThemeToggle.jsx'
 import { useTheme } from '../hooks/useTheme.jsx'
 import { useCompany } from './biz-screens.jsx'
 import { companyDone } from '../bizdata.js'
+import { VENDOR_ROLES, combinedDocs } from '../vendorRoles.js'
 
 export const useMyVendor = () => {
   const { me, vendors } = useApp()
@@ -1003,6 +1004,12 @@ export function VendorRegister({ params = {} }) {
   const existing = me.role === 'vendor' ? vendors.find((v) => v.id === me.vendorId) : null
   const [step, setStep] = useState(0)
   const [f, setF] = useState({ name: params.name || me.biz || existing?.name || '', owner: me.name || '', vendorType: params.vendorType || existing?.vendorType || 'service_provider', cat: params.cat || 'elec', gstin: '', pan: '', email: '', years: '2020', areas: ['Jaipur'], branches: ['Main outlet â€” Jaipur'], certifications: '' })
+  // D-023: one or more vendor roles; the first is the primary role the backend stores as business type
+  const [roles, setRoles] = useState(params.businessType ? [params.businessType, ...(params.roleCodes || [])] : [existing?.businessType || (f.vendorType === 'manufacturer_supplier' ? 'MANUFACTURER' : 'SERVICE_PROVIDER')])
+  const goodsRole = roles.some((r) => VENDOR_ROLES[r]?.offer === 'products')
+  const vendorType = goodsRole ? 'manufacturer_supplier' : 'service_provider'
+  // D-019: only the documents the chosen roles require, combined without duplicates
+  const docList = combinedDocs(roles).length ? combinedDocs(roles) : DOCS
   const [br, setBr] = useState('')
   const [docs, setDocs] = useState({})
   const [consent, setConsent] = useState(false)
@@ -1019,9 +1026,10 @@ export function VendorRegister({ params = {} }) {
       if (!/^\d{2}[A-Z]{5}\d{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/.test(f.gstin.toUpperCase())) e.gstin = 'Enter a valid 15-character GSTIN (e.g. 08ABCPS1234F1Z5)'
       if (!/^[A-Z]{5}\d{4}[A-Z]$/.test(f.pan.toUpperCase())) e.pan = 'Enter a valid PAN (e.g. ABCPS1234F)'
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(f.email)) e.email = 'Enter a valid business email'
+      if (!roles.length) e.roles = 'Choose at least one vendor role'
     }
     if (step === 1) { if (!f.areas.length) e.areas = 'Select at least one service area'; if (!f.branches.length) e.branches = 'Add at least one branch / outlet' }
-    if (step === 2 && !authService.isRemote) { const miss = DOCS.filter((d) => !docs[d]); if (miss.length) e.docs = `${miss.length} required document${miss.length > 1 ? 's' : ''} missing` }
+    if (step === 2 && !authService.isRemote) { const miss = docList.filter((d) => !docs[d]); if (miss.length) e.docs = `${miss.length} required document${miss.length > 1 ? 's' : ''} missing` }
     if (step === 3 && !consent) e.consent = 'Please confirm to submit'
     setErrs(e)
     return Object.keys(e).length === 0
@@ -1032,15 +1040,14 @@ export function VendorRegister({ params = {} }) {
     let vendorId = 'v-new'
     if (authService.isRemote && !created.current) {
       setBusy(true)
-      const businessType = params.businessType || (f.vendorType === 'manufacturer_supplier' ? 'MANUFACTURER' : 'SERVICE_PROVIDER')
-      const result = await authService.createVendor({ registrationCountry: params.country || 'IN', businessType, legalName: f.name.trim() })
+      const result = await authService.createVendor({ registrationCountry: params.country || 'IN', businessType: roles[0], roleCodes: roles.slice(1), legalName: f.name.trim() })
       setBusy(false)
       if (!result.ok) return toast(result.message, 'warn')
       if (!result.vendor?.id) return toast('Vendor was created without an ID; reload and contact support before continuing.', 'warn')
       vendorId = result.vendor.id
       created.current = true
     }
-    const rec = { id: vendorId, name: f.name, owner: f.owner, vendorType: f.vendorType, cat: f.cat, city: f.areas[0], areas: f.areas, branches: f.branches.length, rating: 0, reviews: 0, status: authService.isRemote ? 'pending' : 'submitted', tone: cat(f.cat).tone, since: +f.years, gstin: f.gstin.toUpperCase(), phone: me.phone || '+91 98290 00099', email: f.email, plan: 'Starter', certifications: f.certifications, docs: authService.isRemote ? [] : DOCS.map((d) => ({ name: d, status: 'pending' })), history: authService.isRemote ? [] : [{ s: 'submitted', at: stamp(), by: f.owner }] }
+    const rec = { id: vendorId, name: f.name, owner: f.owner, vendorType, businessType: roles[0], roles: roles.map((code) => ({ code, status: 'pending' })), cat: f.cat, city: f.areas[0], areas: f.areas, branches: f.branches.length, rating: 0, reviews: 0, status: authService.isRemote ? 'pending' : 'submitted', tone: cat(f.cat).tone, since: +f.years, gstin: f.gstin.toUpperCase(), phone: me.phone || '+91 98290 00099', email: f.email, plan: 'Starter', certifications: f.certifications, docs: authService.isRemote ? [] : docList.map((d) => ({ name: d, status: 'pending' })), history: authService.isRemote ? [] : [{ s: 'submitted', at: stamp(), by: f.owner }] }
     setVendors((vs) => [rec, ...vs.filter((x) => x.id !== vendorId && x.id !== 'v-new')])
     const fromCustomer = me.role === 'customer'
     setMe({ ...me, role: fromCustomer ? 'vendor' : me.role, loggedIn: true, guest: false, vendorId, vendorName: f.name, customerName: fromCustomer ? me.name : me.customerName, hasVendorAccount: true, buyerMode: false })
@@ -1055,12 +1062,12 @@ export function VendorRegister({ params = {} }) {
         <div className="space-y-4">
           <Input label="Business name" required value={f.name} onChange={set('name')} error={errs.name} />
           <Input label="Owner / authorised person" value={f.owner} onChange={set('owner')} />
-          <div><p className="mb-2 text-[13px] font-semibold text-ink-700">Vendor type</p><Segmented value={f.vendorType} onChange={set('vendorType')} options={[{ id: 'service_provider', label: 'Service provider' }, { id: 'manufacturer_supplier', label: 'Manufacturer / supplier' }]} /><p className="mt-1.5 text-xs text-ink-500">This changes the evidence and catalogue journey shown after approval.</p></div>
+          <div><p className="mb-2 text-[13px] font-semibold text-ink-700">Your vendor roles</p><Chips multi value={roles} onChange={(v) => { setRoles(v); setDocs({}); setErrs({ ...errs, roles: '' }) }} options={Object.entries(VENDOR_ROLES).map(([id, r]) => ({ id, label: r.label }))} />{errs.roles && <p className="mt-1 text-xs font-medium text-red-600">{errs.roles}</p>}<p className="mt-1.5 text-xs text-ink-500">Pick every role that applies. A role is shown publicly only after it is verified, and you submit only the documents your roles require.</p></div>
           <Select label="Primary category" value={f.cat} onChange={set('cat')} options={CATS.map((c) => ({ value: c.id, label: c.name }))} />
           <Input label="GSTIN" required placeholder="08ABCPS1234F1Z5" maxLength={15} value={f.gstin} onChange={(e) => set('gstin')(e.target.value.toUpperCase())} error={errs.gstin} />
           <Input label="PAN" required placeholder="ABCPS1234F" maxLength={10} value={f.pan} onChange={(e) => set('pan')(e.target.value.toUpperCase())} error={errs.pan} />
           <Input label="Business email" required type="email" value={f.email} onChange={set('email')} error={errs.email} />
-          <Input label={f.vendorType === 'manufacturer_supplier' ? 'Product certifications / standards' : 'Service licences / certifications'} value={f.certifications} onChange={set('certifications')} placeholder={f.vendorType === 'manufacturer_supplier' ? 'e.g. ISO, BIS, export certificates' : 'e.g. trade licence, safety certification'} />
+          <Input label={goodsRole ? 'Product certifications / standards' : 'Service licences / certifications'} value={f.certifications} onChange={set('certifications')} placeholder={goodsRole ? 'e.g. ISO, BIS, export certificates' : 'e.g. trade licence, safety certification'} />
           <Select label="Operating since" value={f.years} onChange={set('years')} options={Array.from({ length: 15 }, (_, i) => String(2026 - i))} />
         </div>
       )}
@@ -1080,13 +1087,13 @@ export function VendorRegister({ params = {} }) {
           {authService.isRemote
             ? <Banner tone="blue">Evidence files are uploaded from the verification screen after your vendor profile is created. No evidence is submitted in this mock registration step.</Banner>
             : <><Banner tone="blue">Upload clear PDF or photo copies. Documents are stored securely and visible only to verification staff.</Banner>
-              {DOCS.map((d) => <DocTile key={d} name={d} status={docs[d] ? 'pending' : 'missing'} onAction={() => setDocs({ ...docs, [d]: !docs[d] })} actionLabel={docs[d] ? 'Remove' : 'Upload'} note={docs[d] ? 'Uploaded · awaiting review' : 'Required'} />)}
+              {docList.map((d) => <DocTile key={d} name={d} status={docs[d] ? 'pending' : 'missing'} onAction={() => setDocs({ ...docs, [d]: !docs[d] })} actionLabel={docs[d] ? 'Remove' : 'Upload'} note={docs[d] ? 'Uploaded · awaiting review' : 'Required'} />)}
               {errs.docs && <p className="text-xs font-medium text-red-600">{errs.docs}</p>}</>}
         </div>
       )}
       {step === 3 && (
         <div className="space-y-4">
-          <Card><KV rows={ [['Business', f.name], ['Vendor type', f.vendorType === 'manufacturer_supplier' ? 'Manufacturer / supplier' : 'Service provider'], ['Category', cat(f.cat).name], ['GSTIN', f.gstin.toUpperCase()], ['PAN', f.pan.toUpperCase()], ['Coverage', f.areas.join(', ')], ['Branches', f.branches.length], ['Certifications', f.certifications || 'To be reviewed'], ['Documents', authService.isRemote ? 'Upload from verification after profile creation' : `${Object.values(docs).filter(Boolean).length}/4 uploaded`]]} /></Card>
+          <Card><KV rows={ [['Business', f.name], ['Vendor roles', roles.map((r) => VENDOR_ROLES[r]?.label || r).join(', ')], ['Category', cat(f.cat).name], ['GSTIN', f.gstin.toUpperCase()], ['PAN', f.pan.toUpperCase()], ['Coverage', f.areas.join(', ')], ['Branches', f.branches.length], ['Certifications', f.certifications || 'To be reviewed'], ['Documents', authService.isRemote ? 'Upload from verification after profile creation' : `${Object.values(docs).filter(Boolean).length}/4 uploaded`]]} /></Card>
           <Banner tone="amber" title="What happens next">Super Admin reviews your application and will approve, reject with a reason, or request more information. You will not be shown as Verified until approved.</Banner>
           <div><Checkbox checked={consent} onChange={(v) => { setConsent(v); setErrs({}) }}>I confirm the details are accurate and consent to VendorVerse verifying my documents.</Checkbox>{errs.consent && <p className="mt-1 text-xs font-medium text-red-600">{errs.consent}</p>}</div>
         </div>
@@ -1771,10 +1778,9 @@ export function VendorMore() {
       <div className="vv-vendor-more-body space-y-4 p-4">
         <Card onClick={() => nav.go('v_profile')} className="!p-4"><div className="flex items-center gap-3.5"><Thumb tone={v?.tone || 'teal'} icon={Store} size={56} /><div className="min-w-0 flex-1"><p className="truncate text-base font-extrabold">{v?.name || 'Your business'}</p><p className="text-sm text-ink-500">{me.name}</p><div className="mt-1.5">{v?.status === 'approved' ? <Badge tone="green"><ShieldCheck size={11} />Verified</Badge> : <StatusBadge s={v?.status || 'draft'} />}</div></div><ChevronRight size={18} className="text-ink-300" /></div></Card>
         <Group>
-          {me.role === 'business' && me.businessWorkspace && <ListRow icon={Store} tone="sky" title="Open vendor workspace" subtitle="Return to your vendor listings and customer work" onClick={() => { setMe({ ...me, role: 'vendor', name: me.vendorOwnerName || me.vendorName || me.name, buyerMode: false }); nav.reset('v_dash') }} />}
-          <ListRow icon={Briefcase} tone="teal" title={me.businessWorkspace ? 'Open business workspace' : 'Become a supplier / business'} subtitle={me.businessWorkspace ? `Manage ${me.businessName || 'your supplier account'} and vendor RFQs` : 'Create a supplier account and receive vendor bulk RFQs'} onClick={() => { if (me.businessWorkspace) { setMe({ ...me, role: 'business', name: me.businessName || me.name, buyerMode: false }); nav.reset('v_dash') } else nav.go('v_business_onboard') }} />
           <ListRow icon={Package} tone="violet" title="Buy as a business" subtitle="Open supplier-only marketplace" onClick={() => { setMe({ ...me, buyerMode: true }); nav.go('vb_home') }} />
           <ListRow icon={ShieldCheck} tone="emerald" title="Verification" subtitle="Documents & status" onClick={() => nav.go('v_verify')} />
+          <ListRow icon={BadgeCheck} tone="sky" title="Vendor roles" subtitle="What your business is, verified one by one" onClick={() => nav.go('v_roles')} />
           <ListRow icon={Package} tone="sky" title="Purchase orders" subtitle="Supplier fulfilment & tracking" onClick={() => nav.go('v_orders')} />
           <ListRow icon={Star} tone="amber" title="Customer reviews" onClick={() => nav.go('v_reviews')} />
           <ListRow icon={BarChart3} tone="violet" title="Performance reports" subtitle="Enquiries, replies, quotes" onClick={() => nav.go('v_perf')} />

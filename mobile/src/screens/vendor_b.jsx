@@ -457,6 +457,7 @@ export function VendorMore() {
           <ListRow icon={Building2} tone="indigo" title="Business network" subtitle="Verified companies offering services to vendors — connect by message" onClick={() => nav.go('v_biz_network')} />
           <ListRow icon={Repeat} tone="blue" title="Buy from vendors & companies" subtitle="Your Buy tab - same account" onClick={() => nav.reset('v_buy')} />
           <ListRow icon={ShieldCheck} tone="emerald" title="Verification" subtitle="Documents, expiry & decisions" onClick={() => nav.go('v_verify')} />
+          <ListRow icon={ShieldCheck} tone="sky" title="Vendor roles" subtitle="What your business is, verified one by one" onClick={() => nav.go('v_roles')} />
           <ListRow icon={MapPin} tone="teal" title="Service areas" subtitle="Where customers can find you" onClick={() => nav.go('v_areas')} />
           <ListRow icon={CalendarClock} tone="sky" title="Availability" onClick={() => nav.go('v_avail')} />
           <ListRow icon={Building2} tone="teal" title="Public profile & trust" subtitle="Company, certifications, capabilities" onClick={() => nav.go('v_public')} />

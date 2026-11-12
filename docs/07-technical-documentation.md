@@ -89,7 +89,7 @@ Both apps are Vite single-page apps, `type: module`, with the same dependency se
 - Rendered in a phone frame with a status bar (battery, signal, wifi) and a screen directory; the intended native clients (Android, iOS) are not built, and the client technology is open (O-13).
 - Screens are grouped by area: `auth`, `customer1`, `customer_book`, `customer_rfq`, `customer_misc`, `customer_biz`, `explore`, `vendor_a`, `vendor_b`, `agent`, `admin_a/b/c`, `business`, `catbuilder`, `contracts`, `payments`, `profiles`, `global`, `mvp`, `ops`, `shared`.
 - The admin role exists in code but is hidden from role pickers and the directory (`HIDE_ADMIN = true`). Web shows it. Aligning this is O-11.
-- Business is merged into Vendor by D-023 (supersedes D-005): two account types, Customer and Vendor. Mobile hides the Business account (`HIDE_BUSINESS` in `mobile/src/roles.js`) and keeps its screens; web and the backend still implement Business as a separate account until the details in O-19 are closed.
+- Business is merged into Vendor by D-023 (supersedes D-005): two account types, Customer and Vendor. Mobile and web hide the Business account (`HIDE_BUSINESS` in each `roles.js`) and keep its screens; the backend still has Business as a mode until the details in O-19 are closed. Vendor roles are configuration (D-024): the backend stores them in `vendor_role_definitions` and each vendor's roles in `vendor_roles` (migration 016); mobile reads them from `VENDOR_TYPES` in `mobile/src/mvpdata.jsx` and web from `web/src/vendorRoles.js`; labels and the goods / services filters are derived from it.
 
 ### 4.4 Build and deploy
 
@@ -160,6 +160,10 @@ A feature is done when: the spec row has one phase; the matrix maps its web and 
 
 | Date & time (YYYY-MM-DD HH:MM, local) | Updated by | Change | Reason |
 |---|---|---|---|
+| 2026-11-12 12:01 | Sahil Soni | Modified: vendor roles description | Web has the same roles registry and role screens (D-024). |
+| 2026-11-12 11:53 | Sahil Soni | Modified: vendor roles description | Backend vendor roles tables and APIs exist (D-024). |
+| 2026-11-12 11:44 | Sahil Soni | Modified: vendor roles description | Roles are a single registry, open to new entries (D-024). |
+| 2026-11-12 11:36 | Sahil Soni | Modified: Business account description | Web now hides the Business account too (D-023). |
 | 2026-11-11 17:25 | Sahil Soni | Modified: Business account description | Mobile hides the Business account (D-023). |
 | 2026-11-11 16:52 | Sahil Soni | Modified: Business account description | Vendor and Business merged (D-023); code unchanged. |
 | 2026-11-06 15:05 | Shil1517 | Modified: files status | Files module added to the backend; storage provider and limits remain undecided. |

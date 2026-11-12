@@ -6,6 +6,7 @@ import { useApp } from '../store.jsx'
 import { useNav } from '../nav.jsx'
 import { cat, serves, liveCats, coverageOf } from '../data.jsx'
 import { country, KIND_LABEL, INDUSTRIES, GEO } from '../globaldata.jsx'
+import { VENDOR_TYPES } from '../mvpdata.jsx'
 import { normLabel } from '../mvpdata.jsx'
 import {
   Screen, Card, Button, Chips, Segmented, Sheet, Input, Select, Toggle, Banner, EmptyState, ListRow, Pill, Thumb, SOFT, cx, SkeletonList,
@@ -45,7 +46,8 @@ function specMatch(l, field, val) {
 }
 
 /* grouped vendor-type filters used by the vendor Buy tab */
-const KIND_GROUPS = { goods: ['manufacturer', 'supplier'], services: ['service', 'contractor'] }
+// derived from each role's `offer` in VENDOR_TYPES (D-024), so a new role needs no change here
+const KIND_GROUPS = { goods: Object.keys(VENDOR_TYPES).filter((k) => VENDOR_TYPES[k].offer === 'products'), services: Object.keys(VENDOR_TYPES).filter((k) => VENDOR_TYPES[k].offer === 'services') }
 const KIND_GROUP_LABEL = { goods: 'Suppliers & manufacturers', services: 'Service providers' }
 
 export function Explore({ params = {} }) {

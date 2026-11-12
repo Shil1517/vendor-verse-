@@ -1,4 +1,5 @@
-﻿import { useMemo, useRef, useState } from 'react'
+﻿import { publicRoleLabels } from '../vendorRoles.js'
+import { useMemo, useRef, useState } from 'react'
 import {
   Phone, MapPin, ChevronDown, Search, SlidersHorizontal, Package, CalendarCheck, FileText, Heart, Star, Minus, Plus, ShieldCheck,
   MessageCircle, GitCompare, Truck, Clock, CreditCard, Smartphone, Landmark, Banknote, Lock, CheckCircle2, XCircle, Loader2,
@@ -449,6 +450,7 @@ export function VendorProfile({ params }) {
           <div className="flex flex-wrap items-center gap-2"><h1 className="text-xl font-extrabold tracking-tight">{v.name}</h1></div>
           <div className="mt-1.5 flex flex-wrap items-center gap-2"><VerifiedBadge id={v.id} />{v.rating > 0 && <Rating value={v.rating} count={v.reviews} size={14} />}</div>
           <p className="mt-2 flex items-center gap-1 text-sm text-ink-500"><MapPin size={14} />{v.city} · serves {v.areas.join(', ')}</p>
+          <p className="mt-1 text-sm text-ink-600">{publicRoleLabels(v).join(' · ') || 'Roles pending verification'}</p>
         </div>
         {v.status !== 'approved' && <Banner tone="amber" title="Verification pending">This vendor has not been verified by VendorVerse yet. Documents are under review.</Banner>}
         <div className="grid grid-cols-3 gap-2">

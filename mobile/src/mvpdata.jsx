@@ -20,7 +20,10 @@ export const SCHEMA = {
 export const FIELD_TYPES = [['text', 'Short text'], ['number', 'Number'], ['select', 'Single choice'], ['multi', 'Multiple choice'], ['boolean', 'Yes / No'], ['file', 'File upload'], ['date', 'Date']]
 export const normLabel = (s) => String(s).split(' (')[0].trim().toLowerCase()
 
-/* ---------- Vendor onboarding types (spec: at least a service provider and a manufacturer/supplier) ---------- */
+/* ---------- Vendor roles (D-023, D-024) ----------
+   The single source of truth for vendor roles. Adding a new kind of vendor = adding one entry here
+   (label, hint, needs, offer: 'products' | 'services', docs). Labels, onboarding, documents and the goods / services
+   filters all read from this map; nothing else lists the roles. */
 export const VENDOR_TYPES = {
   service: { label: 'Service provider', hint: 'Plumbers, caterers, consultants, agencies…', needs: ['Government photo ID', 'Address proof', 'Category licence (if regulated)'], offer: 'services', docs: ['Government photo ID', 'Address proof', 'Category licence'] },
   contractor: { label: 'Contractor', hint: 'Projects with crews, drawings and milestones', needs: ['Business registration / GST', 'Contractor licence', 'Insurance certificate'], offer: 'services', docs: ['GST / business registration', 'Contractor licence', 'Insurance certificate'] },
