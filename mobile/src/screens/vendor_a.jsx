@@ -140,7 +140,7 @@ export function VendorRegister({ params = {} }) {
     if (authService.isRemote && !createdId.current) {
       // F-VND-01/02: create the vendor only after onboarding is complete; evidence is uploaded from v_verify.
       setBusy(true)
-      const r = await authService.createVendor({ registrationCountry: COUNTRY_CODE[f.country] || 'IN', businessType: BUSINESS_TYPE[vtype], legalName: f.name.trim() })
+      const r = await authService.createVendor({ registrationCountry: COUNTRY_CODE[f.country] || 'IN', businessType: BUSINESS_TYPE[vtype], roleCodes: vroles.slice(1).map((r) => BUSINESS_TYPE[r]), legalName: f.name.trim() })
       setBusy(false)
       if (!r.ok) return toast(r.message, 'warn')
       if (!r.vendor?.id) return toast('Vendor was created without an ID; reload and contact support before continuing.', 'warn')

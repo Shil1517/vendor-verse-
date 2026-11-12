@@ -14,6 +14,7 @@ import * as MS from './screens/p1-misc.jsx'
 import * as RV from './screens/p1-review.jsx'
 import * as DP from './screens/p1-depth.jsx'
 import * as SF from './screens/p2-storefront.jsx'
+import * as VR from './screens/vendor-roles.jsx'
 
 
 /*  id → { C: component, role, title, fr: [FR codes], bar: status-bar tone, defaultParams: route defaults for the directory }  */
@@ -60,6 +61,7 @@ export const SCREENS = Object.fromEntries([
   R('v_business_onboard', V.BusinessOnboarding, 'vendor', 'Business supplier onboarding', ['FR-03', 'FR-04']),
   R('v_register', V.VendorRegister, 'shared', 'Vendor account creation', ['FR-03']),
   R('v_verify', V.VendorVerify, 'vendor', 'Verification status', ['FR-03', 'FR-15']),
+  R('v_roles', VR.VendorRoles, 'vendor', 'Vendor roles', ['FR-03']),
   R('v_listings', V.VendorListings, 'vendor', 'My listings', ['FR-04'], { tab: true }),
   R('v_listing_edit', V.ListingEdit, 'vendor', 'Add / edit listing', ['FR-04'], { defaultParams: { id: 'l1' } }),
   R('v_work', V.VendorQuotes, 'vendor', 'Work', ['FR-08'], { tab: true }),
@@ -85,6 +87,8 @@ export const SCREENS = Object.fromEntries([
   R('ad_dash', AD.AdminReferenceDashboard, 'admin', 'Dashboard', ['FR-13'], { tab: true, bar: 'ink' }),
   R('ad_approvals', AD.Approvals, 'admin', 'Approvals hub', ['FR-03', 'FR-04', 'FR-11'], { tab: true }),
   R('ad_vendors', AD.AdminVendors, 'admin', 'Vendor verification queue', ['FR-03']),
+  R('ad_role_reviews', VR.AdminRoleReviews, 'admin', 'Vendor role reviews', ['FR-03']),
+  R('ad_role_defs', VR.AdminRoleDefinitions, 'admin', 'Vendor roles catalogue', ['FR-03']),
   R('ad_vendor_new', AD.AdminVendorNew, 'admin', 'Add vendor or business supplier', ['FR-03']),
   R('ad_vendor', AD.AdminVendor, 'admin', 'Review vendor', ['FR-03', 'FR-15'], { defaultParams: { id: 'v8' } }),
   R('ad_listings', AD.AdminListings, 'admin', 'Listing moderation', ['FR-04']),

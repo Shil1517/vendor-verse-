@@ -342,6 +342,8 @@ export function AdminMore() {
         <Card className="!p-4"><div className="flex items-center gap-3.5"><Avatar name={me.name || ME.admin} size={56} /><div><p className="text-base font-extrabold">{me.name || ME.admin}</p><p className="text-sm text-ink-500">Super Admin · individual account</p><Badge tone="green" className="mt-1.5"><KeyRound size={11} />MFA · session 12 min</Badge></div></div></Card>
         <Group>
           <ListRow icon={Globe} tone="sky" title="Geo rollout" subtitle="Country · state · city launch control" onClick={() => nav.go('ad_geo')} />
+          <ListRow icon={ShieldCheck} tone="emerald" title="Vendor role reviews" subtitle="Verify, reject or revoke a role" onClick={() => nav.go('ad_role_reviews')} />
+          <ListRow icon={Layers} tone="teal" title="Vendor roles catalogue" subtitle="Add or retire a kind of vendor" onClick={() => nav.go('ad_role_defs')} />
           <ListRow icon={Building2} tone="teal" title="Company verification" subtitle="Business accounts opened by company owners" onClick={() => nav.go('ad_company')} />
           <ListRow icon={Layers} tone="indigo" title="Taxonomy builder" subtitle="Unlimited industries, categories, attributes" onClick={() => nav.go('ad_taxonomy')} />
           <ListRow icon={Layers} tone="indigo" title="Category workflows" subtitle="Versioned configuration" onClick={() => nav.go('ad_categories')} />

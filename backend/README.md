@@ -53,6 +53,12 @@ These routes are also listed in Swagger UI at `/docs`.
 - `GET /v1/me/notifications`, `GET /v1/me/notifications/unread-count`, `POST /v1/me/notifications/:id/read`, `POST /v1/me/notifications/read-all` (F-MSG-04)
 - `GET|POST /v1/me/data-requests`, `POST /v1/me/data-requests/{requestId}/cancel` (F-ACC-04, F-ACC-05; records the request only, no verification or fulfilment)
 - `POST /v1/vendors`, `GET /v1/vendors/mine`, `GET|PATCH /v1/vendors/{vendorId}` (F-VND-01, F-VND-02; owner only; creates a registered, unpublished vendor)
+- `POST /v1/vendors` also takes `roleCodes` (more vendor roles; `businessType` is the primary role), and every vendor view lists its `roles` with status (D-023). Role codes are checked against the role catalogue, not a fixed list (D-024)
+- `GET /v1/vendors/{vendorId}/public` (F-VND-09; no sign-in; shows only verified roles and answers 404 for a vendor with none, D-020, D-021; ratings, response metrics and publication gates are not part of it yet)
+- `GET /v1/vendor-roles` (the active role catalogue with the documents each role requires)
+- `GET|POST /v1/vendors/{vendorId}/roles`, `DELETE /v1/vendors/{vendorId}/roles/{roleCode}` (owner only; a role starts `pending`, only `verified` roles are public, a vendor keeps at least one role; D-020, D-021)
+- `GET /v1/admin/vendor-role-reviews?status=`, `POST /v1/admin/vendor-role-reviews/{vendorId}/{roleCode}/decision` (requires `verification.review`; verify, reject or revoke with a required reason; reviewers cannot decide on their own vendor)
+- `GET|POST /v1/admin/vendor-roles`, `PATCH /v1/admin/vendor-roles/{code}` (requires `vendor_roles.manage`; adding or retiring a kind of vendor is configuration, D-024)
 - `GET|POST /v1/vendors/{vendorId}/documents` (private evidence metadata; uploaded and clean files only)
 - `GET|POST /v1/vendors/{vendorId}/verifications` (F-VND-03; L1-L3 submissions, category-specific requests, evidence references, history and resubmission links)
 - `GET /v1/admin/verifications?status=`, `POST /v1/admin/verifications/{verificationId}/decision`, `GET /v1/admin/verifications/{verificationId}/evidence/{fileId}/download-url` (F-VND-03; requires `verification.review`, reason required and audited, owner cannot review own vendor)
@@ -78,7 +84,7 @@ the admin taxonomy builder (F-TAX-02) above, so none exist until a Super Admin c
 Verification expiries and evidence requirements are recorded when supplied;
 the API does not invent expiry periods or evidence checklists. File uploads and
 downloads still fail closed until storage policy and providers are configured.
-The web and mobile verification screens do not yet call these APIs.
+The web and mobile verification screens do not yet call these APIs. The role screens do not call the roles APIs yet either; mobile onboarding sends `roleCodes` to `POST /v1/vendors`.
 
 Mode switching supports CUSTOMER and VENDOR when a vendor record is owned by
 the identity. BUSINESS returns 409 until its separately verified account
@@ -166,6 +172,8 @@ The email is stored **unverified** and is not a sign-in identifier; verification
 
 | Date & time (YYYY-MM-DD HH:MM, local) | Updated by | Change | Reason |
 |---|---|---|---|
+| 2026-11-12 12:01 | Sahil Soni | Added: public vendor read `GET /vendors/{vendorId}/public` | Show only verified roles publicly (D-020, D-021); no public-profile screen calls it yet. |
+| 2026-11-12 11:52 | Sahil Soni | Added: vendor roles APIs, role catalogue, role review and the `vendor_roles.manage` permission (migration 016) | Make vendor roles data instead of a fixed list, with role-level verification (D-019 to D-024). |
 | 2026-11-10 13:59 | Amit | Added: vendor verification APIs, reviewer permission and API contract | Deliver the F-VND-03 backend slice without guessing evidence requirements or expiry policy. |
 | 2026-11-06 15:05 | Shil1517 | Added: files module (signed uploads, scan handler), migration 015, optional FILE_* settings | Foundation work for P1-S1: verification evidence and photo review need private, scanned files. Providers and limits stay open owner decisions. |
 | 2026-11-06 13:48 | Shil1517 | Added: outbox dispatcher and notifications core (inbox API, dispatch handler) | Foundation leftovers for P1-S1: events are now delivered, and F-MSG-04 / F-MSG-05 have a backend. |

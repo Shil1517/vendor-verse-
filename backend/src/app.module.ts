@@ -11,6 +11,7 @@ import { HealthController } from "./health/health.controller";
 import { PlatformModule } from "./platform/platform.module";
 import { RbacModule } from "./rbac/rbac.module";
 import { TaxonomyModule } from "./taxonomy/taxonomy.module";
+import { VendorRolesModule } from "./vendor-roles/vendor-roles.module";
 import { VendorsModule } from "./vendors/vendors.module";
 import { VerificationModule } from "./verification/verification.module";
 import { validateEnvironment } from "./config/environment";
@@ -29,6 +30,7 @@ import { validateEnvironment } from "./config/environment";
     GeoModule,
     TaxonomyModule,
     VendorsModule,
+    VendorRolesModule,
     ListingsModule,
     NotificationsModule,
     FilesModule,

@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
-import { Phone, Mail, ShieldCheck, Store, User, Building2, ArrowRight, Lock, Sparkles, Truck, FileText, Globe } from 'lucide-react'
+import { Phone, Mail, ShieldCheck, Store, User, ArrowRight, Lock, Sparkles, Truck, FileText, Globe } from 'lucide-react'
 import { useApp } from '../store.jsx'
 import { useNav } from '../nav.jsx'
-import { HOME, ROLES } from '../roles.js'
+import { HOME, VISIBLE_ROLES } from '../roles.js'
 import { ME } from '../data.jsx'
 import { Button, Input, Segmented, Screen, Checkbox, Banner, useForm, cx } from '../ui.jsx'
 import { authService, isEmail, isPhone, normalizePhone, roleForMode } from '../services/authService.js'
@@ -138,7 +138,7 @@ export function Login({ params = {} }) {
           <div className="vv-login-roles rounded-2xl p-4 ring-1 ring-inset ring-ink-100">
             <p className="text-[11px] font-bold uppercase tracking-wider text-ink-400">Choose your workspace</p>
             <div className="mt-2.5 grid grid-cols-2 gap-2">
-              {ROLES.map((r) => (
+              {VISIBLE_ROLES.map((r) => (
                 <button type="button" key={r.id} onClick={() => setRole(r.id)} className={cx('rounded-xl px-3 py-2.5 text-[13px] font-semibold ring-1 ring-inset transition', role === r.id ? 'bg-brand-600 text-white ring-brand-600' : 'bg-white text-ink-700 ring-ink-200')}>
                   {r.short}
                 </button>
@@ -294,8 +294,8 @@ export function Register() {
           <h2 className="text-2xl font-extrabold tracking-tight">Join VendorVerse</h2>
           <p className="mt-1 text-sm text-ink-500">Choose how you want to use the marketplace.</p>
         </div>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-          {[['customer', User, 'Customer', 'Buy products, book services, request quotes'], ['vendor', Store, 'Vendor', 'Sell products and services to customers'], ['business', Building2, 'Business', 'Registered company, 3+ years. Supply and services for vendors']].map(([id, I, a, b]) => (
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          {[['customer', User, 'Customer', 'Buy products, book services, request quotes'], ['vendor', Store, 'Vendor', 'Sell products and services to customers']].map(([id, I, a, b]) => (
             <button key={id} onClick={() => setRole(id)} className={cx('rounded-2xl p-3.5 text-left ring-1 ring-inset transition', role === id ? 'bg-brand-50 ring-2 ring-brand-600' : 'bg-white ring-ink-200')}>
               <span className={cx('grid size-10 place-items-center rounded-xl', role === id ? 'bg-brand-600 text-white' : 'bg-ink-100 text-ink-500')}><I size={20} /></span>
               <p className="mt-2.5 text-sm font-bold">{a}</p>
@@ -304,14 +304,13 @@ export function Register() {
           ))}
         </div>
         <Input label="Full name" required placeholder="As per ID" value={f.name} onChange={set('name')} error={errs.name} />
-        {role !== 'customer' && <Input label={role === 'business' ? 'Company legal name' : 'Business name'} required placeholder="Registered business name" value={f.biz} onChange={set('biz')} error={errs.biz} />}
+        {role !== 'customer' && <Input label="Business name" required placeholder="Registered business name" value={f.biz} onChange={set('biz')} error={errs.biz} />}
         <Input label="Mobile number" required icon={Phone} inputMode="numeric" maxLength={10} placeholder="98290 00001" value={f.phone} onChange={(e) => set('phone')(normalizePhone(e.target.value))} error={errs.phone} className="!pl-10" />
         <Input label="Email (optional)" icon={Mail} type="email" placeholder="you@company.com" value={f.email} onChange={set('email')} error={errs.email} />
         <div>
           <Checkbox checked={f.agree} onChange={(v) => set('agree')(v)}>I agree to the <b className="text-brand-700">Terms of Service</b> and <b className="text-brand-700">Privacy Policy</b>, and consent to my data being processed to provide this service.</Checkbox>
           {errs.agree && <p className="mt-1 text-xs font-medium text-red-600">{errs.agree}</p>}
         </div>
-        {role === 'business' && <Banner tone="blue" title="Business accounts are for company owners">You will confirm that you own a registered company that has operated for 3+ years, then submit a six-step company form for admin verification.</Banner>}
         {role === 'vendor' && <Banner tone="amber" title="Verification required">Vendors are shown as <b>Verified</b> only after Super Admin approves your business documents.</Banner>}
         <Button full size="lg" onClick={submit}>Continue</Button>
         <p className="text-center text-sm text-ink-500">Already have an account? <button onClick={() => nav.replace('login')} className="font-bold text-brand-700">Log in</button></p>

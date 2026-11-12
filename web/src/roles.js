@@ -11,6 +11,11 @@ export const ROLES = [
   { id: 'admin', label: 'Super Admin', short: 'Admin' },
 ]
 
+/* Vendor and Business are merged (D-023): the Business account is hidden from sign-up and the workspace picker.
+   Its screens stay in the codebase until the open details in O-19 are decided. */
+export const HIDE_BUSINESS = true
+export const VISIBLE_ROLES = ROLES.filter((r) => !(HIDE_BUSINESS && r.id === 'business'))
+
 export const HOME = { customer: 'c_home', vendor: 'v_dash', agent: 'a_home', admin: 'ad_dash' }
 HOME.business = 'b_home'
 
@@ -56,7 +61,7 @@ export const TABS = {
 
 export const ADMIN_SIDEBAR = [
   { label: 'Overview', items: [{ id: 'ad_dash', label: 'Dashboard', icon: LayoutDashboard }, { id: 'ad_analytics', label: 'Analytics', icon: LineChart }] },
-  { label: 'Users', items: [{ id: 'ad_vendors', label: 'Vendors', icon: Store }, { id: 'ad_company', label: 'Companies', icon: Building2 }, { id: 'ad_customers', label: 'Customers', icon: UserRound }, { id: 'ad_agents', label: 'Sales Agents', icon: Users }] },
+  { label: 'Users', items: [{ id: 'ad_vendors', label: 'Vendors', icon: Store }, { id: 'ad_role_reviews', label: 'Vendor roles', icon: ShieldCheck }, { id: 'ad_role_defs', label: 'Role catalogue', icon: Tag }, { id: 'ad_company', label: 'Companies', icon: Building2 }, { id: 'ad_customers', label: 'Customers', icon: UserRound }, { id: 'ad_agents', label: 'Sales Agents', icon: Users }] },
   { label: 'Trust', items: [{ id: 'ad_cases', label: 'Cases', icon: AlertOctagon }, { id: 'ad_reviews', label: 'Review moderation', icon: Star }] },
   { label: 'Money', items: [{ id: 'ad_subs', label: 'Subscriptions', icon: Receipt }, { id: 'ad_plans', label: 'Plans & entitlements', icon: CreditCard }, { id: 'ad_sponsored', label: 'Sponsored', icon: Megaphone }, { id: 'ad_coupons', label: 'Coupons', icon: TicketPercent }] },
   { label: 'Platform', items: [{ id: 'ad_categories', label: 'Categories', icon: Tag }, { id: 'ad_taxonomy', label: 'Taxonomy builder', icon: GitBranch }, { id: 'ad_geo', label: 'Geo rollout', icon: MapPin }] },

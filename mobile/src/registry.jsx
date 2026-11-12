@@ -18,6 +18,7 @@ import * as MV from './screens/mvp.jsx'
 import * as CBD from './screens/catbuilder.jsx'
 import * as OP from './screens/ops.jsx'
 import * as BZ from './screens/business.jsx'
+import * as VR from './screens/vendor_roles.jsx'
 import * as CZ from './screens/customer_biz.jsx'
 import { Messages as G0 } from './screens/customer_misc.jsx'
 
@@ -92,6 +93,7 @@ export const SCREENS = Object.fromEntries([
   R('v_register_mfr', VA.VendorRegister, 'vendor', 'Onboarding — manufacturer path', ['S5', 'S6'], ['SC-008'], { demo: { type: 'manufacturer' } }),
   R('v_register_svc', VA.VendorRegister, 'vendor', 'Onboarding — service provider path', ['S5', 'S6'], ['SC-008'], { demo: { type: 'service' } }),
   R('v_verify', VA.VendorVerify, 'vendor', 'Verification status', ['S5'], ['SC-008', 'SC-009']),
+  R('v_roles', VR.VendorRoles, 'vendor', 'Vendor roles — add, status, remove', ['S5'], ['SC-008']),
   R('v_listings', VA.VendorListings, 'vendor', 'My listings & plan limit', ['S5', 'S11'], ['SC-006', 'SC-007'], { tab: true }),
   R('v_listing_gate', VA.ListingGate, 'vendor', 'Publication checklist (6 gates)', ['S5'], ['SC-006', 'SC-007', 'SC-008', 'SC-009', 'SC-010'], { demo: { id: 'l3' } }),
   R('v_listing_edit', VA.ListingEdit, 'vendor', 'Add / edit listing', ['S5', 'S6'], ['SC-010'], { demo: { id: 'l1' } }),
@@ -132,6 +134,8 @@ export const SCREENS = Object.fromEntries([
   R('ad_dash', AA.AdminDashboard, 'admin', 'Dashboard', ['S13'], ['SC-026'], { tab: true, bar: 'ink' }),
   R('ad_approvals', AA.Approvals, 'admin', 'Operational queues', ['S13'], [], { tab: true }),
   R('ad_vendors', AA.AdminVendors, 'admin', 'Verification queue', ['S5', 'S13'], ['SC-008', 'SC-009']),
+  R('ad_role_reviews', VR.AdminRoleReviews, 'admin', 'Vendor role reviews', ['S5', 'S13'], ['SC-008', 'SC-009']),
+  R('ad_role_defs', VR.AdminRoleDefinitions, 'admin', 'Vendor roles catalogue', ['S5', 'S13']),
   R('ad_vendor', AA.AdminVendor, 'admin', 'Review vendor evidence', ['S4', 'S5', 'S13'], ['SC-008', 'SC-032'], { demo: { id: 'v8' } }),
   R('ad_listings', AA.AdminListings, 'admin', 'Listing review queue', ['S5', 'S13'], ['SC-010']),
   R('ad_listing', AA.AdminListing, 'admin', 'Review listing & duplicates', ['S5', 'S13'], ['SC-007', 'SC-010'], { demo: { id: 'l5' } }),

@@ -43,6 +43,7 @@ const GEO_BASE = [
   { code: 'AU', name: 'Australia', flag: '🇦🇺', cur: 'AUD', launch: 'later', langs: ['English'], vendors: 0, states: [{ name: 'New South Wales', cities: [C('Sydney', 'later', { wait: 35 })] }] },
 ]
 import { WORLD, EXTRA_CUR } from './geodata.jsx'
+import { VENDOR_TYPES } from './mvpdata.jsx'
 const W = (str) => str.split(';').map((x) => x.trim()).filter(Boolean).map((x) => { const [st, cs] = x.split(':'); return { name: st.trim(), cities: cs.split('|').map((c, k) => C(c.trim(), 'later', { wait: 8 + ((st.length * 11 + k * 17) % 120) })) } })
 const EXTRA = WORLD.map(([code, name, flag, cur, langs, st]) => ({ code, name, flag, cur, launch: 'later', langs, vendors: 0, states: W(st) }))
 /* keep the hand-tuned launch data, then add every other region worldwide (all start as waitlists) */
@@ -218,7 +219,7 @@ export const GLOBAL_LISTINGS = [
   GL({ id: 'l34', vendorId: 'v25', cat: 'whole', sub: 'Industrial machinery', title: 'Forged & machined auto components — export grade', desc: 'Crankshafts, connecting rods, gear blanks and transmission parts for OEM and aftermarket. Exporting to 22 countries.', priceMin: 340, priceMax: 5200, cur: 'INR', unit: 'pc', basis: 'Per part, volume tiers apply', areas: ['Pune', 'Mumbai'], scope: 'global', rating: 4.4, reviews: 112, tone: 'amber', exp: '19+ yrs', resp: 3, jobs: 430, specs: [['Brand', 'OEM / aftermarket'], ['Min order quantity', '1,000 pcs'], ['Delivery radius', 'Worldwide']], trade: { moq: 1000, unit: 'pcs', tiers: [[1000, 5200], [5000, 1800], [25000, 340]], leadDays: 35, incoterms: ['FOB Nhava Sheva', 'CIF', 'EXW Pune'], certs: ['IATF 16949', 'ISO 9001'], samples: 'Free for qualified buyers', origin: 'India', hs: '8708.99', capacity: '600k parts / month' } }),
   GL({ id: 'l35', vendorId: 'v26', cat: 'whole', sub: 'Packaging', title: 'Custom corrugated & rigid boxes — manufacturer', desc: '3-ply to 7-ply corrugated, rigid gift boxes and mailers with full-colour print. Free dieline and digital proof.', priceMin: 11, priceMax: 64, cur: 'INR', unit: 'pc', basis: 'Per box by size and run', areas: ['Jaipur', 'Delhi NCR', 'Ajmer'], scope: 'city', rating: 4.6, reviews: 74, tone: 'violet', exp: '11+ yrs', resp: 2, jobs: 295, specs: [['Brand', 'Custom print'], ['Min order quantity', '500 pcs'], ['Delivery radius', '400 km']], trade: { moq: 500, unit: 'pcs', tiers: [[500, 64], [2000, 28], [10000, 11]], leadDays: 9, incoterms: ['EXW', 'Delivered'], certs: ['FSC', 'ISO 9001'], samples: 'Free digital proof', origin: 'India', capacity: '2M boxes / month' } }),
 ]
-export const KIND_LABEL = { service: 'Service provider', supplier: 'Supplier / distributor', manufacturer: 'Manufacturer', contractor: 'Contractor' }
+export const KIND_LABEL = Object.fromEntries(Object.entries(VENDOR_TYPES).map(([id, t]) => [id, t.label])) // derived: add roles in mvpdata.jsx (D-024)
 
 /* Vendor roles (D-023): a vendor holds one or more roles; a role is public only once verified (D-020, D-021).
    Records with `roles: [{ id, status }]` use per-role status; seeded vendors without `roles` fall back to their single `kind`. */

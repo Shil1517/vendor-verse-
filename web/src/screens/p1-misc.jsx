@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import { Store, Factory, Wrench, Star, Trophy, ShieldCheck, FileText, Wallet, ClipboardList, Target, Clock, Receipt, RefreshCw, Landmark, CreditCard, Globe, WifiOff, SearchX } from 'lucide-react'
-import { Badge, Banner, Button, Card, Checkbox, EmptyState, Group, HBar, Input, ListRow, Section, Select, Stars, StatusBadge, Toggle, Stat, fmt, cx } from '../ui.jsx'
+import { Badge, Banner, Button, Card, Checkbox, Chips, EmptyState, Group, HBar, Input, ListRow, Section, Select, Stars, StatusBadge, Toggle, Stat, fmt, cx } from '../ui.jsx'
 import { useApp } from '../store.jsx'
 import { useNav } from '../nav.jsx'
+import { VENDOR_ROLES } from '../vendorRoles.js'
 import { P2Badge, Page, Facts, Links, Checklist, SampleBadge } from './blocks.jsx'
 import { AppealQueue } from './p1-depth.jsx'
 import { computePublicationGates } from '../services/publicationGates.js'
@@ -23,24 +24,23 @@ export function RegisterType({ params = {} }) {
   </Page>
 }
 
-/* Business types the backend accepts (vendors.business_type), per onboarding path. */
-const TYPE_OPTIONS = {
-  svc: [['SERVICE_PROVIDER', 'Service provider'], ['CONTRACTOR', 'Contractor']],
-  mfr: [['MANUFACTURER', 'Manufacturer'], ['SUPPLIER', 'Supplier'], ['WHOLESALER', 'Wholesaler'], ['DISTRIBUTOR', 'Distributor']],
-}
+/* The role a path starts with. Every vendor role comes from the shared registry (D-023, D-024); a vendor can hold several. */
+const DEFAULT_ROLE = { svc: 'SERVICE_PROVIDER', mfr: 'MANUFACTURER' }
 const IND_CAT = { 'Home & facilities': 'home', Construction: 'build', Events: 'event', 'Professional services': 'staff', 'Wholesale and distribution': 'elec' }
 function TypedRegister({ kind, params = {} }) {
   const nav = useNav()
   const { toast } = useApp()
   const svc = kind === 'svc'
-  const [f, setF] = useState({ name: params.name || '', type: TYPE_OPTIONS[kind][0][0], cat: svc ? 'Home & facilities' : 'Wholesale and distribution', area: 'Jaipur', moq: '' })
+  const [f, setF] = useState({ name: params.name || '', roles: [DEFAULT_ROLE[kind]], cat: svc ? 'Home & facilities' : 'Wholesale and distribution', area: 'Jaipur', moq: '' })
   const next = () => {
     if (!f.name.trim()) return toast('Enter your business name', 'warn')
-    nav.go('v_register', { name: f.name, cat: IND_CAT[f.cat], vendorType: svc ? 'service_provider' : 'manufacturer_supplier', country: params.country || 'IN', businessType: f.type })
+    if (!f.roles.length) return toast('Choose at least one vendor role', 'warn')
+    const goods = f.roles.some((r) => VENDOR_ROLES[r]?.offer === 'products')
+    nav.go('v_register', { name: f.name, cat: IND_CAT[f.cat], vendorType: goods ? 'manufacturer_supplier' : 'service_provider', country: params.country || 'IN', businessType: f.roles[0], roleCodes: f.roles.slice(1) })
   }
   return <Page title={svc ? 'Service provider' : 'Manufacturer / supplier'} subtitle="Business details" footer={<Button full onClick={next}>Continue to verification</Button>}>
     <Input label="Business name" required value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} />
-    <Select label="Business type" value={f.type} onChange={(e) => setF({ ...f, type: e.target.value })} options={TYPE_OPTIONS[kind].map(([value, label]) => ({ value, label }))} />
+    <div><p className="mb-2 text-[13px] font-semibold text-ink-700">Your vendor roles</p><Chips multi value={f.roles} onChange={(roles) => setF({ ...f, roles })} options={Object.entries(VENDOR_ROLES).map(([id, r]) => ({ id, label: r.label }))} /><p className="mt-1.5 text-xs text-ink-500">Pick every role that applies. A role is shown publicly only after it is verified.</p></div>
     <Select label="Industry" value={f.cat} onChange={(e) => setF({ ...f, cat: e.target.value })} options={['Home & facilities', 'Construction', 'Events', 'Professional services', 'Wholesale and distribution']} />
     <Input label={svc ? 'Service areas' : 'Delivery regions'} value={f.area} onChange={(e) => setF({ ...f, area: e.target.value })} hint={svc ? 'Cities and radius you serve' : 'Where you can ship'} />
     {!svc && <Input label="Minimum order quantity" value={f.moq} onChange={(e) => setF({ ...f, moq: e.target.value })} />}

@@ -303,6 +303,26 @@ async function invariants(client) {
   await mustFail(client, "plan price needs a currency",
     `INSERT INTO plan_versions (plan_id, version_number, price_minor) VALUES ($1, 2, 100)`, [plan], "23514");
 
+  // --- vendor roles (D-023, D-024) -----------------------------------------
+  await mustFail(client, "business_type must be a catalogued role",
+    `INSERT INTO vendors (id, owner_user_id, business_type) VALUES ($1, $2, 'NO_SUCH_ROLE')`, [id(), owner], "23503");
+  await mustFail(client, "role codes are upper case",
+    `INSERT INTO vendor_role_definitions (code, label) VALUES ('retailer', 'Retailer')`, [], "23514");
+  await mustPass(client, "a new vendor role is just a row",
+    `INSERT INTO vendor_role_definitions (code, label, offer_type) VALUES ('RETAILER', 'Retailer', 'products')`, []);
+  await mustPass(client, "a vendor can hold several roles",
+    `INSERT INTO vendor_roles (vendor_id, role_code) VALUES ($1, 'SUPPLIER'), ($1, 'RETAILER')`, [vendor]);
+  await mustFail(client, "a vendor holds a role only once",
+    `INSERT INTO vendor_roles (vendor_id, role_code) VALUES ($1, 'SUPPLIER')`, [vendor], "23505");
+  await mustFail(client, "a decided role needs a reviewer and a reason",
+    `UPDATE vendor_roles SET status = 'verified' WHERE vendor_id = $1 AND role_code = 'RETAILER'`, [vendor], "23514");
+  await mustFail(client, "a reviewer cannot decide on their own vendor's role",
+    `UPDATE vendor_roles SET status = 'verified', reviewer_user_id = $2, reason = 'ok', decided_at = now()
+     WHERE vendor_id = $1 AND role_code = 'RETAILER'`, [vendor, owner], "23000");
+  await mustPass(client, "another user can verify the role",
+    `UPDATE vendor_roles SET status = 'verified', reviewer_user_id = $2, reason = 'ok', decided_at = now()
+     WHERE vendor_id = $1 AND role_code = 'RETAILER'`, [vendor, reviewer]);
+
   // --- accounts -----------------------------------------------------------
   await mustFail(client, "owner cannot verify own business",
     `INSERT INTO business_accounts (owner_user_id, company_name, verification_status, verified_by_user_id, verified_at, decision_reason)

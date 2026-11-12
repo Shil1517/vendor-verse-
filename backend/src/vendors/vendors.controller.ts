@@ -26,6 +26,24 @@ import {
 import { CreateVendorDto, UpdateVendorDto } from "./dto/vendor.dto";
 import { VendorsService } from "./vendors.service";
 
+@Controller("vendors/:vendorId/public")
+@ApiTags("Vendors")
+export class PublicVendorsController {
+  constructor(private readonly vendors: VendorsService) {}
+
+  @Get()
+  @ApiOperation({
+    summary: "Public vendor profile with verified roles only (F-VND-09)",
+    description:
+      "Needs no sign-in. Only verified roles are shown (D-020, D-021); a vendor with no verified role is not public and answers 404. Ratings, response metrics and publication gates are not part of this read yet.",
+  })
+  @ApiOkResponse({ description: "The public vendor profile." })
+  @ApiNotFoundResponse({ description: "No such public vendor." })
+  get(@Param("vendorId", ParseUUIDPipe) vendorId: string) {
+    return this.vendors.getPublic(vendorId);
+  }
+}
+
 @Controller("vendors")
 @UseGuards(AccessTokenGuard)
 @ApiTags("Vendors")

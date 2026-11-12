@@ -316,6 +316,29 @@ describe('account settings and vendor onboarding calls', () => {
     expect((await service.createVendor({ registrationCountry: 'ZZ', businessType: 'SUPPLIER', legalName: 'x' })).code).toBe('INVALID_PROFILE')
   })
 
+  it('reads the public vendor profile and reports a vendor with no verified role as not found', async () => {
+    const { service } = signedIn({ 'GET /vendors/v1/public': [reply(200, { id: 'v1', roles: [{ roleCode: 'SUPPLIER' }] }), reply(404, {})] })
+    expect((await service.getPublicVendor('v1')).vendor.roles).toEqual([{ roleCode: 'SUPPLIER' }])
+    expect((await service.getPublicVendor('v1')).ok).toBe(false)
+  })
+
+  it('sends extra vendor roles and reads, adds and removes a vendor roles (D-023)', async () => {
+    const { service, calls } = signedIn({
+      'POST /vendors': [reply(201, { id: 'v1' })],
+      'GET /vendor-roles': [reply(200, { roles: [{ code: 'SUPPLIER' }] })],
+      'GET /vendors/v1/roles': [reply(200, { roles: [{ roleCode: 'SUPPLIER', status: 'pending', isPublic: false }] })],
+      'POST /vendors/v1/roles': [reply(201, { roles: [{ roleCode: 'WHOLESALER' }] }), reply(409, {})],
+      'DELETE /vendors/v1/roles/WHOLESALER': [reply(200, { roles: [] })],
+    })
+    await service.createVendor({ registrationCountry: 'IN', businessType: 'SUPPLIER', roleCodes: ['WHOLESALER'], legalName: 'Sharma' })
+    expect(calls[0].body).toEqual({ registrationCountry: 'IN', businessType: 'SUPPLIER', roleCodes: ['WHOLESALER'], legalName: 'Sharma' })
+    expect((await service.listVendorRoleCatalogue()).roles).toEqual([{ code: 'SUPPLIER' }])
+    expect((await service.listVendorRoles('v1')).roles[0].isPublic).toBe(false)
+    expect((await service.addVendorRole('v1', 'WHOLESALER')).ok).toBe(true)
+    expect((await service.addVendorRole('v1', 'WHOLESALER')).ok).toBe(false)
+    expect((await service.removeVendorRole('v1', 'WHOLESALER')).ok).toBe(true)
+  })
+
   it('uploads evidence, waits for scan status, registers it, and submits verification', async () => {
     const { service, calls } = signedIn({
       'POST /files': reply(201, { file: { id: 'f1' }, upload: { url: 'https://storage.test/signed', method: 'PUT', headers: { 'x-upload': 'yes' } } }),

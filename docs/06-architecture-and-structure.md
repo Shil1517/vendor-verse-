@@ -67,7 +67,7 @@ vendor-verse-/
 
 The NestJS bootstrap and active modules are in `backend/src/`. The implemented
 feature slices include auth/accounts, geography, taxonomy, vendor onboarding,
-listings/availability, files, notifications and vendor verification. The
+listings/availability, files, notifications, vendor verification and vendor roles. The
 architecture folders under `backend/modules/` remain planned module boundaries.
 
 ## 3. Backend modules and the features they own
@@ -177,6 +177,7 @@ Rules:
 
 | Date & time (YYYY-MM-DD HH:MM, local) | Updated by | Change | Reason |
 |---|---|---|---|
+| 2026-11-12 11:52 | Sahil Soni | Modified: active backend module status | Vendor roles module added under `backend/src/vendor-roles/` (D-024). |
 | 2026-11-11 16:52 | Sahil Soni | Modified: business module description | Vendor and Business merged (D-023); no code moved yet. |
 | 2026-11-10 13:59 | Amit | Modified: active backend module status | Vendor verification now has an implemented module under `backend/src/verification/`, not only a planned boundary. |
 | 2026-11-05 12:16 | Shil1517 | Modified: PostgreSQL migration scope reference (migrations 004-013 added) | Schema extended from the auth/vendor/taxonomy slice to the full Phase 1 data model so APIs on web and mobile share one consistent store. |
