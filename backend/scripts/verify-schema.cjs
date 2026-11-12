@@ -308,10 +308,9 @@ async function invariants(client) {
     `INSERT INTO vendors (id, owner_user_id, business_type) VALUES ($1, $2, 'NO_SUCH_ROLE')`, [id(), owner], "23503");
   await mustFail(client, "role codes are upper case",
     `INSERT INTO vendor_role_definitions (code, label) VALUES ('retailer', 'Retailer')`, [], "23514");
-  await mustPass(client, "a new vendor role is just a row",
-    `INSERT INTO vendor_role_definitions (code, label, offer_type) VALUES ('RETAILER', 'Retailer', 'products')`, []);
-  await mustPass(client, "a vendor can hold several roles",
-    `INSERT INTO vendor_roles (vendor_id, role_code) VALUES ($1, 'SUPPLIER'), ($1, 'RETAILER')`, [vendor]);
+  // mustPass rolls its statement back, so the rows later checks depend on are inserted for real
+  await q(`INSERT INTO vendor_role_definitions (code, label, offer_type) VALUES ('RETAILER', 'Retailer', 'products')`);
+  await q(`INSERT INTO vendor_roles (vendor_id, role_code) VALUES ($1, 'SUPPLIER'), ($1, 'RETAILER')`, [vendor]);
   await mustFail(client, "a vendor holds a role only once",
     `INSERT INTO vendor_roles (vendor_id, role_code) VALUES ($1, 'SUPPLIER')`, [vendor], "23505");
   await mustFail(client, "a decided role needs a reviewer and a reason",
