@@ -105,7 +105,8 @@ export function VendorRegister({ params = {} }) {
   const nav = useNav()
   const { me, setMe, setVendors, notify, toast, stamp } = useApp()
   const [step, setStep] = useState(0)
-  const [vtype, setVtype] = useState(params.type || null)
+  const [vroles, setVroles] = useState(params.type ? [params.type] : []) // D-023: one or more vendor roles
+  const vtype = vroles[0] || null // primary role: the backend still takes a single business type
   const [f, setF] = useState({ country: 'India', name: me.biz || '', owner: me.name || '', gstin: '', pan: '', email: '', years: '2020', cats: ['home'], subs: [], areas: ['Jaipur'], pins: '', ans: {}, lang: ['English', 'Hindi'], contact: 'chat' })
   const [docs, setDocs] = useState({})
   const [consent, setConsent] = useState(false)
@@ -113,16 +114,16 @@ export function VendorRegister({ params = {} }) {
   const [busy, setBusy] = useState(false)
   const createdId = useRef(null)
   const c = cat(f.cats[0])
-  const VT = vtype ? VENDOR_TYPES[vtype] : null
-  const goods = VT?.offer === 'products'
-  const docList = VT && vtype !== 'service' ? VT.docs : c.docs
+  const goods = vroles.some((r) => VENDOR_TYPES[r]?.offer === 'products')
+  // D-019: only the documents the chosen roles require, combined without duplicates
+  const docList = vroles.length ? [...new Set(vroles.flatMap((r) => (r === 'service' ? c.docs : VENDOR_TYPES[r].docs)))] : c.docs
   const fieldKeys = [...c.fields, ...(goods ? ['Minimum order quantity', 'Lead time (days)', 'Certifications', 'Delivery regions'] : [])]
   const set = (k) => (e) => { setF({ ...f, [k]: e?.target ? e.target.value : e }); setErrs({ ...errs, [k]: '' }) }
   const validate = () => {
     const e = {}
     if (step === 0) {
       if (f.name.trim().length < 3) e.name = 'Enter your business name'
-      if (!vtype) e.vtype = 'Choose your vendor type'
+      if (!vroles.length) e.vtype = 'Choose at least one vendor role'
       if (!/^\d{2}[A-Z]{5}\d{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/.test(f.gstin.toUpperCase())) e.gstin = 'Enter a valid 15-character GSTIN (e.g. 08ABCPS1234F1Z5)'
       if (!/^[A-Z]{5}\d{4}[A-Z]$/.test(f.pan.toUpperCase())) e.pan = 'Enter a valid PAN (e.g. ABCPS1234F)'
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(f.email)) e.email = 'Enter a valid business email'
@@ -146,7 +147,7 @@ export function VendorRegister({ params = {} }) {
       createdId.current = r.vendor.id
     }
     const vendorId = createdId.current || 'v-new'
-    const rec = { id: vendorId, name: f.name, owner: f.owner, cat: f.cats[0], city: f.areas[0], areas: f.areas, branches: 1, acct: 'pending', kind: vtype || 'service', ver: authService.isRemote ? 'not_started' : c.verifyReq ? 'submitted' : 'not_started', tone: c.tone, since: +f.years, gstin: f.gstin.toUpperCase(), phone: '+91 98290 00099', email: f.email, resp: null, jobs: 0, rating: 0, reviews: 0, langs: f.lang, docs: authService.isRemote ? [] : docList.map((d) => ({ name: d, status: 'pending' })), sub: { plan: 'Free', status: 'none', renews: '—', paidUntil: null, autoRenew: false, leads: 0 }, history: authService.isRemote ? [] : [{ s: 'submitted', at: stamp(), by: f.owner }] }
+    const rec = { id: vendorId, name: f.name, owner: f.owner, cat: f.cats[0], city: f.areas[0], areas: f.areas, branches: 1, acct: 'pending', kind: vtype || 'service', roles: (vroles.length ? vroles : ['service']).map((id) => ({ id, status: 'pending' })), ver: authService.isRemote ? 'not_started' : c.verifyReq ? 'submitted' : 'not_started', tone: c.tone, since: +f.years, gstin: f.gstin.toUpperCase(), phone: '+91 98290 00099', email: f.email, resp: null, jobs: 0, rating: 0, reviews: 0, langs: f.lang, docs: authService.isRemote ? [] : docList.map((d) => ({ name: d, status: 'pending' })), sub: { plan: 'Free', status: 'none', renews: '—', paidUntil: null, autoRenew: false, leads: 0 }, history: authService.isRemote ? [] : [{ s: 'submitted', at: stamp(), by: f.owner }] }
     setVendors((vs) => [rec, ...vs.filter((x) => x.id !== vendorId && x.id !== 'v-new')])
     setMe({ ...me, role: 'vendor', vendorId, hasVendor: true })
     if (authService.isRemote) toast('Vendor profile created — upload evidence and submit verification')
@@ -154,7 +155,7 @@ export function VendorRegister({ params = {} }) {
     nav.reset('v_verify')
   }
   return (
-    <Screen title="Vendor onboarding" subtitle={`${VT ? VT.label + ' · ' : ''}step ${step + 1} of 5`} back={step === 0} footer={<div className="flex gap-2">{step > 0 && <Button variant="secondary" onClick={() => setStep(step - 1)}>Back</Button>}<Button className="flex-1" size="lg" disabled={busy} onClick={next}>{step === 4 ? 'Submit for review' : 'Continue'}</Button></div>}>
+    <Screen title="Vendor onboarding" subtitle={`${vroles.length ? vroles.map((r) => VENDOR_TYPES[r].label).join(' + ') + ' · ' : ''}step ${step + 1} of 5`} back={step === 0} footer={<div className="flex gap-2">{step > 0 && <Button variant="secondary" onClick={() => setStep(step - 1)}>Back</Button>}<Button className="flex-1" size="lg" disabled={busy} onClick={next}>{step === 4 ? 'Submit for review' : 'Continue'}</Button></div>}>
       <Stepper steps={['Business', 'Services', 'Details', 'Documents', 'Submit']} current={step} />
       {step === 0 && (
         <div className="space-y-4">
@@ -162,9 +163,10 @@ export function VendorRegister({ params = {} }) {
           <Select label="Which country is your business in?" value={f.country} onChange={set('country')} options={['India']} hint="Asked first, because verification evidence depends on it. Other countries open in Phase 2." />
           <Input label="Business name" required value={f.name} onChange={set('name')} error={errs.name} />
           <div>
-            <Select label="Vendor type" required placeholder="Choose what best describes you" value={vtype || ''} onChange={(e) => { setVtype(e.target.value); setDocs({}); setErrs({ ...errs, vtype: '' }) }} options={Object.entries(VENDOR_TYPES).map(([id, t]) => ({ value: id, label: t.label }))} />
+            <p className="mb-2 text-[13px] font-semibold text-ink-700">Your vendor roles <span className="text-red-600">*</span></p>
+            <Chips scroll={false} multi value={vroles} onChange={(v) => { setVroles(v); setDocs({}); setErrs({ ...errs, vtype: '' }) }} options={Object.entries(VENDOR_TYPES).map(([id, t]) => ({ id, label: t.label }))} />
             {errs.vtype && <p className="mt-1 text-xs font-medium text-red-600">{errs.vtype}</p>}
-            {VT ? <div className="mt-2 rounded-xl bg-ink-50 p-3 text-xs text-ink-600"><p className="font-semibold text-ink-700">{VT.hint}</p><p className="mt-1">Needs: {VT.needs.join(' · ')}</p></div> : <p className="mt-1 text-xs text-ink-500">Your type decides the fields, documents and coverage we ask for.</p>}
+            {vroles.length ? <div className="mt-2 space-y-2 rounded-xl bg-ink-50 p-3 text-xs text-ink-600">{vroles.map((r) => <div key={r}><p className="font-semibold text-ink-700">{VENDOR_TYPES[r].label}: {VENDOR_TYPES[r].hint}</p><p className="mt-0.5">Needs: {VENDOR_TYPES[r].needs.join(' · ')}</p></div>)}<p className="font-semibold text-ink-700">A role is shown publicly only after it is verified. You can add more roles later.</p></div> : <p className="mt-1 text-xs text-ink-500">Pick every role that applies. Your roles decide the fields and documents we ask for, and you submit only what they require.</p>}
           </div>
           <Input label="Owner / authorised person" value={f.owner} onChange={set('owner')} />
           <Input label="GSTIN" required placeholder="08ABCPS1234F1Z5" maxLength={15} value={f.gstin} onChange={(e) => set('gstin')(e.target.value.toUpperCase())} error={errs.gstin} />
@@ -201,7 +203,7 @@ export function VendorRegister({ params = {} }) {
       )}
       {step === 4 && (
         <div className="space-y-4">
-          <Card><KV rows={[['Business', f.name], ['Category', c.name], ['Service types', f.subs.join(', ') || '—'], ['Areas', f.areas.join(', ')], ['GSTIN', f.gstin.toUpperCase()], ['Documents', authService.isRemote ? 'Upload from verification after profile creation' : `${Object.values(docs).filter(Boolean).length}/${docList.length} uploaded`]]} /></Card>
+          <Card><KV rows={[['Business', f.name], ['Roles', vroles.map((r) => VENDOR_TYPES[r].label).join(', ')], ['Category', c.name], ['Service types', f.subs.join(', ') || '—'], ['Areas', f.areas.join(', ')], ['GSTIN', f.gstin.toUpperCase()], ['Documents', authService.isRemote ? 'Upload from verification after profile creation' : `${Object.values(docs).filter(Boolean).length}/${docList.length} uploaded`]]} /></Card>
           <Banner tone="amber" title="What happens next">Automated checks run first; flagged items go to a human reviewer. A reviewer can approve, reject with a reason or ask for more information. <b>You can’t publish until</b> your account, a paid subscription, content review and any required verification all pass.</Banner>
           <div><Checkbox checked={consent} onChange={(v) => { setConsent(v); setErrs({}) }}>I confirm the details are accurate and consent to VendorVerse verifying my documents.</Checkbox>{errs.consent && <p className="mt-1 text-xs font-medium text-red-600">{errs.consent}</p>}</div>
         </div>

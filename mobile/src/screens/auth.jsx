@@ -1,6 +1,6 @@
 import { authService, roleForMode } from '../services/authService.js'
 import { useEffect, useRef, useState } from 'react'
-import { Phone, Mail, ShieldCheck, Store, User, Building2, ArrowRight, Lock, CalendarCheck, FileText, Globe, Search, Ban, Hourglass, Trash2, CheckCircle2, XCircle } from 'lucide-react'
+import { Phone, Mail, ShieldCheck, Store, User, ArrowRight, Lock, CalendarCheck, FileText, Globe, Search, Ban, Hourglass, Trash2, CheckCircle2, XCircle } from 'lucide-react'
 import { useApp } from '../store.jsx'
 import { useNav } from '../nav.jsx'
 import { HOME, VISIBLE_ROLES } from '../roles.js'
@@ -256,7 +256,6 @@ export function Register() {
     if (!isPhone(f.phone)) e.phone = 'Enter a valid 10-digit mobile number'
     if (f.email && !isEmail(f.email)) e.email = 'Enter a valid email address'
     if (role === 'vendor' && f.biz.trim().length < 3) e.biz = 'Enter your business name'
-    if (role === 'business' && f.biz.trim().length < 3) e.biz = 'Enter the registered company name'
     if (!f.agree) e.agree = 'Please accept to continue'
     setErrs(e)
     if (Object.keys(e).length === 0) nav.go('otp', { contact: `+91 ${f.phone}`, role, mode: 'register', name: f.name, email: f.email, biz: f.biz })
@@ -268,8 +267,8 @@ export function Register() {
           <h2 className="text-2xl font-extrabold tracking-tight">Join VendorVerse</h2>
           <p className="mt-1 text-sm text-ink-500">Choose how you want to use the marketplace.</p>
         </div>
-        <div className="grid grid-cols-1 gap-3 min-[420px]:grid-cols-3">
-          {[['customer', User, 'Customer', 'Find vendors, book services, request quotes'], ['vendor', Store, 'Customer + Vendor', 'Also list your services — one identity, switch modes anytime'], ['business', Building2, 'Business owner', 'Registered companies only — industries & manufacturers. A separate account']].map(([id, I, a, b]) => (
+        <div className="grid grid-cols-1 gap-3 min-[420px]:grid-cols-2">
+          {[['customer', User, 'Customer', 'Find vendors, book services, request quotes'], ['vendor', Store, 'Vendor', 'Sell your products or services — one identity, switch modes anytime']].map(([id, I, a, b]) => (
             <button key={id} onClick={() => setRole(id)} className={cx('rounded-2xl p-3.5 text-left ring-1 ring-inset transition', role === id ? 'bg-brand-50 ring-2 ring-brand-600' : 'bg-white ring-ink-200')}>
               <span className={cx('grid size-10 place-items-center rounded-xl', role === id ? 'bg-brand-600 text-white' : 'bg-ink-100 text-ink-500')}><I size={20} /></span>
               <p className="mt-2.5 text-sm font-bold">{a}</p>
@@ -279,14 +278,12 @@ export function Register() {
         </div>
         <Input label="Full name" required placeholder="As per ID" value={f.name} onChange={set('name')} error={errs.name} />
         {role === 'vendor' && <Input label="Business name" required placeholder="Registered business name" value={f.biz} onChange={set('biz')} error={errs.biz} />}
-        {role === 'business' && <Input label="Registered company name" required placeholder="As on incorporation certificate" value={f.biz} onChange={set('biz')} error={errs.biz} />}
         <Input label="Mobile number" required icon={Phone} inputMode="numeric" maxLength={10} placeholder="98290 00001" value={f.phone} onChange={(e) => set('phone')(e.target.value.replace(/\D/g, ''))} error={errs.phone} className="!pl-10" />
         <Input label="Email (optional)" icon={Mail} type="email" placeholder="you@company.com" value={f.email} onChange={set('email')} error={errs.email} />
         <div>
           <Checkbox checked={f.agree} onChange={(v) => set('agree')(v)}>I agree to the <b className="text-brand-700">Terms</b> and <b className="text-brand-700">Privacy Policy</b>. My phone and email stay hidden from vendors unless I choose to share them.</Checkbox>
           {errs.agree && <p className="mt-1 text-xs font-medium text-red-600">{errs.agree}</p>}
         </div>
-        {role === 'business' && <Banner tone="blue" title="Company owners only">A Business account is for the owner, founder, director or proprietor of a company that has operated for 3+ years. It is separate from a vendor account: vendors can message you, customers cannot reach you. Individual service providers should register as a vendor.</Banner>}
         {role === 'vendor' && <Banner tone="amber" title="Publication has gates">Your listings go public only when your account, a paid subscription, content review and any required verification all pass. Paying never skips a check.</Banner>}
         <Button full size="lg" onClick={submit}>Continue</Button>
         <p className="text-center text-sm text-ink-500">Already have an account? <button onClick={() => nav.replace('login')} className="font-bold text-brand-700">Log in</button></p>
