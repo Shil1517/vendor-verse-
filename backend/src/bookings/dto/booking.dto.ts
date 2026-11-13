@@ -4,159 +4,155 @@ import {
   ArrayMinSize,
   IsArray,
   IsBoolean,
-  IsDateString,
   IsIn,
+  IsISO8601,
   IsObject,
   IsOptional,
   IsString,
   IsUUID,
   Length,
-  ValidateIf,
   ValidateNested,
 } from "class-validator";
-import { IsTimeZone } from "../../listings/dto/listing.dto";
 
 const trim = ({ value }: { value: unknown }): unknown =>
   typeof value === "string" ? value.trim() : value;
 
-export const BOOKING_STATES = [
-  "draft",
-  "requested",
-  "confirmed",
-  "declined",
-  "expired",
-  "in_progress",
-  "completed_awaiting",
-  "closed",
-  "cancelled",
-] as const;
-export type BookingState = (typeof BOOKING_STATES)[number];
-
-export class SlotDto {
-  @ApiProperty({ example: "2026-12-01T09:00:00+05:30" })
-  @IsDateString()
-  slotStart!: string;
-
-  @ApiProperty({ example: "2026-12-01T11:00:00+05:30" })
-  @IsDateString()
-  slotEnd!: string;
-}
-
-export class RecurrenceDto {
-  @ApiProperty({
-    description:
-      "How the series repeats, for display and audit (for example an RRULE string). The client expands it into occurrences.",
-  })
-  @Transform(trim)
-  @IsString()
-  @Length(1, 500)
-  rule!: string;
-
-  @ApiProperty({ type: [SlotDto], description: "At least two occurrences." })
-  @IsArray()
-  @ArrayMinSize(2)
-  @ValidateNested({ each: true })
-  @Type(() => SlotDto)
-  occurrences!: SlotDto[];
-}
-
-/** F-BKG-01 / F-BKG-02 / F-BKG-03 / F-BKG-08. */
 export class CreateBookingDto {
-  @ApiProperty()
+  @ApiProperty({ format: "uuid" })
   @IsUUID()
   listingId!: string;
 
-  @ApiPropertyOptional({
-    enum: ["instant", "scheduled"],
-    default: "scheduled",
-    description:
-      "Instant needs a listing with instant booking on and a slot inside its capacity.",
-  })
-  @IsOptional()
+  @ApiProperty({ enum: ["instant", "scheduled"] })
   @IsIn(["instant", "scheduled"])
-  mode?: "instant" | "scheduled";
+  mode!: "instant" | "scheduled";
 
-  @ApiPropertyOptional({ example: "2026-12-01T09:00:00+05:30" })
-  @ValidateIf((o: CreateBookingDto) => o.slotEnd !== undefined || o.timeZone !== undefined || o.mode === "instant" || o.slotStart !== undefined)
-  @IsDateString()
-  slotStart?: string;
+  @ApiProperty({ format: "date-time" })
+  @IsISO8601()
+  slotStart!: string;
 
-  @ApiPropertyOptional({ example: "2026-12-01T11:00:00+05:30" })
-  @ValidateIf((o: CreateBookingDto) => o.slotStart !== undefined)
-  @IsDateString()
-  slotEnd?: string;
+  @ApiProperty({ format: "date-time" })
+  @IsISO8601()
+  slotEnd!: string;
 
-  @ApiPropertyOptional({ example: "Asia/Kolkata", description: "Required with a slot." })
-  @ValidateIf((o: CreateBookingDto) => o.slotStart !== undefined)
-  @IsTimeZone()
-  timeZone?: string;
-
-  @ApiPropertyOptional({ description: "Free-form request details, for example address and notes." })
-  @IsOptional()
-  @IsObject()
-  requestedTerms?: Record<string, unknown>;
-
-  @ApiPropertyOptional({
-    type: RecurrenceDto,
-    description:
-      "Creates a series of linked bookings (F-BKG-03); then slotStart/slotEnd are not used and timeZone is required.",
-  })
-  @IsOptional()
-  @ValidateNested()
-  @Type(() => RecurrenceDto)
-  recurrence?: RecurrenceDto;
-}
-
-export class DeclineBookingDto {
   @ApiProperty()
   @Transform(trim)
   @IsString()
-  @Length(1, 1000)
-  reason!: string;
+  @Length(1, 100)
+  timeZone!: string;
+
+  @ApiPropertyOptional({ format: "uuid" })
+  @IsOptional()
+  @IsUUID()
+  capacityId?: string;
+
+  @ApiPropertyOptional({ type: "object", additionalProperties: true })
+  @IsOptional()
+  @IsObject()
+  requestedTerms?: Record<string, unknown>;
 }
 
-export class CancelBookingDto {
+export class BookingOccurrenceDto {
+  @ApiProperty({ format: "date-time" })
+  @IsISO8601()
+  slotStart!: string;
+
+  @ApiProperty({ format: "date-time" })
+  @IsISO8601()
+  slotEnd!: string;
+
+  @ApiPropertyOptional({ format: "uuid" })
+  @IsOptional()
+  @IsUUID()
+  capacityId?: string;
+}
+
+export class CreateBookingSeriesDto {
+  @ApiProperty({ format: "uuid" })
+  @IsUUID()
+  listingId!: string;
+
+  @ApiProperty()
+  @Transform(trim)
+  @IsString()
+  @Length(1, 500)
+  recurrenceRule!: string;
+
+  @ApiProperty()
+  @Transform(trim)
+  @IsString()
+  @Length(1, 100)
+  timeZone!: string;
+
+  @ApiProperty({ type: "array", items: { type: "object" } })
+  @IsArray()
+  @ArrayMinSize(1)
+  @ValidateNested({ each: true })
+  @Type(() => BookingOccurrenceDto)
+  occurrences!: BookingOccurrenceDto[];
+
+  @ApiPropertyOptional({ type: "object", additionalProperties: true })
+  @IsOptional()
+  @IsObject()
+  requestedTerms?: Record<string, unknown>;
+}
+
+export class BookingActionDto {
+  @ApiProperty({ enum: ["accept", "decline", "start", "complete"] })
+  @IsIn(["accept", "decline", "start", "complete"])
+  action!: "accept" | "decline" | "start" | "complete";
+
   @ApiPropertyOptional()
   @IsOptional()
   @Transform(trim)
   @IsString()
-  @Length(1, 1000)
+  @Length(1, 2000)
   reason?: string;
 
-  @ApiPropertyOptional({
-    description:
-      "Customer only, for a booking in a series: also cancel every later open occurrence (D-011). Default: this occurrence only.",
-  })
+  @ApiPropertyOptional({ format: "uuid" })
   @IsOptional()
-  @IsBoolean()
-  cancelSeries?: boolean;
+  @IsUUID()
+  capacityId?: string;
 }
 
-/** F-BKG-04: the original terms stay in force until the other side accepts. */
-export class ProposeModificationDto {
-  @ApiProperty({ description: "The changed terms, merged over the current ones when accepted." })
+export class CancelBookingDto {
+  @ApiProperty()
+  @Transform(trim)
+  @IsString()
+  @Length(1, 2000)
+  reason!: string;
+
+  @ApiPropertyOptional({ enum: ["occurrence", "series"] })
+  @IsOptional()
+  @IsIn(["occurrence", "series"])
+  scope?: "occurrence" | "series";
+}
+
+export class ProposeBookingModificationDto {
+  @ApiProperty({ type: "object", additionalProperties: true })
   @IsObject()
   proposedTerms!: Record<string, unknown>;
-
-  @ApiPropertyOptional()
-  @ValidateIf((o: ProposeModificationDto) => o.slotEnd !== undefined || o.timeZone !== undefined)
-  @IsDateString()
-  slotStart?: string;
-
-  @ApiPropertyOptional()
-  @ValidateIf((o: ProposeModificationDto) => o.slotStart !== undefined)
-  @IsDateString()
-  slotEnd?: string;
-
-  @ApiPropertyOptional()
-  @ValidateIf((o: ProposeModificationDto) => o.slotStart !== undefined)
-  @IsTimeZone()
-  timeZone?: string;
 }
 
-export class ListBookingsQueryDto {
-  @ApiPropertyOptional({ enum: BOOKING_STATES })
-  @IsOptional()
-  @IsIn(BOOKING_STATES)
-  state?: BookingState;
+export class DecideBookingModificationDto {
+  @ApiProperty()
+  @IsBoolean()
+  accept!: boolean;
+}
+
+export class ReportBookingCompletionDto {
+  @ApiProperty({ format: "uuid" })
+  @IsUUID()
+  supportCaseId!: string;
+}
+
+export class ResolveBookingConflictsDto {
+  @ApiProperty({ format: "uuid" })
+  @IsUUID()
+  keepBookingId!: string;
+
+  @ApiProperty({ type: [String], format: "uuid" })
+  @IsArray()
+  @ArrayMinSize(1)
+  @IsUUID("all", { each: true })
+  cancelBookingIds!: string[];
 }

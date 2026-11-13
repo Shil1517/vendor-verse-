@@ -583,39 +583,39 @@ export function createApiAuthService({ baseUrl, fetchImpl = (...args) => globalT
    * 409 means the instant slot was taken by someone else.
    */
   async function createBooking(body, idempotencyKey = newKey()) {
-    const r = await authed('/bookings', { method: 'POST', body, headers: { 'idempotency-key': idempotencyKey } })
+    const r = await authed('/remote-bookings', { method: 'POST', body, headers: { 'idempotency-key': idempotencyKey } })
     return r.status === 201 || r.status === 200 ? { ok: true, bookings: r.data.bookings } : bookingFail(r)
   }
 
   async function listMyBookings(state) {
-    const r = await authed(`/bookings${state ? `?state=${encodeURIComponent(state)}` : ''}`, { method: 'GET' })
+    const r = await authed(`/remote-bookings${state ? `?state=${encodeURIComponent(state)}` : ''}`, { method: 'GET' })
     return r.status === 200 ? { ok: true, bookings: r.data.bookings } : bookingFail(r)
   }
 
   async function listVendorBookings(vendorId, state) {
-    const r = await authed(`/vendors/${encodeURIComponent(vendorId)}/bookings${state ? `?state=${encodeURIComponent(state)}` : ''}`, { method: 'GET' })
+    const r = await authed(`/vendors/${encodeURIComponent(vendorId)}/remote-bookings${state ? `?state=${encodeURIComponent(state)}` : ''}`, { method: 'GET' })
     return r.status === 200 ? { ok: true, bookings: r.data.bookings } : bookingFail(r)
   }
 
   async function getBooking(id) {
-    const r = await authed(`/bookings/${encodeURIComponent(id)}`, { method: 'GET' })
+    const r = await authed(`/remote-bookings/${encodeURIComponent(id)}`, { method: 'GET' })
     return r.status === 200 ? { ok: true, booking: r.data } : bookingFail(r)
   }
 
   /** action: accept | decline (needs reason) | start | complete | confirm | cancel (reason?, cancelSeries?) */
   async function bookingAction(id, action, body) {
-    const r = await authed(`/bookings/${encodeURIComponent(id)}/${action}`, { method: 'POST', body })
+    const r = await authed(`/remote-bookings/${encodeURIComponent(id)}/${action}`, { method: 'POST', body })
     return r.status === 200 ? { ok: true, booking: r.data } : bookingFail(r)
   }
 
   async function proposeBookingModification(id, body) {
-    const r = await authed(`/bookings/${encodeURIComponent(id)}/modifications`, { method: 'POST', body })
+    const r = await authed(`/remote-bookings/${encodeURIComponent(id)}/modifications`, { method: 'POST', body })
     return r.status === 201 || r.status === 200 ? { ok: true, booking: r.data } : bookingFail(r)
   }
 
   /** decision: accept | decline | withdraw */
   async function decideBookingModification(id, modificationId, decision) {
-    const r = await authed(`/bookings/${encodeURIComponent(id)}/modifications/${encodeURIComponent(modificationId)}/${decision}`, { method: 'POST' })
+    const r = await authed(`/remote-bookings/${encodeURIComponent(id)}/modifications/${encodeURIComponent(modificationId)}/${decision}`, { method: 'POST' })
     return r.status === 200 ? { ok: true, booking: r.data } : bookingFail(r)
   }
 

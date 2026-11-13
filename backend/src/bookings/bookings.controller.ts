@@ -3,21 +3,14 @@ import {
   Controller,
   Get,
   Headers,
-  HttpCode,
-  HttpStatus,
   Param,
   ParseUUIDPipe,
   Post,
-  Query,
   UseGuards,
 } from "@nestjs/common";
 import {
-  ApiBadRequestResponse,
   ApiBearerAuth,
-  ApiConflictResponse,
   ApiCreatedResponse,
-  ApiForbiddenResponse,
-  ApiHeader,
   ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
@@ -29,82 +22,64 @@ import {
   AuthenticatedUser,
   CurrentUser,
 } from "../auth/authenticated-user.decorator";
-import { BookingsService } from "./bookings.service";
 import {
+  BookingActionDto,
   CancelBookingDto,
   CreateBookingDto,
-  DeclineBookingDto,
-  ListBookingsQueryDto,
-  ProposeModificationDto,
+  CreateBookingSeriesDto,
+  DecideBookingModificationDto,
+  ProposeBookingModificationDto,
+  ReportBookingCompletionDto,
+  ResolveBookingConflictsDto,
 } from "./dto/booking.dto";
+import { BookingsService } from "./bookings.service";
 
 @Controller()
 @UseGuards(AccessTokenGuard)
 @ApiTags("Bookings")
 @ApiBearerAuth()
 @ApiUnauthorizedResponse({ description: "Access token is invalid or expired." })
-@ApiNotFoundResponse({ description: "No such booking for this user." })
 export class BookingsController {
   constructor(private readonly bookings: BookingsService) {}
 
   @Post("bookings")
-  @ApiOperation({
-    summary: "Create a booking (F-BKG-01, F-BKG-02, F-BKG-03, F-BKG-08)",
-    description:
-      "Scheduled bookings start as requested. Instant bookings (listings with instant booking on) reserve capacity atomically and start confirmed. A recurrence creates linked occurrences. Send an Idempotency-Key: a double tap or retry returns the same booking(s). Terms and policy are snapshotted.",
-  })
-  @ApiHeader({ name: "Idempotency-Key", required: false })
-  @ApiCreatedResponse({
-    description: "The booking, or every occurrence of a series.",
-  })
-  @ApiBadRequestResponse({ description: "Validation failed." })
-  @ApiConflictResponse({
-    description: "The instant slot is no longer available.",
-  })
+  @ApiOperation({ summary: "Create an instant or scheduled booking (F-BKG-01/02/08)" })
+  @ApiCreatedResponse({ description: "The created booking." })
   create(
     @CurrentUser() user: AuthenticatedUser,
+    @Headers("idempotency-key") key: string | undefined,
     @Body() request: CreateBookingDto,
-    @Headers("idempotency-key") idempotencyKey?: string,
   ) {
-    return this.bookings.create(
-      user,
-      request,
-      idempotencyKey?.trim() || undefined,
-    );
+    return this.bookings.create(user, request, key);
   }
 
-  @Get("bookings")
-  @ApiOperation({ summary: "My bookings as a customer (F-BKG-10)" })
-  @ApiOkResponse({ description: "Newest first." })
-  async list(
+  @Post("booking-series")
+  @ApiOperation({ summary: "Create a recurring series of independent booking occurrences (F-BKG-03)" })
+  createSeries(
     @CurrentUser() user: AuthenticatedUser,
-    @Query() query: ListBookingsQueryDto,
+    @Headers("idempotency-key") key: string | undefined,
+    @Body() request: CreateBookingSeriesDto,
   ) {
-    return { bookings: await this.bookings.listForCustomer(user, query.state) };
+    return this.bookings.createSeries(user, request, key);
+  }
+
+  @Get("me/bookings")
+  @ApiOperation({ summary: "List the caller's bookings" })
+  listMine(@CurrentUser() user: AuthenticatedUser) {
+    return this.bookings.listMine(user);
   }
 
   @Get("vendors/:vendorId/bookings")
-  @ApiOperation({
-    summary: "Vendor booking inbox (F-BKG-09)",
-    description:
-      "Only this vendor's bookings; competing requests are never visible.",
-  })
-  async listForVendor(
+  @ApiOperation({ summary: "List bookings delivered to an owned vendor (F-BKG-09)" })
+  listForVendor(
     @CurrentUser() user: AuthenticatedUser,
     @Param("vendorId", ParseUUIDPipe) vendorId: string,
-    @Query() query: ListBookingsQueryDto,
   ) {
-    return {
-      bookings: await this.bookings.listForVendor(user, vendorId, query.state),
-    };
+    return this.bookings.listForVendor(user, vendorId);
   }
 
   @Get("bookings/:bookingId")
-  @ApiOperation({
-    summary: "Booking detail with history, terms snapshot and conflicts",
-    description:
-      "conflictingBookingIds lists the customer's overlapping bookings; nothing is auto-cancelled (F-BKG-07).",
-  })
+  @ApiNotFoundResponse({ description: "No such booking for this user." })
   get(
     @CurrentUser() user: AuthenticatedUser,
     @Param("bookingId", ParseUUIDPipe) bookingId: string,
@@ -112,74 +87,24 @@ export class BookingsController {
     return this.bookings.get(user, bookingId);
   }
 
-  @Post("bookings/:bookingId/accept")
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: "Vendor accepts a requested booking" })
-  @ApiForbiddenResponse({ description: "Only the vendor can do this." })
-  @ApiConflictResponse({
-    description: "The booking is not in a state that allows it.",
-  })
-  accept(
+  @Get("bookings/:bookingId/events")
+  events(
     @CurrentUser() user: AuthenticatedUser,
     @Param("bookingId", ParseUUIDPipe) bookingId: string,
   ) {
-    return this.bookings.transition(user, bookingId, "accept");
+    return this.bookings.events(user, bookingId);
   }
 
-  @Post("bookings/:bookingId/decline")
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: "Vendor declines a requested booking" })
-  decline(
+  @Post("bookings/:bookingId/actions")
+  act(
     @CurrentUser() user: AuthenticatedUser,
     @Param("bookingId", ParseUUIDPipe) bookingId: string,
-    @Body() request: DeclineBookingDto,
+    @Body() request: BookingActionDto,
   ) {
-    return this.bookings.decline(user, bookingId, request);
-  }
-
-  @Post("bookings/:bookingId/start")
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: "Vendor marks a confirmed booking in progress" })
-  start(
-    @CurrentUser() user: AuthenticatedUser,
-    @Param("bookingId", ParseUUIDPipe) bookingId: string,
-  ) {
-    return this.bookings.transition(user, bookingId, "start");
-  }
-
-  @Post("bookings/:bookingId/complete")
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({
-    summary: "Vendor marks the work complete (F-BKG-06)",
-    description:
-      "The customer then has 7 days to confirm or report; silence closes the booking.",
-  })
-  complete(
-    @CurrentUser() user: AuthenticatedUser,
-    @Param("bookingId", ParseUUIDPipe) bookingId: string,
-  ) {
-    return this.bookings.transition(user, bookingId, "complete");
-  }
-
-  @Post("bookings/:bookingId/confirm")
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({
-    summary: "Customer confirms completion and closes the booking",
-  })
-  confirm(
-    @CurrentUser() user: AuthenticatedUser,
-    @Param("bookingId", ParseUUIDPipe) bookingId: string,
-  ) {
-    return this.bookings.transition(user, bookingId, "confirm");
+    return this.bookings.act(user, bookingId, request);
   }
 
   @Post("bookings/:bookingId/cancel")
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({
-    summary: "Cancel, by customer or vendor (F-BKG-05)",
-    description:
-      "No automatic penalty; the outcome is recorded. cancelSeries (customer, series bookings) also cancels later open occurrences (D-011).",
-  })
   cancel(
     @CurrentUser() user: AuthenticatedUser,
     @Param("bookingId", ParseUUIDPipe) bookingId: string,
@@ -189,69 +114,46 @@ export class BookingsController {
   }
 
   @Post("bookings/:bookingId/modifications")
-  @ApiOperation({
-    summary: "Propose a change (F-BKG-04)",
-    description:
-      "The original terms stay in force until the other side accepts.",
-  })
-  @ApiCreatedResponse({ description: "The booking with its open proposal." })
-  propose(
+  proposeModification(
     @CurrentUser() user: AuthenticatedUser,
     @Param("bookingId", ParseUUIDPipe) bookingId: string,
-    @Body() request: ProposeModificationDto,
+    @Body() request: ProposeBookingModificationDto,
   ) {
     return this.bookings.proposeModification(user, bookingId, request);
   }
 
-  @Post("bookings/:bookingId/modifications/:modificationId/accept")
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({
-    summary: "Accept the other side's proposal; the terms change now",
-  })
-  acceptModification(
+  @Post("booking-modifications/:modificationId/decision")
+  decideModification(
     @CurrentUser() user: AuthenticatedUser,
-    @Param("bookingId", ParseUUIDPipe) bookingId: string,
     @Param("modificationId", ParseUUIDPipe) modificationId: string,
+    @Body() request: DecideBookingModificationDto,
   ) {
-    return this.bookings.decideModification(
-      user,
-      bookingId,
-      modificationId,
-      "accepted",
-    );
+    return this.bookings.decideModification(user, modificationId, request);
   }
 
-  @Post("bookings/:bookingId/modifications/:modificationId/decline")
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({
-    summary: "Decline the other side's proposal; the original terms stand",
-  })
-  declineModification(
+  @Post("bookings/:bookingId/confirm-completion")
+  confirmCompletion(
     @CurrentUser() user: AuthenticatedUser,
     @Param("bookingId", ParseUUIDPipe) bookingId: string,
-    @Param("modificationId", ParseUUIDPipe) modificationId: string,
   ) {
-    return this.bookings.decideModification(
-      user,
-      bookingId,
-      modificationId,
-      "declined",
-    );
+    return this.bookings.confirmCompletion(user, bookingId);
   }
 
-  @Post("bookings/:bookingId/modifications/:modificationId/withdraw")
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: "Withdraw your own proposal" })
-  withdrawModification(
+  @Post("bookings/:bookingId/report-completion")
+  reportCompletion(
     @CurrentUser() user: AuthenticatedUser,
     @Param("bookingId", ParseUUIDPipe) bookingId: string,
-    @Param("modificationId", ParseUUIDPipe) modificationId: string,
+    @Body() request: ReportBookingCompletionDto,
   ) {
-    return this.bookings.decideModification(
-      user,
-      bookingId,
-      modificationId,
-      "withdrawn",
-    );
+    return this.bookings.reportCompletion(user, bookingId, request);
+  }
+
+  @Post("bookings/conflicts/resolve")
+  @ApiOkResponse({ description: "Explicitly keeps one confirmation and cancels the caller-selected conflicts." })
+  resolveConflicts(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() request: ResolveBookingConflictsDto,
+  ) {
+    return this.bookings.resolveConflicts(user, request);
   }
 }

@@ -1,0 +1,458 @@
+openapi: 3.1.0
+info:
+  title: VendorVerse RFQ and Quotation API
+  version: 0.1.0
+  summary: Authenticated RFQ, revision, quote, and acceptance operations.
+  description: |
+    RFQ and quote reads are limited to the requesting customer and vendors
+    explicitly invited to the RFQ. Quote acceptance locks the RFQ, snapshots
+    the accepted terms, creates the configured booking, work order, contract, or
+    purchase order in the same transaction, and marks other submitted quotes
+    unsuccessful. Goods quotes require line items. Attachments must be uploaded,
+    clean files with the rfq-attachment purpose.
+  x-feature-ids:
+    - F-RFQ-01
+    - F-RFQ-02
+    - F-RFQ-03
+    - F-RFQ-04
+    - F-RFQ-05
+    - F-RFQ-06
+    - F-GDS-03
+    - F-CON-01
+  x-change-log:
+    - date-time: "2026-11-13 12:44"
+      updated-by: Amit
+      change: "Modified: RFQ fulfillment handoff"
+      reason: "Document category-configured service fulfillment and goods quote-line validation."
+    - date-time: "2026-11-13 11:15"
+      updated-by: Amit
+      change: "Added: RFQ and quotation API"
+      reason: "Establish the first transaction API slice before universal search."
+servers:
+  - url: /v1
+    description: Versioned API base path
+security:
+  - bearerAuth: []
+tags:
+  - name: RFQs
+    description: Customer-owned RFQ creation and revision.
+  - name: Quotes
+    description: Invited-vendor quotation and customer acceptance.
+paths:
+  /rfqs:
+    post:
+      operationId: createRfq
+      tags: [RFQs]
+      summary: Create an RFQ draft
+      description: Pins the current active category configuration version.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateRfq"
+      responses:
+        "201":
+          description: The created RFQ draft.
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /me/rfqs:
+    get:
+      operationId: listMyRfqs
+      tags: [RFQs]
+      summary: List RFQs created by the current customer
+      responses:
+        "200":
+          description: The caller's RFQs.
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /vendors/{vendorId}/rfqs:
+    get:
+      operationId: listVendorRfqs
+      tags: [RFQs]
+      summary: List RFQs delivered to an owned vendor
+      parameters:
+        - $ref: "#/components/parameters/VendorId"
+      responses:
+        "200":
+          description: Invited RFQs and their current revisions.
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /rfqs/{rfqId}:
+    get:
+      operationId: getRfq
+      tags: [RFQs]
+      summary: Get an RFQ as its customer or invited vendor
+      parameters:
+        - $ref: "#/components/parameters/RfqId"
+      responses:
+        "200":
+          description: The current RFQ revision.
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /rfqs/{rfqId}/open:
+    post:
+      operationId: openRfq
+      tags: [RFQs]
+      summary: Open a draft RFQ and deliver it to eligible vendors
+      parameters:
+        - $ref: "#/components/parameters/RfqId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OpenRfq"
+      responses:
+        "200":
+          description: The opened RFQ.
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "409":
+          $ref: "#/components/responses/Conflict"
+  /rfqs/{rfqId}/revisions:
+    post:
+      operationId: reviseRfq
+      tags: [RFQs]
+      summary: Create an RFQ revision
+      parameters:
+        - $ref: "#/components/parameters/RfqId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReviseRfq"
+      responses:
+        "200":
+          description: The RFQ with its new current revision.
+        "409":
+          $ref: "#/components/responses/Conflict"
+  /rfqs/{rfqId}/extend-deadline:
+    post:
+      operationId: extendRfqDeadline
+      tags: [RFQs]
+      summary: Extend an open RFQ deadline
+      parameters:
+        - $ref: "#/components/parameters/RfqId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [quoteDeadlineAt]
+              properties:
+                quoteDeadlineAt:
+                  type: string
+                  format: date-time
+      responses:
+        "200":
+          description: The RFQ with the extended deadline.
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "409":
+          $ref: "#/components/responses/Conflict"
+  /rfqs/{rfqId}/quotes:
+    get:
+      operationId: listRfqQuotes
+      tags: [Quotes]
+      summary: List quotes visible to the caller
+      description: Customers see all quotes; an invited vendor sees only its quote.
+      parameters:
+        - $ref: "#/components/parameters/RfqId"
+      responses:
+        "200":
+          description: Authorized quotes for the RFQ.
+        "404":
+          $ref: "#/components/responses/NotFound"
+    post:
+      operationId: submitRfqQuote
+      tags: [Quotes]
+      summary: Submit a quote for an invited vendor
+      parameters:
+        - $ref: "#/components/parameters/RfqId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Quote"
+      responses:
+        "201":
+          description: The submitted quote.
+        "409":
+          $ref: "#/components/responses/Conflict"
+  /quotes/{quoteId}/revisions:
+    post:
+      operationId: reviseQuote
+      tags: [Quotes]
+      summary: Revise a submitted quote
+      parameters:
+        - $ref: "#/components/parameters/QuoteId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Quote"
+      responses:
+        "200":
+          description: The quote with its new current revision.
+        "409":
+          $ref: "#/components/responses/Conflict"
+  /quotes/{quoteId}/withdraw:
+    post:
+      operationId: withdrawQuote
+      tags: [Quotes]
+      summary: Withdraw a submitted quote
+      parameters:
+        - $ref: "#/components/parameters/QuoteId"
+      responses:
+        "200":
+          description: The quote is withdrawn.
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /rfqs/{rfqId}/quotes/{quoteId}/accept:
+    post:
+      operationId: acceptRfqQuote
+      tags: [Quotes]
+      summary: Accept one quote and snapshot its terms
+      parameters:
+        - $ref: "#/components/parameters/RfqId"
+        - $ref: "#/components/parameters/QuoteId"
+      responses:
+        "200":
+          description: Accepted terms snapshot and selected quote.
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+  /rfqs/{rfqId}/expire:
+    post:
+      operationId: expireRfq
+      tags: [RFQs]
+      summary: Expire an RFQ after its deadline
+      parameters:
+        - $ref: "#/components/parameters/RfqId"
+      responses:
+        "200":
+          description: RFQ and outstanding quotes expired.
+        "409":
+          $ref: "#/components/responses/Conflict"
+  /rfqs/{rfqId}/vendor-suggestions:
+    get:
+      operationId: getRfqVendorSuggestions
+      tags: [RFQs]
+      summary: List eligible uninvited vendors after expiry with no quotes
+      parameters:
+        - $ref: "#/components/parameters/RfqId"
+      responses:
+        "200":
+          description: Eligible vendor IDs; no ranking or pricing is inferred.
+        "409":
+          $ref: "#/components/responses/Conflict"
+  /me/work-orders:
+    get:
+      operationId: listMyWorkOrders
+      tags: [Work orders]
+      summary: List work orders visible to the caller
+      responses:
+        "200":
+          description: Customer and owned-vendor work orders.
+  /vendors/{vendorId}/work-orders:
+    get:
+      operationId: listVendorWorkOrders
+      tags: [Work orders]
+      parameters:
+        - $ref: "#/components/parameters/VendorId"
+      responses:
+        "200":
+          description: Work orders for an owned vendor.
+  /work-orders/{workOrderId}:
+    get:
+      operationId: getWorkOrder
+      tags: [Work orders]
+      parameters:
+        - $ref: "#/components/parameters/WorkOrderId"
+      responses:
+        "200":
+          description: Work order visible to the customer or vendor.
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /work-orders/{workOrderId}/actions:
+    post:
+      operationId: actOnWorkOrder
+      tags: [Work orders]
+      parameters:
+        - $ref: "#/components/parameters/WorkOrderId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [action]
+              properties:
+                action:
+                  type: string
+                  enum: [start, complete, confirm, cancel]
+      responses:
+        "200":
+          description: Work-order state transition applied.
+        "409":
+          $ref: "#/components/responses/Conflict"
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  parameters:
+    RfqId:
+      name: rfqId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    QuoteId:
+      name: quoteId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    VendorId:
+      name: vendorId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    WorkOrderId:
+      name: workOrderId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+  schemas:
+    CreateRfq:
+      type: object
+      required: [categoryId, kind, requirements]
+      properties:
+        categoryId:
+          type: string
+          format: uuid
+        kind:
+          type: string
+          enum: [service, goods]
+        requirements:
+          type: object
+          additionalProperties: true
+        fileIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+    OpenRfq:
+      type: object
+      required: [quoteDeadlineAt, vendorIds]
+      properties:
+        quoteDeadlineAt:
+          type: string
+          format: date-time
+        vendorIds:
+          type: array
+          minItems: 1
+          items:
+            type: string
+            format: uuid
+    ReviseRfq:
+      type: object
+      required: [requirements, changeReason]
+      properties:
+        requirements:
+          type: object
+          additionalProperties: true
+        quoteDeadlineAt:
+          type: string
+          format: date-time
+        changeReason:
+          type: string
+          minLength: 1
+        fileIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+    Quote:
+      type: object
+      required: [currency, totalMinor]
+      properties:
+        vendorId:
+          type: string
+          format: uuid
+        currency:
+          type: string
+          pattern: "^[A-Z]{3}$"
+        totalMinor:
+          type: integer
+          minimum: 0
+        scope:
+          type: string
+        inclusions:
+          type: array
+          items:
+            type: string
+        exclusions:
+          type: array
+          items:
+            type: string
+        timeline:
+          type: object
+          additionalProperties: true
+        terms:
+          type: object
+          additionalProperties: true
+        validUntil:
+          type: string
+          format: date-time
+        lines:
+          type: array
+          minItems: 1
+          items:
+            type: object
+            required: [description, quantity, unitPriceMinor, lineTotalMinor]
+            properties:
+              description:
+                type: string
+                minLength: 1
+              quantity:
+                type: number
+                exclusiveMinimum: 0
+                multipleOf: 0.001
+              unit:
+                type: string
+              unitPriceMinor:
+                type: integer
+                minimum: 0
+              lineTotalMinor:
+                type: integer
+                minimum: 0
+  responses:
+    BadRequest:
+      description: Request validation failed.
+    Unauthorized:
+      description: Access token is invalid or expired.
+    NotFound:
+      description: Resource not found for this user.
+    Conflict:
+      description: The requested state transition is not allowed.

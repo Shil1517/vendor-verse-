@@ -1,0 +1,157 @@
+openapi: 3.1.0
+info:
+  title: VendorVerse Purchase Order API
+  version: 0.1.0
+  summary: Goods purchase-order lifecycle, shipment, and dispute operations.
+  description: |
+    Purchase orders are created transactionally from accepted goods RFQ quotes
+    and their immutable terms. The platform records the parties' lifecycle and
+    shipment information only; it does not initiate, hold, or move money.
+    The payment-failed state remains OPEN (O-06) and is not implemented.
+  x-feature-ids: [F-GDS-03, F-GDS-04, F-GDS-06]
+  x-change-log:
+    - date-time: "2026-11-13 12:44"
+      updated-by: Amit
+      change: "Modified: purchase-order API contract"
+      reason: "Clarify the accepted-goods-RFQ origin and that PO dispute outcomes do not move funds."
+    - date-time: "2026-11-13 11:46"
+      updated-by: Amit
+      change: "Added: Purchase Order API"
+      reason: "Implement Phase 1 goods order workflows while excluding OPEN payment-failed semantics."
+servers:
+  - url: /v1
+security:
+  - bearerAuth: []
+tags:
+  - name: Purchase orders
+paths:
+  /me/purchase-orders:
+    get:
+      operationId: listMyPurchaseOrders
+      tags: [Purchase orders]
+      responses:
+        "200":
+          description: Orders for the customer or an owned vendor.
+  /vendors/{vendorId}/purchase-orders:
+    get:
+      operationId: listVendorPurchaseOrders
+      tags: [Purchase orders]
+      parameters:
+        - $ref: "#/components/parameters/VendorId"
+      responses:
+        "200":
+          description: Orders for the owned buyer or supplier vendor.
+  /purchase-orders/{orderId}:
+    get:
+      operationId: getPurchaseOrder
+      tags: [Purchase orders]
+      parameters:
+        - $ref: "#/components/parameters/OrderId"
+      responses:
+        "200":
+          description: Order, immutable terms, line items, and shipments.
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /purchase-orders/{orderId}/actions:
+    post:
+      operationId: actOnPurchaseOrder
+      tags: [Purchase orders]
+      parameters:
+        - $ref: "#/components/parameters/OrderId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [action]
+              properties:
+                action:
+                  type: string
+                  enum: [accept, reject, process, ship, deliver, complete, cancel, delivery_exception]
+                reason:
+                  type: string
+                deliveryRegion:
+                  type: string
+                carrier:
+                  type: string
+                trackingReference:
+                  type: string
+      responses:
+        "200":
+          description: Purchase-order transition applied.
+        "409":
+          $ref: "#/components/responses/Conflict"
+  /purchase-orders/{orderId}/disputes:
+    post:
+      operationId: openPurchaseOrderDispute
+      tags: [Purchase orders]
+      parameters:
+        - $ref: "#/components/parameters/OrderId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [supportCaseId]
+              properties:
+                supportCaseId:
+                  type: string
+                  format: uuid
+      responses:
+        "201":
+          description: Existing support case linked to the order.
+  /purchase-order-disputes/{disputeId}/resolve:
+    post:
+      operationId: resolvePurchaseOrderDispute
+      tags: [Purchase orders]
+      parameters:
+        - $ref: "#/components/parameters/DisputeId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [outcome]
+              properties:
+                outcome:
+                  type: string
+                  enum: [replace, credit_note, partial_refund, close]
+      responses:
+        "200":
+          description: Agreed dispute outcome recorded without platform settlement.
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  parameters:
+    OrderId:
+      name: orderId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    VendorId:
+      name: vendorId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    DisputeId:
+      name: disputeId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+  responses:
+    NotFound:
+      description: Resource not found for this user.
+    Conflict:
+      description: Requested state transition is not available.

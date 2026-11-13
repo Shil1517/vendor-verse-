@@ -414,7 +414,7 @@ describe('discovery and booking calls (F-DSC-02/05/07, F-BKG-*)', () => {
   })
 
   it('creates a booking with the caller-supplied idempotency key, so a retry is one booking', async () => {
-    const { service, calls } = signedIn({ 'POST /bookings': reply(201, { bookings: [{ id: 'b1', state: 'requested' }] }) })
+    const { service, calls } = signedIn({ 'POST /remote-bookings': reply(201, { bookings: [{ id: 'b1', state: 'requested' }] }) })
     const body = { listingId: 'l1', slotStart: '2026-12-01T09:00:00Z', slotEnd: '2026-12-01T10:00:00Z', timeZone: 'Asia/Kolkata' }
     await service.createBooking(body, 'key-1')
     await service.createBooking(body, 'key-1')
@@ -423,19 +423,19 @@ describe('discovery and booking calls (F-DSC-02/05/07, F-BKG-*)', () => {
   })
 
   it('tells a lost instant slot (409) apart from other failures', async () => {
-    const { service } = signedIn({ 'POST /bookings': [reply(409, { detail: 'That slot is no longer available.' }), reply(500, {})] })
+    const { service } = signedIn({ 'POST /remote-bookings': [reply(409, { detail: 'That slot is no longer available.' }), reply(500, {})] })
     expect(await service.createBooking({ listingId: 'l1' })).toMatchObject({ ok: false, status: 409, code: 'CONFLICT', message: 'That slot is no longer available.' })
     expect(await service.createBooking({ listingId: 'l1' })).toMatchObject({ ok: false, code: 'PROVIDER_ERROR' })
   })
 
   it('lists, reads and acts on bookings', async () => {
     const { service, calls } = signedIn({
-      'GET /bookings': reply(200, { bookings: [{ id: 'b1' }] }),
-      'GET /vendors/v1/bookings': reply(200, { bookings: [{ id: 'b2' }] }),
-      'GET /bookings/b1': reply(200, { id: 'b1', events: [] }),
-      'POST /bookings/b1/decline': reply(200, { id: 'b1', state: 'declined' }),
-      'POST /bookings/b1/modifications': reply(201, { id: 'b1', openModification: { id: 'm1' } }),
-      'POST /bookings/b1/modifications/m1/accept': reply(200, { id: 'b1' }),
+      'GET /remote-bookings': reply(200, { bookings: [{ id: 'b1' }] }),
+      'GET /vendors/v1/remote-bookings': reply(200, { bookings: [{ id: 'b2' }] }),
+      'GET /remote-bookings/b1': reply(200, { id: 'b1', events: [] }),
+      'POST /remote-bookings/b1/decline': reply(200, { id: 'b1', state: 'declined' }),
+      'POST /remote-bookings/b1/modifications': reply(201, { id: 'b1', openModification: { id: 'm1' } }),
+      'POST /remote-bookings/b1/modifications/m1/accept': reply(200, { id: 'b1' }),
     })
     expect((await service.listMyBookings('requested')).bookings).toEqual([{ id: 'b1' }])
     expect((await service.listVendorBookings('v1')).bookings).toEqual([{ id: 'b2' }])

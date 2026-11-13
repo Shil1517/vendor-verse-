@@ -56,7 +56,7 @@ Read order: [README](README.md) · this file · [02-phase-scope.md](02-phase-sco
 |---|---|---|---|---|
 | F-TAX-01 | Browse industries, categories, subcategories | P1 | Reads the live taxonomy. All 30 industry nodes and their documented example subcategories are shown directly in the browse view without expanding an industry; actual categories without eligible listings in the market are hidden unless admin marks "always show". | §6, GM-04, D-017 |
 | F-TAX-02 | Admin taxonomy builder | P1 | Create, edit, reorder, merge, retire categories without a release. Lifecycle Draft, Active, Restricted, Retired. Retired categories keep history. Super Admin only. | GM-11, GM-16, GM-18 |
-| F-TAX-03 | Per-category configuration | P1 | Attribute schema, validation, booking modes, availability model, response deadline, cancellation policy, RFQ schema, verification rules, country availability, contract eligibility. Versioned; existing deals keep their snapshot. | §6.2, GM-12 |
+| F-TAX-03 | Per-category configuration | P1 | Attribute schema, validation, booking modes, availability model, response deadline, cancellation policy, RFQ schema, verification rules, country availability, contract eligibility, and service-RFQ fulfillment type (`rfqFulfillmentType`: booking, work_order, or contract). Versioned; existing deals keep their snapshot. Goods RFQs create purchase orders. | §6.2, GM-12 |
 | F-TAX-04 | Vendor suggests a category | P1 | Proposal enters an admin queue; vendor lists under the nearest approved category meanwhile; never auto-published. | GM-14, SC-046 |
 | F-TAX-05 | Core Phase 1 industries (10) | P1 | Home and household, Construction, Events, Professional, IT and digital, Wholesale and distribution, Logistics, Automotive, Health/education/wellness, Agriculture/energy/environment. Five groups remain the supply-building priority. The complete 30-industry taxonomy is browseable in Phase 1; listing workflows remain configured for the existing 10 industry groups (D-017). | §6.1 |
 | F-TAX-06 | Additional industries (9; formerly Phase 2) | P1 | Manufacturing and OEM, Textiles, Chemicals, Food processing, Education providers, Finance and real estate, Marketing and media, Power and utilities, Packaging and printing. Browseable with the documented example subcategories in Phase 1 (D-017); existing listing workflow configuration is unchanged. | §6.1 |
@@ -87,7 +87,7 @@ Read order: [README](README.md) · this file · [02-phase-scope.md](02-phase-sco
 | ID | Feature | Phase | Description and rules | PRS ref |
 |---|---|---|---|---|
 | F-DSC-01 | Home with search, intent tabs and category explorer | P1 | Industry-neutral brand, "what" and "where" search, region/language selectors, clearly labelled sponsored blocks. | §26.1 |
-| F-DSC-02 | Search, filters, ranking, pagination | P1 | Coverage match, ineligible listings excluded, organic ranking (plan tier is not a signal), "why this matched" label. | §7, GM-21, GM-22 |
+| F-DSC-02 | Universal search, filters, ranking, pagination | P1 | One search spans public vendors, products, services and categories plus the caller's authorized private contracts, RFQs, bookings and purchase orders (D-025). Private results are visible only to a transaction party or an authorized vendor owner. Coverage match, ineligible listings excluded, organic ranking (plan tier is not a signal), and "why this matched" label. | §7, GM-21, GM-22, D-025 |
 | F-DSC-03 | Search error, offline and no-result flows | P1 | Recoverable states; broader-area suggestions are labelled as mismatches. | §7.3, SC-002 |
 | F-DSC-04 | Supplier and manufacturer search | P1 | Filters for vendor type, minimum order, lead time, ships-to display. | §26.7 |
 | F-DSC-05 | Listing detail with honest missing-data labels | P1 | Never show zero, estimates or inferred values for price, rating, availability, credentials. | §7.4, SC-003 |
@@ -119,7 +119,7 @@ Read order: [README](README.md) · this file · [02-phase-scope.md](02-phase-sco
 | F-RFQ-01 | Create RFQ | P1 | Category schema fields, scanned attachments, deadline, eligible vendor set. Services and goods variants. | §9.1 |
 | F-RFQ-02 | Vendor quotation: submit, revise, withdraw | P1 | Price, scope, inclusions, exclusions, timeline, validity. | §9.2, §9.3 |
 | F-RFQ-03 | Compare, negotiate, accept (atomic, one winner) | P1 | Exactly one quote wins under concurrent acceptance; others marked unsuccessful. | §9.5, SC-025 |
-| F-RFQ-04 | Accepted-terms snapshot and work order | P1 | Accepted terms immutable; creates booking, work order, PO or contract per category. | §9.5 |
+| F-RFQ-04 | Accepted-terms snapshot and work order | P1 | Accepted terms immutable; acceptance atomically creates a booking, work order, or contract according to the category's `rfqFulfillmentType`; goods RFQs create a PO. Missing or invalid service configuration blocks acceptance. | §9.5 |
 | F-RFQ-05 | Edit RFQ with revision history | P1 | Allowed while open and unaccepted; vendors notified. | §9.4, SC-021 |
 | F-RFQ-06 | Deadline extension and no-quotes flow | P1 | Reminders, extension, then suggestions. | §9.4, SC-020 |
 | F-RFQ-07 | Multi-currency quotes, Incoterms, samples workflow | P2 | Cross-border trade terms. | §26.5, §26.7 |
@@ -295,6 +295,8 @@ Every PRS chapter maps to at least one feature, or to a documented non-goal.
 
 | Date & time (YYYY-MM-DD HH:MM, local) | Updated by | Change | Reason |
 |---|---|---|---|
+| 2026-11-13 12:44 | Amit | Modified: F-TAX-03 and F-RFQ-04 fulfillment mapping | Record the chosen category-config mapping and the goods-RFQ purchase-order rule without changing phase scope. |
+| 2026-11-13 11:16 | Amit | Modified: F-DSC-02 universal search scope | D-025 defines the public and caller-authorized private resource types and their visibility rules. |
 | 2026-11-12 13:45 | Sahil Soni | Modified: F-BIZ-05 description | Buying moved fully into Customer mode on web and mobile (D-022). |
 | 2026-11-12 12:01 | Sahil Soni | Modified: F-VND-01 description | Web onboarding now takes multiple vendor roles like mobile (D-023). |
 | 2026-11-12 11:44 | Sahil Soni | Modified: F-VND-01 description | Roles are open-ended and configurable (D-024). |

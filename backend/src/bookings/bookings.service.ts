@@ -1,1002 +1,908 @@
 import {
   BadRequestException,
   ConflictException,
-  ForbiddenException,
   Injectable,
   NotFoundException,
 } from "@nestjs/common";
-import { PoolClient } from "pg";
+import { QueryResult, QueryResultRow, PoolClient } from "pg";
 import { AuthenticatedUser } from "../auth/authenticated-user.decorator";
 import { DatabaseService } from "../database/database.service";
-import { LISTING_ELIGIBLE_JOINS, LISTING_ELIGIBLE_SQL } from "../discover/listing-eligibility";
-import { NotificationsService } from "../notifications/notifications.service";
 import { AuditService } from "../platform/audit.service";
+import { OutboxService } from "../platform/outbox.service";
 import {
-  BookingState,
+  BookingActionDto,
   CancelBookingDto,
   CreateBookingDto,
-  DeclineBookingDto,
-  ProposeModificationDto,
+  CreateBookingSeriesDto,
+  DecideBookingModificationDto,
+  ProposeBookingModificationDto,
+  ReportBookingCompletionDto,
+  ResolveBookingConflictsDto,
 } from "./dto/booking.dto";
 
-/** Customer confirmation window after completion (F-BKG-06). */
-export const CONFIRMATION_WINDOW_DAYS = 7;
-
-export type BookingAction =
-  | "accept"
-  | "decline"
-  | "start"
-  | "complete"
-  | "confirm"
-  | "cancel";
-
-type Party = "customer" | "vendor";
-
-/** Who may do what, and where each action starts and ends (F-BKG-01, F-BKG-09). */
-const TRANSITIONS: Record<
-  BookingAction,
-  { by: Party[]; from: BookingState[]; to: BookingState }
-> = {
-  accept: { by: ["vendor"], from: ["requested"], to: "confirmed" },
-  decline: { by: ["vendor"], from: ["requested"], to: "declined" },
-  start: { by: ["vendor"], from: ["confirmed"], to: "in_progress" },
-  complete: {
-    by: ["vendor"],
-    from: ["confirmed", "in_progress"],
-    to: "completed_awaiting",
-  },
-  confirm: { by: ["customer"], from: ["completed_awaiting"], to: "closed" },
-  cancel: {
-    by: ["customer", "vendor"],
-    from: ["requested", "confirmed"],
-    to: "cancelled",
-  },
-};
-
-export interface BookingSummary {
-  id: string;
-  viewerRole: Party;
-  listingId: string;
-  listingTitle: string;
-  vendorId: string;
-  vendorName: string;
-  /** Shown to the vendor only. */
-  customerName: string | null;
-  mode: "instant" | "scheduled";
-  state: BookingState;
-  slotStart: string | null;
-  slotEnd: string | null;
-  timeZone: string | null;
-  responseDueAt: string | null;
-  confirmationDueAt: string | null;
-  seriesId: string | null;
-  occurrenceNumber: number | null;
-  requestedTerms: Record<string, unknown>;
-  declineReason: string | null;
-  cancellationReason: string | null;
-  cancelledBy: Party | null;
-  createdAt: string;
-  updatedAt: string;
+interface Queryable {
+  query<Row extends QueryResultRow = QueryResultRow>(
+    text: string,
+    values?: unknown[],
+  ): Promise<QueryResult<Row>>;
 }
 
-interface BookingRow {
+interface ListingContext {
+  id: string;
+  vendor_id: string;
+  category_id: string;
+  config_version_number: number;
+  title: string;
+  price_min_minor: string | null;
+  price_currency: string | null;
+  time_zone: string | null;
+  instant_booking_enabled: boolean;
+  content_state: string;
+  owner_user_id: string;
+  account_status: string;
+  configuration: Record<string, unknown>;
+}
+
+interface BookingRow extends QueryResultRow {
   id: string;
   customer_user_id: string;
-  vendor_owner_id: string;
-  listing_id: string;
-  listing_title: string;
   vendor_id: string;
-  vendor_name: string | null;
-  customer_name: string | null;
-  booking_mode: "instant" | "scheduled";
-  state: BookingState;
-  slot_start: Date | null;
-  slot_end: Date | null;
-  time_zone: string | null;
-  response_due_at: Date | null;
-  confirmation_due_at: Date | null;
+  listing_id: string;
+  booking_mode: string;
   series_id: string | null;
   occurrence_number: number | null;
+  accepted_terms_snapshot_id: string | null;
+  state: string;
   requested_terms: Record<string, unknown>;
+  slot_start: Date;
+  slot_end: Date;
+  time_zone: string;
+  response_due_at: Date | null;
+  capacity_id: string | null;
   decline_reason: string | null;
   cancellation_reason: string | null;
-  cancelled_by_user_id: string | null;
-  capacity_id: string | null;
   created_at: Date;
   updated_at: Date;
 }
 
-const BOOKING_SELECT = `
-  SELECT b.id, b.customer_user_id, v.owner_user_id AS vendor_owner_id,
-         b.listing_id, l.title AS listing_title, b.vendor_id,
-         COALESCE(vp.trading_name, v.legal_name) AS vendor_name,
-         cp.display_name AS customer_name,
-         b.booking_mode, b.state, b.slot_start, b.slot_end, b.time_zone,
-         b.response_due_at, b.confirmation_due_at, b.series_id,
-         b.occurrence_number, b.requested_terms, b.decline_reason,
-         b.cancellation_reason, b.cancelled_by_user_id, b.capacity_id,
-         b.created_at, b.updated_at
-  FROM bookings AS b
-  JOIN listings AS l ON l.id = b.listing_id
-  JOIN vendors AS v ON v.id = b.vendor_id
-  LEFT JOIN vendor_profiles AS vp ON vp.vendor_id = v.id
-  LEFT JOIN customer_profiles AS cp ON cp.user_id = b.customer_user_id`;
+const BOOKING_SELECT = `SELECT id, customer_user_id, vendor_id, listing_id,
+  booking_mode, series_id, occurrence_number, accepted_terms_snapshot_id,
+  state, requested_terms, slot_start, slot_end, time_zone, response_due_at,
+  capacity_id, decline_reason, cancellation_reason, created_at, updated_at
+  FROM bookings`;
 
-const UNIQUE_VIOLATION = "23505";
-const EXCLUSION_VIOLATION = "23P01";
+const toView = (row: BookingRow) => ({
+  id: row.id,
+  customerUserId: row.customer_user_id,
+  vendorId: row.vendor_id,
+  listingId: row.listing_id,
+  mode: row.booking_mode,
+  seriesId: row.series_id,
+  occurrenceNumber: row.occurrence_number,
+  acceptedTermsSnapshotId: row.accepted_terms_snapshot_id,
+  state: row.state,
+  requestedTerms: row.requested_terms,
+  slotStart: row.slot_start,
+  slotEnd: row.slot_end,
+  timeZone: row.time_zone,
+  responseDueAt: row.response_due_at,
+  capacityId: row.capacity_id,
+  declineReason: row.decline_reason,
+  cancellationReason: row.cancellation_reason,
+  createdAt: row.created_at,
+  updatedAt: row.updated_at,
+});
 
-const partyOf = (row: BookingRow, userId: string): Party | null =>
-  row.customer_user_id === userId
-    ? "customer"
-    : row.vendor_owner_id === userId
-      ? "vendor"
-      : null;
-
-function toSummary(row: BookingRow, party: Party): BookingSummary {
-  return {
-    id: row.id,
-    viewerRole: party,
-    listingId: row.listing_id,
-    listingTitle: row.listing_title,
-    vendorId: row.vendor_id,
-    vendorName: row.vendor_name ?? "",
-    customerName: party === "vendor" ? row.customer_name : null,
-    mode: row.booking_mode,
-    state: row.state,
-    slotStart: row.slot_start?.toISOString() ?? null,
-    slotEnd: row.slot_end?.toISOString() ?? null,
-    timeZone: row.time_zone,
-    responseDueAt: row.response_due_at?.toISOString() ?? null,
-    confirmationDueAt: row.confirmation_due_at?.toISOString() ?? null,
-    seriesId: row.series_id,
-    occurrenceNumber: row.occurrence_number,
-    requestedTerms: row.requested_terms,
-    declineReason: row.decline_reason,
-    cancellationReason: row.cancellation_reason,
-    cancelledBy: row.cancelled_by_user_id
-      ? row.cancelled_by_user_id === row.customer_user_id
-        ? "customer"
-        : "vendor"
-      : null,
-    createdAt: row.created_at.toISOString(),
-    updatedAt: row.updated_at.toISOString(),
-  };
-}
-
-/**
- * Bookings: F-BKG-01 to F-BKG-10. The customer creates; the vendor owner
- * responds. Every state change is one transaction that locks the booking row,
- * checks the actor and the starting state, writes an immutable booking_events
- * row and raises a notification, so a retry or a race cannot skip a state.
- *
- * Deadlines (response deadline, 7-day confirmation) are applied lazily when a
- * booking is read, as system events. A scheduler worker will replace this; the
- * outcome is the same.
- */
 @Injectable()
 export class BookingsService {
   constructor(
     private readonly database: DatabaseService,
     private readonly audit: AuditService,
-    private readonly notifications: NotificationsService,
+    private readonly outbox: OutboxService,
   ) {}
 
-  /* ------------------------------------------------------------------ create */
+  async createFromAcceptedTerms(
+    client: PoolClient,
+    accepted: {
+      snapshotId: string;
+      customerUserId: string;
+      vendorId: string;
+      listingId: string;
+      terms: Record<string, unknown>;
+    },
+  ) {
+    const timeline = accepted.terms.timeline;
+    if (!timeline || typeof timeline !== "object" || Array.isArray(timeline)) {
+      throw new ConflictException("The accepted service quote needs booking slot terms");
+    }
+    const schedule = timeline as Record<string, unknown>;
+    const slotStart = this.requiredDate(schedule.slotStart, "slotStart");
+    const slotEnd = this.requiredDate(schedule.slotEnd, "slotEnd");
+    const timeZone = typeof schedule.timeZone === "string" ? schedule.timeZone : "";
+    if (slotEnd <= slotStart || slotStart <= new Date() || !timeZone) {
+      throw new BadRequestException("The accepted quote has invalid booking slot terms");
+    }
+    this.validateTimeZone(timeZone);
+    const listing = await this.getListingContext(client, accepted.listingId);
+    if (listing.vendor_id !== accepted.vendorId) {
+      throw new ConflictException("The accepted quote vendor does not own the requested listing");
+    }
+    const capacityId = typeof schedule.capacityId === "string" ? schedule.capacityId : undefined;
+    await this.reserveCapacity(client, listing.id, capacityId, slotStart, slotEnd);
+    const created = await client.query<{ id: string }>(
+      `INSERT INTO bookings
+         (customer_user_id, vendor_id, listing_id, booking_mode,
+          accepted_terms_snapshot_id, state, requested_terms, slot_start,
+          slot_end, time_zone, capacity_id)
+       VALUES ($1, $2, $3, 'scheduled', $4, 'confirmed', $5::jsonb,
+               $6, $7, $8, $9)
+       RETURNING id`,
+      [
+        accepted.customerUserId,
+        accepted.vendorId,
+        listing.id,
+        accepted.snapshotId,
+        JSON.stringify(accepted.terms),
+        slotStart,
+        slotEnd,
+        timeZone,
+        capacityId ?? null,
+      ],
+    );
+    const bookingId = created.rows[0].id;
+    await this.captureTerms(client, bookingId, listing, accepted.terms);
+    await this.addEvent(client, bookingId, accepted.customerUserId, "booking.created_from_rfq", null, "confirmed");
+    await this.recordChange(client, accepted.customerUserId, bookingId, "created_from_rfq", "confirmed");
+    return bookingId;
+  }
 
   async create(
     user: AuthenticatedUser,
     request: CreateBookingDto,
     idempotencyKey?: string,
-  ): Promise<{ bookings: BookingSummary[] }> {
-    const mode = request.mode ?? "scheduled";
-    if (request.recurrence && mode === "instant") {
-      throw new BadRequestException("A recurring series cannot be instant");
+  ) {
+    if (!idempotencyKey?.trim()) {
+      throw new BadRequestException("Idempotency-Key is required");
     }
-    if (request.recurrence && !request.timeZone) {
-      throw new BadRequestException("timeZone is required for a series");
+    const start = new Date(request.slotStart);
+    const end = new Date(request.slotEnd);
+    if (end <= start || start <= new Date()) {
+      throw new BadRequestException("Booking slot must be a future, positive interval");
     }
-    if (mode === "instant" && !request.slotStart) {
-      throw new BadRequestException("An instant booking needs a slot");
-    }
-    const slots = request.recurrence
-      ? request.recurrence.occurrences
-      : [
-          request.slotStart && request.slotEnd
-            ? { slotStart: request.slotStart, slotEnd: request.slotEnd }
-            : null,
-        ];
-    for (const slot of slots) {
-      if (slot && new Date(slot.slotEnd) <= new Date(slot.slotStart)) {
-        throw new BadRequestException("slotEnd must be after slotStart");
+    this.validateTimeZone(request.timeZone);
+    const id = await this.database.transaction(async (client) => {
+      const listing = await this.getListingContext(client, request.listingId);
+      this.assertBookingRequest(listing, request.mode);
+      const state = request.mode === "instant" ? "confirmed" : "requested";
+      const responseDueAt =
+        state === "requested"
+          ? this.responseDeadline(listing.configuration)
+          : null;
+      if (!request.capacityId) {
+        throw new BadRequestException("capacityId is required for a booking slot");
       }
-      if (slot && new Date(slot.slotStart) <= new Date()) {
-        throw new BadRequestException("A slot must be in the future");
+      if (request.mode === "instant") {
+        await this.reserveCapacity(client, listing.id, request.capacityId, start, end);
+      } else {
+        await this.assertCapacityWindow(client, listing.id, request.capacityId, start, end);
       }
-    }
-
-    try {
-      const ids = await this.database.transaction(async (client) => {
-        const listing = await this.loadBookableListing(
-          client,
-          request.listingId,
-        );
-        if (listing.owner_user_id === user.userId) {
-          throw new ForbiddenException(
-            "You cannot book your own listing; switch to a different account",
-          );
-        }
-        if (mode === "instant" && !listing.instant_booking_enabled) {
-          throw new BadRequestException(
-            "This listing does not offer instant booking",
-          );
-        }
-
-        let seriesId: string | null = null;
-        if (request.recurrence) {
-          const series = await client.query<{ id: string }>(
-            `INSERT INTO booking_series
-               (customer_user_id, vendor_id, listing_id, recurrence_rule, time_zone)
-             VALUES ($1, $2, $3, $4, $5) RETURNING id`,
-            [
-              user.userId,
-              listing.vendor_id,
-              listing.id,
-              request.recurrence.rule,
-              request.timeZone as string,
-            ],
-          );
-          seriesId = series.rows[0].id;
-        }
-
-        const created: string[] = [];
-        for (const [index, slot] of slots.entries()) {
-          // One key per occurrence so a retried series is still one series.
-          const key = idempotencyKey
-            ? slots.length > 1
-              ? `${idempotencyKey}#${index + 1}`
-              : idempotencyKey
-            : null;
-          const id = await this.insertBooking(client, {
-            user,
-            listing,
-            mode,
-            slot,
-            timeZone: request.timeZone ?? listing.time_zone,
-            requestedTerms: request.requestedTerms ?? {},
-            seriesId,
-            occurrenceNumber: seriesId ? index + 1 : null,
-            idempotencyKey: key,
-          });
-          created.push(id);
-        }
-        return created;
-      });
-      return {
-        bookings: await Promise.all(ids.map((id) => this.summary(user, id))),
-      };
-    } catch (error) {
-      throw this.translate(error);
-    }
-  }
-
-  private async loadBookableListing(client: PoolClient, listingId: string) {
-    const result = await client.query<{
-      id: string;
-      vendor_id: string;
-      owner_user_id: string;
-      category_id: string;
-      config_version_number: number;
-      instant_booking_enabled: boolean;
-      time_zone: string | null;
-      title: string;
-      price_on_request: boolean;
-      price_min_minor: string | null;
-      price_max_minor: string | null;
-      price_currency: string | null;
-      price_unit: string | null;
-      configuration: Record<string, unknown> | null;
-    }>(
-      `SELECT l.id, l.vendor_id, v.owner_user_id, l.category_id,
-              l.config_version_number, l.instant_booking_enabled, l.time_zone,
-              l.title, l.price_on_request, l.price_min_minor,
-              l.price_max_minor, l.price_currency, l.price_unit,
-              cfg.configuration
-       ${LISTING_ELIGIBLE_JOINS}
-       WHERE l.id = $1 AND ${LISTING_ELIGIBLE_SQL}`,
-      [listingId],
-    );
-    const listing = result.rows[0];
-    if (!listing) {
-      throw new NotFoundException("No such bookable listing");
-    }
-    return listing;
-  }
-
-  private async insertBooking(
-    client: PoolClient,
-    input: {
-      user: AuthenticatedUser;
-      listing: Awaited<ReturnType<BookingsService["loadBookableListing"]>>;
-      mode: "instant" | "scheduled";
-      slot: { slotStart: string; slotEnd: string } | null;
-      timeZone: string | null;
-      requestedTerms: Record<string, unknown>;
-      seriesId: string | null;
-      occurrenceNumber: number | null;
-      idempotencyKey: string | null;
-    },
-  ): Promise<string> {
-    const { user, listing, mode, slot } = input;
-    if (slot && !input.timeZone) {
-      throw new BadRequestException("timeZone is required with a slot");
-    }
-
-    // Instant: take capacity atomically; the conditional UPDATE allocates the
-    // last slot exactly once (SC-013).
-    let capacityId: string | null = null;
-    if (mode === "instant" && slot) {
-      const reserved = await client.query<{ id: string }>(
-        `UPDATE availability_capacity
-         SET reserved = reserved + 1
-         WHERE listing_id = $1 AND starts_at <= $2 AND ends_at >= $3
-           AND reserved < capacity
+      const inserted = await client.query<{ id: string }>(
+        `INSERT INTO bookings
+           (customer_user_id, vendor_id, listing_id, booking_mode, state,
+            requested_terms, slot_start, slot_end, time_zone, response_due_at,
+            capacity_id, idempotency_key)
+         VALUES ($1, $2, $3, $4, $5, $6::jsonb, $7, $8, $9, $10, $11, $12)
          RETURNING id`,
-        [listing.id, slot.slotStart, slot.slotEnd],
+        [
+          user.userId,
+          listing.vendor_id,
+          listing.id,
+          request.mode,
+          state,
+          JSON.stringify(request.requestedTerms ?? {}),
+          start,
+          end,
+          request.timeZone,
+          responseDueAt,
+          request.capacityId ?? null,
+          idempotencyKey,
+        ],
       );
-      capacityId = reserved.rows[0]?.id ?? null;
-      if (!capacityId) {
-        throw new ConflictException(
-          "That slot is no longer available. Choose another time.",
-        );
+      const bookingId = inserted.rows[0].id;
+      if (state === "confirmed") {
+        await this.captureTerms(client, bookingId, listing, request.requestedTerms ?? {});
       }
-    }
-
-    // The response deadline is category configuration; with none set there is
-    // no deadline and no auto-expiry (no value is invented here).
-    const hours = Number(listing.configuration?.responseDeadlineHours);
-    const responseDue =
-      mode === "scheduled" && Number.isFinite(hours) && hours > 0
-        ? new Date(Date.now() + hours * 3_600_000)
-        : null;
-    const state: BookingState = mode === "instant" ? "confirmed" : "requested";
-
-    const inserted = await client.query<{ id: string }>(
-      `INSERT INTO bookings
-         (customer_user_id, vendor_id, listing_id, booking_mode, series_id,
-          occurrence_number, state, requested_terms, slot_start, slot_end,
-          time_zone, response_due_at, capacity_id, idempotency_key)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8::jsonb, $9, $10, $11, $12, $13, $14)
-       ON CONFLICT (customer_user_id, idempotency_key)
-         WHERE idempotency_key IS NOT NULL DO NOTHING
-       RETURNING id`,
-      [
-        user.userId,
-        listing.vendor_id,
-        listing.id,
-        mode,
-        input.seriesId,
-        input.occurrenceNumber,
-        state,
-        JSON.stringify(input.requestedTerms),
-        slot?.slotStart ?? null,
-        slot?.slotEnd ?? null,
-        slot ? input.timeZone : null,
-        responseDue,
-        capacityId,
-        input.idempotencyKey,
-      ],
-    );
-    const id = inserted.rows[0]?.id;
-    if (!id) {
-      // A retried create: hand back the booking the first request made, and
-      // give back the capacity this attempt took.
-      if (capacityId) {
-        await client.query(
-          `UPDATE availability_capacity SET reserved = reserved - 1 WHERE id = $1`,
-          [capacityId],
-        );
-      }
-      const existing = await client.query<{ id: string }>(
-        `SELECT id FROM bookings
-         WHERE customer_user_id = $1 AND idempotency_key = $2`,
-        [user.userId, input.idempotencyKey],
+      await this.addEvent(client, bookingId, user.userId, "booking.created", null, state);
+      await this.audit.record(
+        {
+          actorUserId: user.userId,
+          action: "booking.create",
+          targetType: "booking",
+          targetId: bookingId,
+          metadata: { listingId: listing.id, mode: request.mode },
+        },
+        client,
       );
-      return existing.rows[0].id;
-    }
-
-    // Terms and policy as they stood at booking time; immutable (F-BKG-01).
-    await client.query(
-      `INSERT INTO booking_terms_snapshots
-         (booking_id, category_id, category_config_version, terms, policy_snapshot)
-       VALUES ($1, $2, $3, $4::jsonb, $5::jsonb)`,
-      [
-        id,
-        listing.category_id,
-        listing.config_version_number,
-        JSON.stringify({
-          listingTitle: listing.title,
-          requested: input.requestedTerms,
-          price: {
-            onRequest: listing.price_on_request,
-            minMinor:
-              listing.price_min_minor === null
-                ? null
-                : Number(listing.price_min_minor),
-            maxMinor:
-              listing.price_max_minor === null
-                ? null
-                : Number(listing.price_max_minor),
-            currency: listing.price_currency,
-            unit: listing.price_unit,
-          },
-        }),
-        JSON.stringify({
-          cancellationPolicyId:
-            listing.configuration?.cancellationPolicyId ?? null,
-          responseDeadlineHours: Number.isFinite(hours) ? hours : null,
-        }),
-      ],
-    );
-    await this.event(client, id, user.userId, "created", null, state, {
-      mode,
+      await this.outbox.enqueue(
+        { aggregateType: "booking", aggregateId: bookingId, eventType: "booking.created" },
+        client,
+      );
+      return bookingId;
     });
-    await this.audit.record(
-      {
-        actorUserId: user.userId,
-        action: "booking.create",
-        targetType: "booking",
-        targetId: id,
-        metadata: { listingId: listing.id, mode },
-      },
-      client,
-    );
-    await this.notifications.notify(
-      {
-        recipientUserId: listing.owner_user_id,
-        eventType:
-          mode === "instant" ? "booking.confirmed_instant" : "booking.requested",
-        category: "bookings",
-        dedupeKey: `booking:${id}:created`,
-        payload: { listingTitle: listing.title },
-        linkedResource: { type: "booking", id },
-      },
-      client,
-    );
-    return id;
+    return this.get(user, id);
   }
 
-  /* -------------------------------------------------------------------- read */
-
-  /** The caller's own bookings as a customer, newest first (F-BKG-10). */
-  async listForCustomer(
+  async createSeries(
     user: AuthenticatedUser,
-    state?: BookingState,
-  ): Promise<BookingSummary[]> {
-    await this.applyDeadlines(
-      `b.customer_user_id = $1`,
+    request: CreateBookingSeriesDto,
+    idempotencyKey?: string,
+  ) {
+    if (!idempotencyKey?.trim()) {
+      throw new BadRequestException("Idempotency-Key is required");
+    }
+    if (!request.occurrences.every((occurrence) => occurrence.slotStart && occurrence.slotEnd)) {
+      throw new BadRequestException("Every occurrence needs a start and end");
+    }
+    const id = await this.database.transaction(async (client) => {
+      const listing = await this.getListingContext(client, request.listingId);
+      this.assertBookingRequest(listing, "scheduled");
+      this.validateTimeZone(request.timeZone);
+      const responseDueAt = this.responseDeadline(listing.configuration);
+      const inserted = await client.query<{ id: string }>(
+        `INSERT INTO booking_series
+           (customer_user_id, vendor_id, listing_id, recurrence_rule, time_zone)
+         VALUES ($1, $2, $3, $4, $5) RETURNING id`,
+        [user.userId, listing.vendor_id, listing.id, request.recurrenceRule, request.timeZone],
+      );
+      const seriesId = inserted.rows[0].id;
+      const ids: string[] = [];
+      for (let index = 0; index < request.occurrences.length; index += 1) {
+        const occurrence = request.occurrences[index];
+        const start = new Date(occurrence.slotStart);
+        const end = new Date(occurrence.slotEnd);
+        if (start <= new Date() || end <= start) {
+          throw new BadRequestException("Every occurrence must be a future, positive interval");
+        }
+        if (!occurrence.capacityId) {
+          throw new BadRequestException("Every occurrence needs a capacityId");
+        }
+        await this.assertCapacityWindow(client, listing.id, occurrence.capacityId, start, end);
+        const created = await client.query<{ id: string }>(
+          `INSERT INTO bookings
+             (customer_user_id, vendor_id, listing_id, booking_mode, series_id,
+              occurrence_number, state, requested_terms, slot_start, slot_end,
+              time_zone, response_due_at, capacity_id, idempotency_key)
+           VALUES ($1, $2, $3, 'scheduled', $4, $5, 'requested', $6::jsonb,
+                   $7, $8, $9, $10, $11, $12) RETURNING id`,
+          [
+            user.userId,
+            listing.vendor_id,
+            listing.id,
+            seriesId,
+            index + 1,
+            JSON.stringify(request.requestedTerms ?? {}),
+            start,
+            end,
+            request.timeZone,
+            responseDueAt,
+            occurrence.capacityId ?? null,
+            `${idempotencyKey}:${index + 1}`,
+          ],
+        );
+        const bookingId = created.rows[0].id;
+        ids.push(bookingId);
+        await this.addEvent(client, bookingId, user.userId, "booking.created", null, "requested");
+      }
+      await this.audit.record(
+        {
+          actorUserId: user.userId,
+          action: "booking.series_create",
+          targetType: "booking_series",
+          targetId: seriesId,
+          metadata: { occurrenceCount: ids.length },
+        },
+        client,
+      );
+      await this.outbox.enqueue(
+        { aggregateType: "booking_series", aggregateId: seriesId, eventType: "booking.series_created" },
+        client,
+      );
+      return ids;
+    });
+    return { bookings: await Promise.all(id.map((bookingId) => this.get(user, bookingId))) };
+  }
+
+  async listMine(user: AuthenticatedUser) {
+    const result = await this.database.query<BookingRow>(
+      `${BOOKING_SELECT} WHERE customer_user_id = $1 ORDER BY created_at DESC, id`,
       [user.userId],
     );
-    const result = await this.database.query<BookingRow>(
-      `${BOOKING_SELECT}
-       WHERE b.customer_user_id = $1 AND ($2::text IS NULL OR b.state = $2)
-       ORDER BY b.created_at DESC, b.id`,
-      [user.userId, state ?? null],
-    );
-    return result.rows.map((row) => toSummary(row, "customer"));
+    return { bookings: result.rows.map(toView) };
   }
 
-  /** A vendor's inbox: only its own bookings, never competing requests (F-BKG-08, F-BKG-09). */
-  async listForVendor(
-    user: AuthenticatedUser,
-    vendorId: string,
-    state?: BookingState,
-  ): Promise<BookingSummary[]> {
-    const owned = await this.database.query(
-      `SELECT 1 FROM vendors WHERE id = $1 AND owner_user_id = $2`,
+  async listForVendor(user: AuthenticatedUser, vendorId: string) {
+    await this.requireVendorOwner(this.database, vendorId, user.userId);
+    const result = await this.database.query(
+      `${BOOKING_SELECT}
+       WHERE vendor_id = $1 AND EXISTS (
+         SELECT 1 FROM vendors WHERE id = $1 AND owner_user_id = $2
+       )
+       ORDER BY created_at DESC, id`,
       [vendorId, user.userId],
     );
-    if (owned.rowCount !== 1) {
-      throw new NotFoundException("No such vendor for this user");
-    }
-    await this.applyDeadlines(`b.vendor_id = $1`, [vendorId]);
-    const result = await this.database.query<BookingRow>(
-      `${BOOKING_SELECT}
-       WHERE b.vendor_id = $1 AND b.state <> 'draft'
-         AND ($2::text IS NULL OR b.state = $2)
-       ORDER BY b.created_at DESC, b.id`,
-      [vendorId, state ?? null],
-    );
-    return result.rows.map((row) => toSummary(row, "vendor"));
+    return { bookings: result.rows.map(toView) };
   }
 
   async get(user: AuthenticatedUser, bookingId: string) {
-    await this.applyDeadlines(`b.id = $1`, [bookingId]);
-    const row = await this.load(this.database, bookingId);
-    const party = partyOf(row, user.userId);
-    if (!party) {
-      throw new NotFoundException("No such booking");
-    }
-    const [events, modification, snapshot, conflicts] = await Promise.all([
-      this.database.query<{
-        event_type: string;
-        from_state: string | null;
-        to_state: string | null;
-        details: Record<string, unknown>;
-        occurred_at: Date;
-        actor_user_id: string | null;
-      }>(
-        `SELECT event_type, from_state, to_state, details, occurred_at, actor_user_id
-         FROM booking_events WHERE booking_id = $1 ORDER BY occurred_at, id`,
-        [bookingId],
-      ),
-      this.database.query<{
-        id: string;
-        proposed_terms: Record<string, unknown>;
-        created_by_user_id: string;
-        created_at: Date;
-      }>(
-        `SELECT id, proposed_terms, created_by_user_id, created_at
-         FROM booking_modifications
-         WHERE booking_id = $1 AND state = 'proposed'`,
-        [bookingId],
-      ),
-      this.database.query<{
-        terms: Record<string, unknown>;
-        policy_snapshot: Record<string, unknown>;
-        category_config_version: number;
-        captured_at: Date;
-      }>(
-        `SELECT terms, policy_snapshot, category_config_version, captured_at
-         FROM booking_terms_snapshots WHERE booking_id = $1`,
-        [bookingId],
-      ),
-      // F-BKG-07: surface overlapping bookings; the customer chooses, nothing auto-cancels.
-      row.slot_start && row.slot_end && party === "customer"
-        ? this.database.query<{ id: string }>(
-            `SELECT id FROM bookings
-             WHERE customer_user_id = $1 AND id <> $2
-               AND state IN ('requested', 'confirmed', 'in_progress')
-               AND slot_start < $4 AND slot_end > $3`,
-            [user.userId, bookingId, row.slot_start, row.slot_end],
-          )
-        : Promise.resolve({ rows: [] as { id: string }[] }),
-    ]);
-    const open = modification.rows[0];
-    return {
-      ...toSummary(row, party),
-      termsSnapshot: snapshot.rows[0]
-        ? {
-            terms: snapshot.rows[0].terms,
-            policy: snapshot.rows[0].policy_snapshot,
-            categoryConfigVersion: snapshot.rows[0].category_config_version,
-            capturedAt: snapshot.rows[0].captured_at.toISOString(),
-          }
-        : null,
-      openModification: open
-        ? {
-            id: open.id,
-            proposedTerms: open.proposed_terms,
-            proposedBy:
-              open.created_by_user_id === row.customer_user_id
-                ? ("customer" as const)
-                : ("vendor" as const),
-            createdAt: open.created_at.toISOString(),
-          }
-        : null,
-      conflictingBookingIds: conflicts.rows.map((c) => c.id),
-      events: events.rows.map((e) => ({
-        type: e.event_type,
-        fromState: e.from_state,
-        toState: e.to_state,
-        details: e.details,
-        occurredAt: e.occurred_at.toISOString(),
-        byCustomer: e.actor_user_id === row.customer_user_id,
-      })),
-    };
+    const result = await this.database.query<BookingRow>(
+      `${BOOKING_SELECT}
+       WHERE id = $1 AND (
+         customer_user_id = $2 OR EXISTS (
+           SELECT 1 FROM vendors
+           WHERE vendors.id = bookings.vendor_id AND owner_user_id = $2
+         )
+       )`,
+      [bookingId, user.userId],
+    );
+    if (!result.rows[0]) throw new NotFoundException("No such booking");
+    return toView(result.rows[0]);
   }
 
-  /* ------------------------------------------------------------ transitions */
+  async events(user: AuthenticatedUser, bookingId: string) {
+    await this.get(user, bookingId);
+    const result = await this.database.query(
+      `SELECT event_type, from_state, to_state, details, occurred_at
+       FROM booking_events WHERE booking_id = $1 ORDER BY occurred_at, id`,
+      [bookingId],
+    );
+    return { events: result.rows };
+  }
 
-  async transition(
-    user: AuthenticatedUser,
-    bookingId: string,
-    action: BookingAction,
-    options: { reason?: string; cancelSeries?: boolean } = {},
-  ): Promise<BookingSummary> {
-    const rule = TRANSITIONS[action];
-    try {
-      await this.database.transaction(async (client) => {
-        const row = await this.load(client, bookingId, true);
-        const party = partyOf(row, user.userId);
-        if (!party) {
-          throw new NotFoundException("No such booking");
-        }
-        if (!rule.by.includes(party)) {
-          throw new ForbiddenException(`Only the ${rule.by.join(" or ")} can ${action} a booking`);
-        }
-        if (!rule.from.includes(row.state)) {
-          throw new ConflictException(
-            `A ${row.state} booking cannot be ${action}ed`,
+  async act(user: AuthenticatedUser, bookingId: string, request: BookingActionDto) {
+    return this.database.transaction(async (client) => {
+      const booking = await this.lockPartyBooking(client, bookingId, user.userId);
+      if (booking.party !== "vendor") throw new NotFoundException("No such vendor booking");
+      const from = booking.state;
+      if (request.action === "accept") {
+        if (from !== "requested") throw new ConflictException("Only a requested booking can be accepted");
+        const capacityId = request.capacityId ?? booking.capacity_id ?? undefined;
+        if (capacityId) {
+          await this.reserveCapacity(
+            client,
+            booking.listing_id,
+            capacityId,
+            booking.slot_start,
+            booking.slot_end,
           );
+          await client.query(`UPDATE bookings SET capacity_id = $2 WHERE id = $1`, [
+            bookingId,
+            capacityId,
+          ]);
         }
-
-        const sets: string[] = ["state = $2"];
-        const values: Array<string | Date | null> = [bookingId, rule.to];
-        const set = (column: string, value: string | Date | null) => {
-          values.push(value);
-          sets.push(`${column} = $${values.length}`);
-        };
-        if (action === "decline") set("decline_reason", options.reason ?? null);
-        if (action === "cancel") {
-          set("cancelled_by_user_id", user.userId);
-          set("cancellation_reason", options.reason ?? null);
-          sets.push("cancelled_at = CURRENT_TIMESTAMP");
-        }
-        if (action === "complete") {
-          sets.push("completed_at = CURRENT_TIMESTAMP");
-          set(
-            "confirmation_due_at",
-            new Date(Date.now() + CONFIRMATION_WINDOW_DAYS * 86_400_000),
-          );
-        }
-        if (action === "confirm") sets.push("closed_at = CURRENT_TIMESTAMP");
-
+        const listing = await this.getListingContext(client, booking.listing_id);
+        await this.captureTerms(
+          client,
+          bookingId,
+          listing,
+          booking.requested_terms,
+        );
         await client.query(
-          `UPDATE bookings SET ${sets.join(", ")} WHERE id = $1`,
-          values,
+          `UPDATE bookings SET state = 'confirmed', response_due_at = NULL WHERE id = $1`,
+          [bookingId],
         );
-        if ((action === "cancel" || action === "decline") && row.capacity_id) {
-          await client.query(
-            `UPDATE availability_capacity
-             SET reserved = GREATEST(reserved - 1, 0) WHERE id = $1`,
-            [row.capacity_id],
-          );
-        }
-
-        // D-011: cancelling one occurrence leaves the series alone unless the
-        // customer chooses to cancel the rest too.
-        let alsoCancelled: string[] = [];
-        if (
-          action === "cancel" &&
-          party === "customer" &&
-          options.cancelSeries &&
-          row.series_id
-        ) {
-          const rest = await client.query<{ id: string; capacity_id: string | null }>(
-            `UPDATE bookings
-             SET state = 'cancelled', cancelled_by_user_id = $2,
-                 cancellation_reason = $3, cancelled_at = CURRENT_TIMESTAMP
-             WHERE series_id = $1 AND id <> $4
-               AND state IN ('requested', 'confirmed')
-               AND occurrence_number > $5
-             RETURNING id, capacity_id`,
-            [
-              row.series_id,
-              user.userId,
-              options.reason ?? null,
-              bookingId,
-              row.occurrence_number,
-            ],
-          );
-          alsoCancelled = rest.rows.map((r) => r.id);
-          for (const r of rest.rows) {
-            await this.event(client, r.id, user.userId, "series_cancelled", "open", "cancelled", {});
-          }
-          await client.query(
-            `UPDATE booking_series SET state = 'cancelled'
-             WHERE id = $1 AND NOT EXISTS (
-               SELECT 1 FROM bookings WHERE series_id = $1
-                 AND state IN ('requested', 'confirmed', 'in_progress'))`,
-            [row.series_id],
-          );
-        }
-
-        await this.event(client, bookingId, user.userId, action, row.state, rule.to, {
-          ...(options.reason ? { reason: options.reason } : {}),
-          ...(alsoCancelled.length ? { alsoCancelled } : {}),
-        });
-        await this.audit.record(
-          {
-            actorUserId: user.userId,
-            actorRole: party,
-            action: `booking.${action}`,
-            targetType: "booking",
-            targetId: bookingId,
-            reason: options.reason,
-          },
-          client,
+      } else if (request.action === "decline") {
+        if (from !== "requested") throw new ConflictException("Only a requested booking can be declined");
+        if (!request.reason) throw new BadRequestException("A decline reason is required");
+        await client.query(
+          `UPDATE bookings SET state = 'declined', decline_reason = $2 WHERE id = $1`,
+          [bookingId, request.reason],
         );
-        await this.notifications.notify(
-          {
-            recipientUserId:
-              party === "vendor" ? row.customer_user_id : row.vendor_owner_id,
-            eventType: `booking.${rule.to}`,
-            category: "bookings",
-            dedupeKey: `booking:${bookingId}:${rule.to}`,
-            payload: { listingTitle: row.listing_title },
-            linkedResource: { type: "booking", id: bookingId },
-          },
-          client,
+      } else if (request.action === "start") {
+        if (from !== "confirmed") throw new ConflictException("Only a confirmed booking can start");
+        await client.query(`UPDATE bookings SET state = 'in_progress' WHERE id = $1`, [bookingId]);
+      } else {
+        if (from !== "in_progress") throw new ConflictException("Only an in-progress booking can complete");
+        await client.query(
+          `UPDATE bookings SET state = 'completed_awaiting',
+             completed_at = CURRENT_TIMESTAMP,
+             confirmation_due_at = CURRENT_TIMESTAMP + INTERVAL '7 days'
+           WHERE id = $1`,
+          [bookingId],
         );
+      }
+      const to = request.action === "accept" ? "confirmed"
+        : request.action === "decline" ? "declined"
+        : request.action === "start" ? "in_progress" : "completed_awaiting";
+      await this.addEvent(client, bookingId, user.userId, `booking.${request.action}`, from, to, {
+        reason: request.reason,
       });
-      return await this.summary(user, bookingId);
-    } catch (error) {
-      throw this.translate(error);
-    }
-  }
-
-  decline(user: AuthenticatedUser, bookingId: string, dto: DeclineBookingDto) {
-    return this.transition(user, bookingId, "decline", { reason: dto.reason });
-  }
-
-  cancel(user: AuthenticatedUser, bookingId: string, dto: CancelBookingDto) {
-    return this.transition(user, bookingId, "cancel", {
-      reason: dto.reason,
-      cancelSeries: dto.cancelSeries,
+      await this.recordChange(client, user.userId, bookingId, request.action, to);
+      return this.getWithin(client, user.userId, bookingId);
     });
   }
 
-  /* ------------------------------------------------------------ modification */
+  async cancel(user: AuthenticatedUser, bookingId: string, request: CancelBookingDto) {
+    return this.database.transaction(async (client) => {
+      const booking = await this.lockPartyBooking(client, bookingId, user.userId);
+      if (!["requested", "confirmed", "in_progress"].includes(booking.state)) {
+        throw new ConflictException(`A ${booking.state} booking cannot be cancelled`);
+      }
+      const ids = [bookingId];
+      const stateById = new Map<string, string>([[bookingId, booking.state]]);
+      if (booking.series_id && request.scope === "series" && booking.party === "customer") {
+        const occurrences = await client.query<{ id: string; state: string }>(
+          `SELECT id, state FROM bookings WHERE series_id = $1 AND state IN ('requested', 'confirmed', 'in_progress') FOR UPDATE`,
+          [booking.series_id],
+        );
+        ids.splice(0, 1, ...occurrences.rows.map((row) => row.id));
+        for (const occurrence of occurrences.rows) {
+          stateById.set(occurrence.id, occurrence.state);
+        }
+        await client.query(
+          `UPDATE booking_series SET state = 'cancelled' WHERE id = $1`,
+          [booking.series_id],
+        );
+      }
+      for (const id of ids) {
+        const previous = stateById.get(id) ?? "requested";
+        const occurrence = await client.query<{ capacity_id: string | null }>(
+          `SELECT capacity_id FROM bookings WHERE id = $1`,
+          [id],
+        );
+        if (["confirmed", "in_progress"].includes(previous) && occurrence.rows[0]?.capacity_id) {
+          await this.releaseCapacity(client, occurrence.rows[0].capacity_id);
+        }
+        await client.query(
+          `UPDATE bookings SET state = 'cancelled', cancelled_by_user_id = $2,
+             cancellation_reason = $3, cancelled_at = CURRENT_TIMESTAMP
+           WHERE id = $1`,
+          [id, user.userId, request.reason],
+        );
+        await this.addEvent(client, id, user.userId, "booking.cancelled", previous, "cancelled", {
+          reason: request.reason,
+        });
+        await this.recordChange(client, user.userId, id, "cancel", "cancelled");
+      }
+      return { cancelledBookingIds: ids };
+    });
+  }
 
-  /** F-BKG-04. Either side proposes; the other decides; terms change only on accept. */
   async proposeModification(
     user: AuthenticatedUser,
     bookingId: string,
-    request: ProposeModificationDto,
+    request: ProposeBookingModificationDto,
   ) {
-    if (
-      request.slotStart &&
-      request.slotEnd &&
-      new Date(request.slotEnd) <= new Date(request.slotStart)
-    ) {
-      throw new BadRequestException("slotEnd must be after slotStart");
-    }
-    try {
-      await this.database.transaction(async (client) => {
-        const row = await this.load(client, bookingId, true);
-        const party = this.requireParty(row, user.userId);
-        if (row.state !== "requested" && row.state !== "confirmed") {
-          throw new ConflictException(
-            `A ${row.state} booking cannot be modified`,
-          );
-        }
-        const proposed = {
-          ...request.proposedTerms,
-          ...(request.slotStart
-            ? {
-                slot: {
-                  slotStart: request.slotStart,
-                  slotEnd: request.slotEnd,
-                  timeZone: request.timeZone,
-                },
-              }
-            : {}),
-        };
-        const inserted = await client.query<{ id: string }>(
-          `INSERT INTO booking_modifications
-             (booking_id, proposed_terms, created_by_user_id)
-           VALUES ($1, $2::jsonb, $3) RETURNING id`,
-          [bookingId, JSON.stringify(proposed), user.userId],
-        );
-        await this.event(client, bookingId, user.userId, "modification_proposed", row.state, row.state, {
-          modificationId: inserted.rows[0].id,
-        });
-        await this.notifications.notify(
-          {
-            recipientUserId:
-              party === "vendor" ? row.customer_user_id : row.vendor_owner_id,
-            eventType: "booking.modification_proposed",
-            category: "bookings",
-            dedupeKey: `booking:${bookingId}:mod:${inserted.rows[0].id}`,
-            payload: { listingTitle: row.listing_title },
-            linkedResource: { type: "booking", id: bookingId },
-          },
-          client,
-        );
+    return this.database.transaction(async (client) => {
+      const booking = await this.lockPartyBooking(client, bookingId, user.userId);
+      if (!["requested", "confirmed", "in_progress"].includes(booking.state)) {
+        throw new ConflictException("This booking can no longer be modified");
+      }
+      const inserted = await client.query<{ id: string }>(
+        `INSERT INTO booking_modifications
+           (booking_id, proposed_terms, created_by_user_id)
+         VALUES ($1, $2::jsonb, $3) RETURNING id`,
+        [bookingId, JSON.stringify(request.proposedTerms), user.userId],
+      );
+      await this.addEvent(client, bookingId, user.userId, "booking.modification_proposed", booking.state, booking.state, {
+        modificationId: inserted.rows[0].id,
       });
-      return await this.get(user, bookingId);
-    } catch (error) {
-      throw this.translate(error);
-    }
+      await this.recordChange(client, user.userId, bookingId, "modification_propose", booking.state);
+      return { id: inserted.rows[0].id, state: "proposed" };
+    });
   }
 
   async decideModification(
     user: AuthenticatedUser,
-    bookingId: string,
     modificationId: string,
-    decision: "accepted" | "declined" | "withdrawn",
+    request: DecideBookingModificationDto,
   ) {
-    try {
-      await this.database.transaction(async (client) => {
-        const row = await this.load(client, bookingId, true);
-        const party = this.requireParty(row, user.userId);
-        const mod = await client.query<{
-          proposed_terms: Record<string, unknown>;
-          created_by_user_id: string;
-        }>(
-          `SELECT proposed_terms, created_by_user_id FROM booking_modifications
-           WHERE id = $1 AND booking_id = $2 AND state = 'proposed'
-           FOR UPDATE`,
-          [modificationId, bookingId],
-        );
-        const proposal = mod.rows[0];
-        if (!proposal) {
-          throw new ConflictException("There is no open proposal with that id");
-        }
-        const mine = proposal.created_by_user_id === user.userId;
-        if (decision === "withdrawn" ? !mine : mine) {
-          throw new ForbiddenException(
-            decision === "withdrawn"
-              ? "Only the proposer can withdraw"
-              : "The other side decides on a proposal",
-          );
-        }
-        if (row.state !== "requested" && row.state !== "confirmed") {
-          throw new ConflictException(`A ${row.state} booking cannot be modified`);
-        }
+    return this.database.transaction(async (client) => {
+      const found = await client.query<{
+        booking_id: string;
+        proposed_terms: Record<string, unknown>;
+        state: string;
+        customer_user_id: string;
+        vendor_id: string;
+        listing_id: string;
+        booking_state: string;
+      }>(
+        `SELECT modification.booking_id, modification.proposed_terms,
+           modification.state, booking.customer_user_id, booking.vendor_id,
+           booking.listing_id, booking.state AS booking_state
+         FROM booking_modifications AS modification
+         JOIN bookings AS booking ON booking.id = modification.booking_id
+         WHERE modification.id = $1 FOR UPDATE OF modification, booking`,
+        [modificationId],
+      );
+      const row = found.rows[0];
+      if (!row) throw new NotFoundException("No such booking modification");
+      const vendor = await this.isVendorOwner(client, row.vendor_id, user.userId);
+      if (vendor === (row.customer_user_id === user.userId)) {
+        throw new NotFoundException("No such booking modification for this user");
+      }
+      if (row.state !== "proposed") throw new ConflictException("This modification was already decided");
+      const nextState = request.accept ? "accepted" : "declined";
+      await client.query(
+        `UPDATE booking_modifications
+         SET state = $2, decided_by_user_id = $3, decided_at = CURRENT_TIMESTAMP
+         WHERE id = $1`,
+        [modificationId, nextState, user.userId],
+      );
+      if (request.accept) {
+        const listing = await this.getListingContext(client, row.listing_id);
+        await this.captureTerms(client, row.booking_id, listing, row.proposed_terms);
         await client.query(
-          `UPDATE booking_modifications
-           SET state = $2, decided_by_user_id = $3, decided_at = CURRENT_TIMESTAMP
-           WHERE id = $1`,
-          [modificationId, decision, user.userId],
+          `UPDATE bookings SET requested_terms = $2::jsonb WHERE id = $1`,
+          [row.booking_id, JSON.stringify(row.proposed_terms)],
         );
-        if (decision === "accepted") {
-          const { slot, ...terms } = proposal.proposed_terms as {
-            slot?: { slotStart: string; slotEnd: string; timeZone: string };
-            [key: string]: unknown;
-          };
-          await client.query(
-            `UPDATE bookings
-             SET requested_terms = requested_terms || $2::jsonb,
-                 slot_start = COALESCE($3, slot_start),
-                 slot_end = COALESCE($4, slot_end),
-                 time_zone = COALESCE($5, time_zone)
-             WHERE id = $1`,
-            [
-              bookingId,
-              JSON.stringify(terms),
-              slot?.slotStart ?? null,
-              slot?.slotEnd ?? null,
-              slot?.timeZone ?? null,
-            ],
-          );
-        }
-        await this.event(client, bookingId, user.userId, `modification_${decision}`, row.state, row.state, {
-          modificationId,
-        });
-        await this.notifications.notify(
-          {
-            recipientUserId:
-              party === "vendor" ? row.customer_user_id : row.vendor_owner_id,
-            eventType: `booking.modification_${decision}`,
-            category: "bookings",
-            dedupeKey: `booking:${bookingId}:mod:${modificationId}:${decision}`,
-            payload: { listingTitle: row.listing_title },
-            linkedResource: { type: "booking", id: bookingId },
-          },
-          client,
-        );
-      });
-      return await this.get(user, bookingId);
-    } catch (error) {
-      throw this.translate(error);
-    }
-  }
-
-  /* ---------------------------------------------------------------- helpers */
-
-  /**
-   * System transitions for deadlines that have passed, applied to the bookings
-   * a read is about to return: a requested booking past its response deadline
-   * expires, and a completed one past its 7-day window closes (F-BKG-01,
-   * F-BKG-06). Capacity of an expired instant booking is given back.
-   */
-  private async applyDeadlines(
-    scope: string,
-    values: string[],
-  ): Promise<void> {
-    await this.database.transaction(async (client) => {
-      const expired = await client.query<{ id: string; capacity_id: string | null }>(
-        `UPDATE bookings AS b SET state = 'expired'
-         WHERE ${scope} AND b.state = 'requested'
-           AND b.response_due_at IS NOT NULL
-           AND b.response_due_at <= CURRENT_TIMESTAMP
-         RETURNING b.id, b.capacity_id`,
-        values,
-      );
-      for (const row of expired.rows) {
-        await this.systemEvent(client, row.id, "expired", "requested", "expired");
       }
-      const closed = await client.query<{ id: string }>(
-        `UPDATE bookings AS b
-         SET state = 'closed', closed_at = CURRENT_TIMESTAMP
-         WHERE ${scope} AND b.state = 'completed_awaiting'
-           AND b.confirmation_due_at IS NOT NULL
-           AND b.confirmation_due_at <= CURRENT_TIMESTAMP
-         RETURNING b.id`,
-        values,
+      await this.addEvent(
+        client,
+        row.booking_id,
+        user.userId,
+        `booking.modification_${nextState}`,
+        row.booking_state,
+        row.booking_state,
+        { modificationId },
       );
-      for (const row of closed.rows) {
-        await this.systemEvent(client, row.id, "auto_closed", "completed_awaiting", "closed");
-      }
+      await this.recordChange(client, user.userId, row.booking_id, `modification_${nextState}`, row.booking_state);
+      return { id: modificationId, state: nextState };
     });
   }
 
-  private requireParty(row: BookingRow, userId: string): Party {
-    const party = partyOf(row, userId);
-    if (!party) {
-      throw new NotFoundException("No such booking");
-    }
-    return party;
+  async confirmCompletion(user: AuthenticatedUser, bookingId: string) {
+    return this.customerCompletionAction(user, bookingId, null);
   }
 
-  private async load(
-    runner: Pick<DatabaseService, "query"> | PoolClient,
-    bookingId: string,
-    lock = false,
-  ): Promise<BookingRow> {
-    const result = await (runner as Pick<DatabaseService, "query">).query<BookingRow>(
-      `${BOOKING_SELECT} WHERE b.id = $1${lock ? " FOR UPDATE OF b" : ""}`,
-      [bookingId],
-    );
-    const row = result.rows[0];
-    if (!row) {
-      throw new NotFoundException("No such booking");
-    }
-    return row;
-  }
-
-  private async summary(
+  async reportCompletion(
     user: AuthenticatedUser,
     bookingId: string,
-  ): Promise<BookingSummary> {
-    const row = await this.load(this.database, bookingId);
-    return toSummary(row, this.requireParty(row, user.userId));
+    request: ReportBookingCompletionDto,
+  ) {
+    return this.customerCompletionAction(user, bookingId, request.supportCaseId);
   }
 
-  private event(
-    client: PoolClient,
+  private async customerCompletionAction(
+    user: AuthenticatedUser,
     bookingId: string,
-    actorUserId: string,
-    type: string,
-    from: string | null,
-    to: string | null,
-    details: Record<string, unknown>,
+    supportCaseId: string | null,
   ) {
-    return client.query(
+    return this.database.transaction(async (client) => {
+      const booking = await this.lockPartyBooking(client, bookingId, user.userId);
+      if (booking.party !== "customer") throw new NotFoundException("No such customer booking");
+      if (booking.state !== "completed_awaiting") {
+        throw new ConflictException("This booking is not awaiting completion confirmation");
+      }
+      if (supportCaseId) {
+        const supportCase = await client.query(
+          `SELECT 1 FROM support_cases
+           WHERE id = $1 AND transaction_type = 'booking'
+             AND transaction_id = $2`,
+          [supportCaseId, bookingId],
+        );
+        if (supportCase.rowCount !== 1) {
+          throw new BadRequestException("supportCaseId is not linked to this booking");
+        }
+        await this.addEvent(client, bookingId, user.userId, "booking.completion_reported", booking.state, booking.state, {
+          supportCaseId,
+        });
+        await this.recordChange(client, user.userId, bookingId, "completion_report", booking.state);
+        return { id: bookingId, state: booking.state, supportCaseId };
+      }
+      await client.query(
+        `UPDATE bookings SET state = 'closed', closed_at = CURRENT_TIMESTAMP WHERE id = $1`,
+        [bookingId],
+      );
+      await this.addEvent(client, bookingId, user.userId, "booking.completion_confirmed", booking.state, "closed");
+      await this.recordChange(client, user.userId, bookingId, "completion_confirm", "closed");
+      return { id: bookingId, state: "closed" };
+    });
+  }
+
+  async resolveConflicts(user: AuthenticatedUser, request: ResolveBookingConflictsDto) {
+    const cancelIds = [...new Set(request.cancelBookingIds)];
+    if (cancelIds.includes(request.keepBookingId)) {
+      throw new BadRequestException("The retained booking cannot also be cancelled");
+    }
+    return this.database.transaction(async (client) => {
+      const ids = [request.keepBookingId, ...cancelIds];
+      const locked = await client.query<{ id: string; state: string; listing_id: string; slot_start: Date; slot_end: Date; capacity_id: string | null }>(
+        `SELECT id, state, listing_id, slot_start, slot_end, capacity_id
+         FROM bookings WHERE id = ANY($1::uuid[]) AND customer_user_id = $2
+         FOR UPDATE`,
+        [ids, user.userId],
+      );
+      if (locked.rowCount !== ids.length || locked.rows.some((row) => row.state !== "confirmed")) {
+        throw new BadRequestException("All selected bookings must be confirmed bookings owned by the caller");
+      }
+      const keep = locked.rows.find((row) => row.id === request.keepBookingId)!;
+      for (const row of locked.rows) {
+        if (row.id === keep.id) continue;
+        if (row.listing_id !== keep.listing_id) {
+          throw new BadRequestException("Selected bookings do not conflict");
+        }
+        const overlap = row.slot_start < keep.slot_end && keep.slot_start < row.slot_end;
+        if (!overlap) throw new BadRequestException("Selected bookings do not conflict");
+      }
+      for (const id of cancelIds) {
+        const booking = locked.rows.find((row) => row.id === id);
+        if (booking?.capacity_id) await this.releaseCapacity(client, booking.capacity_id);
+        await client.query(
+          `UPDATE bookings SET state = 'cancelled', cancelled_by_user_id = $2,
+             cancellation_reason = 'Customer resolved conflicting confirmations',
+             cancelled_at = CURRENT_TIMESTAMP WHERE id = $1`,
+          [id, user.userId],
+        );
+        await this.addEvent(client, id, user.userId, "booking.conflict_cancelled", "confirmed", "cancelled", {
+          keptBookingId: keep.id,
+        });
+        await this.recordChange(client, user.userId, id, "conflict_cancel", "cancelled");
+      }
+      return { keptBookingId: keep.id, cancelledBookingIds: cancelIds };
+    });
+  }
+
+  async closeOverdue(): Promise<number> {
+    return this.database.transaction(async (client) => {
+      const result = await client.query<{ id: string; series_id: string | null }>(
+        `UPDATE bookings SET state = 'closed', closed_at = CURRENT_TIMESTAMP
+         WHERE state = 'completed_awaiting'
+           AND confirmation_due_at <= CURRENT_TIMESTAMP
+         RETURNING id, series_id`,
+      );
+      for (const row of result.rows) {
+        await this.addEvent(client, row.id, null, "booking.auto_closed", "completed_awaiting", "closed", {}, "booking-scheduler");
+        await this.outbox.enqueue(
+          { aggregateType: "booking", aggregateId: row.id, eventType: "booking.auto_closed" },
+          client,
+        );
+      }
+      const seriesIds = [...new Set(result.rows.flatMap((row) => row.series_id ? [row.series_id] : []))];
+      for (const seriesId of seriesIds) {
+        await client.query(
+          `UPDATE booking_series SET state = 'completed'
+           WHERE id = $1 AND state = 'active'
+             AND NOT EXISTS (
+               SELECT 1 FROM bookings
+               WHERE series_id = $1
+                 AND state NOT IN ('closed', 'cancelled', 'declined', 'expired')
+             )`,
+          [seriesId],
+        );
+      }
+      return result.rowCount ?? 0;
+    });
+  }
+
+  private async getListingContext(client: Queryable, listingId: string) {
+    const result = await client.query<ListingContext>(
+      `SELECT listing.id, listing.vendor_id, listing.category_id,
+         listing.config_version_number, listing.title, listing.price_min_minor,
+         listing.price_currency, listing.time_zone,
+         listing.instant_booking_enabled, listing.content_state,
+         vendor.owner_user_id, owner.account_status, config.configuration
+       FROM listings AS listing
+       JOIN vendors AS vendor ON vendor.id = listing.vendor_id
+       JOIN users AS owner ON owner.id = vendor.owner_user_id
+       JOIN category_config_versions AS config
+         ON config.category_id = listing.category_id
+        AND config.version_number = listing.config_version_number
+       WHERE listing.id = $1`,
+      [listingId],
+    );
+    const listing = result.rows[0];
+    if (!listing || listing.content_state !== "approved" || listing.account_status !== "active") {
+      throw new NotFoundException("No bookable listing");
+    }
+    return listing;
+  }
+
+  private assertBookingRequest(listing: ListingContext, mode: "instant" | "scheduled") {
+    if (mode === "instant" && (!listing.instant_booking_enabled || listing.price_min_minor === null)) {
+      throw new ConflictException("This listing does not support instant booking");
+    }
+  }
+
+  private responseDeadline(configuration: Record<string, unknown>) {
+    const seconds = configuration.responseDeadlineSeconds;
+    if (typeof seconds !== "number" || !Number.isSafeInteger(seconds) || seconds <= 0) {
+      throw new ConflictException("The category has no valid booking response deadline configured");
+    }
+    return new Date(Date.now() + seconds * 1000);
+  }
+
+  private requiredDate(value: unknown, name: string) {
+    if (typeof value !== "string") {
+      throw new BadRequestException(`The accepted quote must include ${name}`);
+    }
+    const date = new Date(value);
+    if (!Number.isFinite(date.getTime())) {
+      throw new BadRequestException(`The accepted quote has an invalid ${name}`);
+    }
+    return date;
+  }
+
+  private validateTimeZone(timeZone: string) {
+    try {
+      new Intl.DateTimeFormat("en", { timeZone });
+    } catch {
+      throw new BadRequestException("timeZone must be a valid IANA time zone");
+    }
+  }
+
+  private async reserveCapacity(
+    client: Queryable,
+    listingId: string,
+    capacityId: string | undefined,
+    start: Date,
+    end: Date,
+  ) {
+    if (!capacityId) throw new BadRequestException("capacityId is required for capacity booking");
+    const result = await client.query(
+      `UPDATE availability_capacity
+       SET reserved = reserved + 1
+       WHERE id = $1 AND listing_id = $2 AND starts_at <= $3 AND ends_at >= $4
+         AND reserved < capacity
+       RETURNING id`,
+      [capacityId, listingId, start, end],
+    );
+    if (result.rowCount !== 1) throw new ConflictException("The selected booking capacity is unavailable");
+  }
+
+  private async assertCapacityWindow(
+    client: Queryable,
+    listingId: string,
+    capacityId: string,
+    start: Date,
+    end: Date,
+  ) {
+    const result = await client.query(
+      `SELECT 1 FROM availability_capacity
+       WHERE id = $1 AND listing_id = $2 AND starts_at <= $3 AND ends_at >= $4`,
+      [capacityId, listingId, start, end],
+    );
+    if (result.rowCount !== 1) throw new BadRequestException("capacityId does not cover this booking slot");
+  }
+
+  private async releaseCapacity(client: Queryable, capacityId: string) {
+    const result = await client.query(
+      `UPDATE availability_capacity
+       SET reserved = reserved - 1
+       WHERE id = $1 AND reserved > 0`,
+      [capacityId],
+    );
+    if (result.rowCount !== 1) throw new ConflictException("Booking capacity reservation is inconsistent");
+  }
+
+  private async captureTerms(
+    client: Queryable,
+    bookingId: string,
+    listing: ListingContext,
+    terms: Record<string, unknown>,
+  ) {
+    const result = await client.query<{ id: string }>(
+      `INSERT INTO booking_terms_snapshots
+         (booking_id, version_number, category_id, category_config_version,
+          terms, policy_snapshot)
+       VALUES ($1, COALESCE((SELECT MAX(version_number) + 1
+                             FROM booking_terms_snapshots WHERE booking_id = $1), 1),
+               $2, $3, $4::jsonb, $5::jsonb)
+       RETURNING id`,
+      [
+        bookingId,
+        listing.category_id,
+        listing.config_version_number,
+        JSON.stringify({
+          listingTitle: listing.title,
+          priceMinor: listing.price_min_minor === null ? null : Number(listing.price_min_minor),
+          currency: listing.price_currency,
+          requestedTerms: terms,
+        }),
+        JSON.stringify(listing.configuration),
+      ],
+    );
+    return result.rows[0].id;
+  }
+
+  private async lockPartyBooking(client: Queryable, bookingId: string, userId: string) {
+    const result = await client.query<{
+      id: string;
+      state: string;
+      customer_user_id: string;
+      vendor_id: string;
+      listing_id: string;
+      series_id: string | null;
+      capacity_id: string | null;
+      slot_start: Date;
+      slot_end: Date;
+      requested_terms: Record<string, unknown>;
+      party: "customer" | "vendor";
+    }>(
+      `SELECT booking.id, booking.state, booking.customer_user_id,
+         booking.vendor_id, booking.listing_id, booking.series_id,
+         booking.capacity_id, booking.slot_start, booking.slot_end,
+         booking.requested_terms,
+         CASE WHEN booking.customer_user_id = $2 THEN 'customer' ELSE 'vendor' END AS party
+       FROM bookings AS booking
+       WHERE booking.id = $1 AND (
+         booking.customer_user_id = $2 OR EXISTS (
+           SELECT 1 FROM vendors
+           WHERE vendors.id = booking.vendor_id AND owner_user_id = $2
+         )
+       ) FOR UPDATE`,
+      [bookingId, userId],
+    );
+    if (!result.rows[0]) throw new NotFoundException("No such booking");
+    return result.rows[0];
+  }
+
+  private async getWithin(client: Queryable, userId: string, bookingId: string) {
+    const result = await client.query<BookingRow>(
+      `${BOOKING_SELECT}
+       WHERE id = $1 AND (
+         customer_user_id = $2 OR EXISTS (
+           SELECT 1 FROM vendors
+           WHERE vendors.id = bookings.vendor_id AND owner_user_id = $2
+         )
+       )`,
+      [bookingId, userId],
+    );
+    if (!result.rows[0]) throw new NotFoundException("No such booking");
+    return toView(result.rows[0]);
+  }
+
+  private async requireVendorOwner(client: Queryable, vendorId: string, userId: string) {
+    if (!(await this.isVendorOwner(client, vendorId, userId))) {
+      throw new NotFoundException("No such vendor for this user");
+    }
+  }
+
+  private async isVendorOwner(client: Queryable, vendorId: string, userId: string) {
+    const result = await client.query(
+      `SELECT 1 FROM vendors WHERE id = $1 AND owner_user_id = $2`,
+      [vendorId, userId],
+    );
+    return result.rowCount === 1;
+  }
+
+  private async addEvent(
+    client: Queryable,
+    bookingId: string,
+    actorUserId: string | null,
+    eventType: string,
+    fromState: string | null,
+    toState: string | null,
+    details: Record<string, unknown> = {},
+    actorService?: string,
+  ) {
+    await client.query(
       `INSERT INTO booking_events
-         (booking_id, actor_user_id, event_type, from_state, to_state, details)
-       VALUES ($1, $2, $3, $4, $5, $6::jsonb)`,
-      [bookingId, actorUserId, type, from, to, JSON.stringify(details)],
+         (booking_id, actor_user_id, actor_service, event_type, from_state, to_state, details)
+       VALUES ($1, $2, $3, $4, $5, $6, $7::jsonb)`,
+      [bookingId, actorUserId, actorService ?? null, eventType, fromState, toState, JSON.stringify(details)],
     );
   }
 
-  private systemEvent(
+  private async recordChange(
     client: PoolClient,
+    userId: string,
     bookingId: string,
-    type: string,
-    from: string,
-    to: string,
+    action: string,
+    state: string,
   ) {
-    return client.query(
-      `INSERT INTO booking_events
-         (booking_id, actor_service, event_type, from_state, to_state)
-       VALUES ($1, 'booking-deadlines', $2, $3, $4)`,
-      [bookingId, type, from, to],
+    await this.audit.record(
+      {
+        actorUserId: userId,
+        action: `booking.${action}`,
+        targetType: "booking",
+        targetId: bookingId,
+        metadata: { state },
+      },
+      client,
     );
-  }
-
-  private translate(error: unknown): unknown {
-    const code = (error as { code?: string }).code;
-    if (code === UNIQUE_VIOLATION) {
-      return new ConflictException("That change conflicts with an existing record");
-    }
-    if (code === EXCLUSION_VIOLATION) {
-      return new ConflictException("That time overlaps an existing window");
-    }
-    if (code === "23514") {
-      return new BadRequestException("The booking details are inconsistent");
-    }
-    return error;
+    await this.outbox.enqueue(
+      { aggregateType: "booking", aggregateId: bookingId, eventType: `booking.${action}` },
+      client,
+    );
   }
 }

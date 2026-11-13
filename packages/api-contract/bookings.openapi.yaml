@@ -1,0 +1,343 @@
+openapi: 3.1.0
+info:
+  title: VendorVerse Booking API
+  version: 0.1.0
+  summary: Authenticated booking lifecycle and recurring-series operations.
+  description: |
+    Booking creation requires an Idempotency-Key, a future time range, an
+    explicit IANA time zone, a capacity window, and a category-configured
+    responseDeadlineSeconds value for scheduled requests. Instant booking is
+    available only for listings that explicitly enable it. Completion
+    confirmation uses the specified seven-calendar-day period.
+  x-feature-ids: [F-BKG-01, F-BKG-02, F-BKG-03, F-BKG-04, F-BKG-05, F-BKG-06, F-BKG-07, F-BKG-08, F-BKG-09]
+  x-change-log:
+    - date-time: "2026-11-13 12:44"
+      updated-by: Amit
+      change: "Modified: booking API contract"
+      reason: "Align the contract with the verified transaction API scope and preserve client-wiring and scheduler gaps."
+    - date-time: "2026-11-13 11:46"
+      updated-by: Amit
+      change: "Added: Booking API"
+      reason: "Implement Phase 1 booking transactions before universal search."
+servers:
+  - url: /v1
+security:
+  - bearerAuth: []
+tags:
+  - name: Bookings
+paths:
+  /bookings:
+    post:
+      operationId: createBooking
+      tags: [Bookings]
+      summary: Create an instant or scheduled booking
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateBooking"
+      responses:
+        "201":
+          description: The created booking.
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "409":
+          $ref: "#/components/responses/Conflict"
+  /booking-series:
+    post:
+      operationId: createBookingSeries
+      tags: [Bookings]
+      summary: Create linked scheduled occurrences
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateBookingSeries"
+      responses:
+        "201":
+          description: The independent booking occurrences.
+        "409":
+          $ref: "#/components/responses/Conflict"
+  /me/bookings:
+    get:
+      operationId: listMyBookings
+      tags: [Bookings]
+      responses:
+        "200":
+          description: Bookings owned by the authenticated customer.
+  /vendors/{vendorId}/bookings:
+    get:
+      operationId: listVendorBookings
+      tags: [Bookings]
+      parameters:
+        - $ref: "#/components/parameters/VendorId"
+      responses:
+        "200":
+          description: Bookings delivered to an owned vendor.
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /bookings/{bookingId}:
+    get:
+      operationId: getBooking
+      tags: [Bookings]
+      parameters:
+        - $ref: "#/components/parameters/BookingId"
+      responses:
+        "200":
+          description: Booking visible to either party.
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /bookings/{bookingId}/events:
+    get:
+      operationId: listBookingEvents
+      tags: [Bookings]
+      parameters:
+        - $ref: "#/components/parameters/BookingId"
+      responses:
+        "200":
+          description: Immutable booking event history.
+  /bookings/{bookingId}/actions:
+    post:
+      operationId: actOnBooking
+      tags: [Bookings]
+      parameters:
+        - $ref: "#/components/parameters/BookingId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [action]
+              properties:
+                action:
+                  type: string
+                  enum: [accept, decline, start, complete]
+                reason:
+                  type: string
+                capacityId:
+                  type: string
+                  format: uuid
+      responses:
+        "200":
+          description: Booking action applied.
+        "409":
+          $ref: "#/components/responses/Conflict"
+  /bookings/{bookingId}/cancel:
+    post:
+      operationId: cancelBooking
+      tags: [Bookings]
+      parameters:
+        - $ref: "#/components/parameters/BookingId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason:
+                  type: string
+                scope:
+                  type: string
+                  enum: [occurrence, series]
+      responses:
+        "200":
+          description: The requested occurrence or series was cancelled.
+        "409":
+          $ref: "#/components/responses/Conflict"
+  /bookings/{bookingId}/modifications:
+    post:
+      operationId: proposeBookingModification
+      tags: [Bookings]
+      parameters:
+        - $ref: "#/components/parameters/BookingId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [proposedTerms]
+              properties:
+                proposedTerms:
+                  type: object
+      responses:
+        "201":
+          description: Modification proposal created; original terms remain in force.
+  /booking-modifications/{modificationId}/decision:
+    post:
+      operationId: decideBookingModification
+      tags: [Bookings]
+      parameters:
+        - $ref: "#/components/parameters/ModificationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [accept]
+              properties:
+                accept:
+                  type: boolean
+      responses:
+        "200":
+          description: Modification accepted or declined by the other party.
+  /bookings/{bookingId}/confirm-completion:
+    post:
+      operationId: confirmBookingCompletion
+      tags: [Bookings]
+      parameters:
+        - $ref: "#/components/parameters/BookingId"
+      responses:
+        "200":
+          description: Booking closed after customer confirmation.
+  /bookings/{bookingId}/report-completion:
+    post:
+      operationId: reportBookingCompletion
+      tags: [Bookings]
+      parameters:
+        - $ref: "#/components/parameters/BookingId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [supportCaseId]
+              properties:
+                supportCaseId:
+                  type: string
+                  format: uuid
+      responses:
+        "200":
+          description: Existing support case linked to the booking.
+  /bookings/conflicts/resolve:
+    post:
+      operationId: resolveBookingConflicts
+      tags: [Bookings]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [keepBookingId, cancelBookingIds]
+              properties:
+                keepBookingId:
+                  type: string
+                  format: uuid
+                cancelBookingIds:
+                  type: array
+                  minItems: 1
+                  items:
+                    type: string
+                    format: uuid
+      responses:
+        "200":
+          description: Explicitly retained and cancelled conflicting confirmations.
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  parameters:
+    BookingId:
+      name: bookingId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    ModificationId:
+      name: modificationId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    VendorId:
+      name: vendorId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 255
+  schemas:
+    CreateBooking:
+      type: object
+      required: [listingId, mode, slotStart, slotEnd, timeZone, capacityId]
+      properties:
+        listingId:
+          type: string
+          format: uuid
+        mode:
+          type: string
+          enum: [instant, scheduled]
+        slotStart:
+          type: string
+          format: date-time
+        slotEnd:
+          type: string
+          format: date-time
+        timeZone:
+          type: string
+        capacityId:
+          type: string
+          format: uuid
+        requestedTerms:
+          type: object
+    CreateBookingSeries:
+      type: object
+      required: [listingId, recurrenceRule, timeZone, occurrences]
+      properties:
+        listingId:
+          type: string
+          format: uuid
+        recurrenceRule:
+          type: string
+          minLength: 1
+        timeZone:
+          type: string
+        occurrences:
+          type: array
+          minItems: 1
+          items:
+            type: object
+            required: [slotStart, slotEnd, capacityId]
+            properties:
+              slotStart:
+                type: string
+                format: date-time
+              slotEnd:
+                type: string
+                format: date-time
+              capacityId:
+                type: string
+                format: uuid
+        requestedTerms:
+          type: object
+  responses:
+    BadRequest:
+      description: Request validation failed.
+    NotFound:
+      description: Resource not found for this user.
+    Conflict:
+      description: Requested state transition or capacity reservation is not available.

@@ -4,7 +4,7 @@ info:
   version: 0.1.0
   summary: Public listing search and detail, favourites, and the booking lifecycle.
   description: |
-    Implemented in `backend/src/discover` and `backend/src/bookings`; the
+    Implemented in `backend/src/discover` and `backend/src/remote-bookings`; the
     running service also serves this at `/docs`.
 
     Discovery is public. Only eligible listings in a live market are returned
@@ -140,7 +140,7 @@ paths:
         - { name: vendorId, in: path, required: true, schema: { type: string, format: uuid } }
       responses:
         "204": { description: Removed or was not saved. }
-  /bookings:
+  /remote-bookings:
     post:
       operationId: createBooking
       tags: [Bookings]
@@ -190,7 +190,7 @@ paths:
                   bookings:
                     type: array
                     items: { $ref: "#/components/schemas/Booking" }
-  /vendors/{vendorId}/bookings:
+  /vendors/{vendorId}/remote-bookings:
     get:
       operationId: listVendorBookings
       tags: [Bookings]
@@ -211,7 +211,7 @@ paths:
                     type: array
                     items: { $ref: "#/components/schemas/Booking" }
         "404": { $ref: "#/components/responses/Problem" }
-  /bookings/{bookingId}:
+  /remote-bookings/{bookingId}:
     get:
       operationId: getBooking
       tags: [Bookings]
@@ -226,7 +226,7 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/BookingDetail" }
         "404": { $ref: "#/components/responses/Problem" }
-  /bookings/{bookingId}/accept:
+  /remote-bookings/{bookingId}/accept:
     post:
       operationId: acceptBooking
       tags: [Bookings]
@@ -237,7 +237,7 @@ paths:
         "200": { $ref: "#/components/responses/BookingResult" }
         "403": { $ref: "#/components/responses/Problem" }
         "409": { $ref: "#/components/responses/Problem" }
-  /bookings/{bookingId}/decline:
+  /remote-bookings/{bookingId}/decline:
     post:
       operationId: declineBooking
       tags: [Bookings]
@@ -257,7 +257,7 @@ paths:
         "200": { $ref: "#/components/responses/BookingResult" }
         "403": { $ref: "#/components/responses/Problem" }
         "409": { $ref: "#/components/responses/Problem" }
-  /bookings/{bookingId}/start:
+  /remote-bookings/{bookingId}/start:
     post:
       operationId: startBooking
       tags: [Bookings]
@@ -267,7 +267,7 @@ paths:
       responses:
         "200": { $ref: "#/components/responses/BookingResult" }
         "409": { $ref: "#/components/responses/Problem" }
-  /bookings/{bookingId}/complete:
+  /remote-bookings/{bookingId}/complete:
     post:
       operationId: completeBooking
       tags: [Bookings]
@@ -277,7 +277,7 @@ paths:
       responses:
         "200": { $ref: "#/components/responses/BookingResult" }
         "409": { $ref: "#/components/responses/Problem" }
-  /bookings/{bookingId}/confirm:
+  /remote-bookings/{bookingId}/confirm:
     post:
       operationId: confirmBooking
       tags: [Bookings]
@@ -288,7 +288,7 @@ paths:
         "200": { $ref: "#/components/responses/BookingResult" }
         "403": { $ref: "#/components/responses/Problem" }
         "409": { $ref: "#/components/responses/Problem" }
-  /bookings/{bookingId}/cancel:
+  /remote-bookings/{bookingId}/cancel:
     post:
       operationId: cancelBooking
       tags: [Bookings]
@@ -308,7 +308,7 @@ paths:
       responses:
         "200": { $ref: "#/components/responses/BookingResult" }
         "409": { $ref: "#/components/responses/Problem" }
-  /bookings/{bookingId}/modifications:
+  /remote-bookings/{bookingId}/modifications:
     post:
       operationId: proposeBookingModification
       tags: [Bookings]
@@ -334,7 +334,7 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/BookingDetail" }
         "409": { $ref: "#/components/responses/Problem" }
-  /bookings/{bookingId}/modifications/{modificationId}/{decision}:
+  /remote-bookings/{bookingId}/modifications/{modificationId}/{decision}:
     post:
       operationId: decideBookingModification
       tags: [Bookings]
