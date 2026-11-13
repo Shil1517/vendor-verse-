@@ -70,6 +70,12 @@ These routes are also listed in Swagger UI at `/docs`.
 - `GET /v1/me/waitlist`, `POST|DELETE /v1/geo/cities/{cityId}/waitlist` (F-GEO-02)
 - `GET /v1/admin/roles`, `GET|POST /v1/admin/users/{userId}/roles`, `DELETE /v1/admin/users/{userId}/roles/{roleCode}` (F-ADM-04; needs `rbac.read` / `rbac.manage`; only SALES_AGENT and SUPER_ADMIN are assignable; reason required and audited; you cannot change your own roles; the last Super Admin cannot be revoked)
 - `GET /v1/admin/taxonomy/categories?industryId=&lifecycle=`, `GET|PATCH /v1/admin/taxonomy/categories/{id}`, `POST /v1/admin/taxonomy/categories`, `POST .../categories/{id}/lifecycle|merge`, `PUT /v1/admin/taxonomy/industries/{id}/category-order`, `POST .../categories/{id}/subcategories`, `PATCH .../subcategories/{id}` (F-TAX-02; needs `taxonomy.manage`; new categories start as Draft, so activate one and set a `marketRules` entry before it shows in public browse)
+- `POST /v1/rfqs`, `GET /v1/me/rfqs`, `GET /v1/vendors/{vendorId}/rfqs`, `GET /v1/rfqs/{rfqId}`, `POST /v1/rfqs/{rfqId}/open|revisions|extend-deadline` (F-RFQ-01, F-RFQ-05, F-RFQ-06; customer-owned; RFQ revisions are immutable and the caller supplies the deadline and recipient vendor IDs)
+- `GET|POST /v1/rfqs/{rfqId}/quotes`, `POST /v1/quotes/{quoteId}/revisions|withdraw`, `POST /v1/rfqs/{rfqId}/quotes/{quoteId}/accept` (F-RFQ-02 to F-RFQ-04; invited vendors only; goods quotes include validated line items; acceptance is serialized, snapshots accepted terms, marks competing submitted quotes unsuccessful, and atomically creates the configured fulfillment)
+- `POST /v1/rfqs/{rfqId}/expire`, `GET /v1/rfqs/{rfqId}/vendor-suggestions`, `GET /v1/me/work-orders`, `GET /v1/vendors/{vendorId}/work-orders`, `GET /v1/work-orders/{workOrderId}`, `POST /v1/work-orders/{workOrderId}/actions` (RFQ deadline/no-quote and work-order operations)
+- `POST /v1/bookings`, `POST /v1/booking-series`, `GET /v1/me/bookings`, `GET /v1/vendors/{vendorId}/bookings`, `GET /v1/bookings/{bookingId}` and its events/actions/cancel/modification/completion/conflict routes (F-BKG-01 to F-BKG-09; idempotency key required for creation)
+- `POST /v1/contracts`, `GET /v1/me/contracts`, `GET /v1/vendors/{vendorId}/contracts`, `GET /v1/contracts/{contractId}` and version/accept/decline/milestone routes (F-CON-01, F-CON-02; contract proposals require category configuration)
+- `GET /v1/me/purchase-orders`, `GET /v1/vendors/{vendorId}/purchase-orders`, `GET /v1/purchase-orders/{orderId}`, `POST /v1/purchase-orders/{orderId}/actions`, and dispute routes (F-GDS-03, F-GDS-04, F-GDS-06; orders arise from accepted goods RFQs; no payment APIs or funds movement)
 - `GET /v1/taxonomy/industries?countryCode=`
 - `GET /v1/taxonomy/categories?countryCode=&industryId=`
 - `GET /v1/taxonomy/categories/{categoryId}?countryCode=`
@@ -85,6 +91,15 @@ Verification expiries and evidence requirements are recorded when supplied;
 the API does not invent expiry periods or evidence checklists. File uploads and
 downloads still fail closed until storage policy and providers are configured.
 The web and mobile verification screens do not yet call these APIs. The role screens do not call the roles APIs yet either; mobile onboarding sends `roleCodes` to `POST /v1/vendors`.
+
+The transaction APIs now cover RFQs and quotes, bookings, work orders,
+contracts and purchase orders. Service RFQs use the category's
+`rfqFulfillmentType` (`booking`, `work_order`, or `contract`); goods RFQs create
+purchase orders. RFQ attachments require uploaded, scan-clean files; real
+storage/scanner providers and client wiring remain outstanding. Notification
+delivery is not implemented for these workflows. Automatic booking, work-order
+and contract milestone closure methods need scheduler integration. Payment APIs
+are excluded; O-06 and O-08 remain open and are not implemented.
 
 Mode switching supports CUSTOMER and VENDOR when a vendor record is owned by
 the identity. BUSINESS returns 409 until its separately verified account
@@ -172,6 +187,8 @@ The email is stored **unverified** and is not a sign-in identifier; verification
 
 | Date & time (YYYY-MM-DD HH:MM, local) | Updated by | Change | Reason |
 |---|---|---|---|
+| 2026-11-13 12:44 | Amit | Added: booking, contract, purchase-order and RFQ handoff routes | Document the implemented transaction APIs, the category-based handoff and explicit gaps; payment APIs remain out of scope. |
+| 2026-11-13 11:16 | Amit | Added: RFQ and quote routes | Document the first transaction API slice and make its current workflow gaps explicit. |
 | 2026-11-12 12:01 | Sahil Soni | Added: public vendor read `GET /vendors/{vendorId}/public` | Show only verified roles publicly (D-020, D-021); no public-profile screen calls it yet. |
 | 2026-11-12 11:52 | Sahil Soni | Added: vendor roles APIs, role catalogue, role review and the `vendor_roles.manage` permission (migration 016) | Make vendor roles data instead of a fixed list, with role-level verification (D-019 to D-024). |
 | 2026-11-10 13:59 | Amit | Added: vendor verification APIs, reviewer permission and API contract | Deliver the F-VND-03 backend slice without guessing evidence requirements or expiry policy. |
