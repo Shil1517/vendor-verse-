@@ -1,0 +1,250 @@
+openapi: 3.1.0
+info:
+  title: VendorVerse Contract API
+  version: 0.1.0
+  summary: Contract proposals, immutable versions, acceptance and milestones.
+  description: |
+    Contracts are available only when category configuration contains
+    approvedContractTemplateId. Proposals and counters create immutable
+    versions; both customer and vendor must accept the same current version.
+    Suspend, resume and expiry remain OPEN (O-08) and are not represented.
+    Milestone confirmation uses the specified seven-calendar-day period.
+  x-feature-ids: [F-CON-01, F-CON-02]
+  x-change-log:
+    - date-time: "2026-11-13 12:44"
+      updated-by: Amit
+      change: "Modified: contract API contract"
+      reason: "Align the contract with the verified transaction API scope and preserve client-wiring and scheduler gaps."
+    - date-time: "2026-11-13 11:46"
+      updated-by: Amit
+      change: "Added: Contract API"
+      reason: "Implement decided Phase 1 contract workflows without OPEN lifecycle states."
+servers:
+  - url: /v1
+security:
+  - bearerAuth: []
+tags:
+  - name: Contracts
+  - name: Milestones
+paths:
+  /contracts:
+    post:
+      operationId: proposeContract
+      tags: [Contracts]
+      summary: Propose a contract using its category's configured template
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [vendorId, categoryId, scope]
+              properties:
+                vendorId:
+                  type: string
+                  format: uuid
+                categoryId:
+                  type: string
+                  format: uuid
+                scope:
+                  type: object
+                schedule:
+                  type: object
+                priceSchedule:
+                  type: object
+                term:
+                  type: object
+      responses:
+        "201":
+          description: The proposed contract and immutable version 1.
+        "409":
+          description: Category has no active approved contract template configured.
+  /me/contracts:
+    get:
+      operationId: listMyContracts
+      tags: [Contracts]
+      responses:
+        "200":
+          description: Contracts belonging to the caller or an owned vendor.
+  /vendors/{vendorId}/contracts:
+    get:
+      operationId: listVendorContracts
+      tags: [Contracts]
+      parameters:
+        - $ref: "#/components/parameters/VendorId"
+      responses:
+        "200":
+          description: Contracts involving the owned vendor.
+  /contracts/{contractId}:
+    get:
+      operationId: getContract
+      tags: [Contracts]
+      parameters:
+        - $ref: "#/components/parameters/ContractId"
+      responses:
+        "200":
+          description: Current immutable version, current-version acceptances and milestones.
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /contracts/{contractId}/versions:
+    post:
+      operationId: counterContract
+      tags: [Contracts]
+      summary: Counter with a new immutable version
+      parameters:
+        - $ref: "#/components/parameters/ContractId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ContractVersion"
+      responses:
+        "200":
+          description: Negotiating contract with a new current version.
+        "409":
+          $ref: "#/components/responses/Conflict"
+  /contracts/{contractId}/accept:
+    post:
+      operationId: acceptContract
+      tags: [Contracts]
+      summary: Accept the current version as one party
+      parameters:
+        - $ref: "#/components/parameters/ContractId"
+      responses:
+        "200":
+          description: Contract becomes active after both parties accept this version.
+        "409":
+          $ref: "#/components/responses/Conflict"
+  /contracts/{contractId}/decline:
+    post:
+      operationId: declineContract
+      tags: [Contracts]
+      parameters:
+        - $ref: "#/components/parameters/ContractId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason:
+                  type: string
+      responses:
+        "200":
+          description: Contract declined.
+  /contracts/{contractId}/milestones:
+    post:
+      operationId: createContractMilestone
+      tags: [Milestones]
+      parameters:
+        - $ref: "#/components/parameters/ContractId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateMilestone"
+      responses:
+        "201":
+          description: Milestone added to an active contract.
+  /milestones/{milestoneId}/actions:
+    post:
+      operationId: actOnMilestone
+      tags: [Milestones]
+      parameters:
+        - $ref: "#/components/parameters/MilestoneId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [action]
+              properties:
+                action:
+                  type: string
+                  enum: [start, complete, confirm, dispute, resolve]
+                supportCaseId:
+                  type: string
+                  format: uuid
+      responses:
+        "200":
+          description: Milestone state changed or linked support case resolved.
+        "409":
+          $ref: "#/components/responses/Conflict"
+  /contracts/{contractId}/complete:
+    post:
+      operationId: completeContract
+      tags: [Contracts]
+      parameters:
+        - $ref: "#/components/parameters/ContractId"
+      responses:
+        "200":
+          description: Contract completed after every milestone is closed.
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  parameters:
+    ContractId:
+      name: contractId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    MilestoneId:
+      name: milestoneId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    VendorId:
+      name: vendorId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+  schemas:
+    ContractVersion:
+      type: object
+      required: [scope]
+      properties:
+        scope:
+          type: object
+        schedule:
+          type: object
+        priceSchedule:
+          type: object
+        term:
+          type: object
+    CreateMilestone:
+      type: object
+      required: [title]
+      properties:
+        title:
+          type: string
+          minLength: 1
+        terms:
+          type: object
+        amountMinor:
+          type: integer
+          minimum: 0
+        currency:
+          type: string
+          pattern: "^[A-Z]{3}$"
+        dueAt:
+          type: string
+          format: date-time
+  responses:
+    NotFound:
+      description: Resource not found for this user.
+    Conflict:
+      description: Requested state transition is not available.

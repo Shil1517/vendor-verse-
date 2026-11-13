@@ -67,7 +67,7 @@ Where the same capability starts in Phase 1 and grows in Phase 2, it is split in
 | F-VND-10 | Vendor dashboard | Vendor onboarding, verification and listings |
 | F-VND-13 | Workspace color theme presets | Vendor onboarding, verification and listings |
 | F-DSC-01 | Home with search, intent tabs and category explorer | Discovery |
-| F-DSC-02 | Search, filters, ranking, pagination | Discovery |
+| F-DSC-02 | Universal search, filters, ranking, pagination | Discovery |
 | F-DSC-03 | Search error, offline and no-result flows | Discovery |
 | F-DSC-04 | Supplier and manufacturer search | Discovery |
 | F-DSC-05 | Listing detail with honest missing-data labels | Discovery |
@@ -219,6 +219,7 @@ Where this file and the PRS disagree, this file wins and the difference is recor
 
 | Date & time (YYYY-MM-DD HH:MM, local) | Updated by | Change | Reason |
 |---|---|---|---|
+| 2026-11-13 11:27 | Amit | Modified: generated phase lists for F-DSC-02 | Refresh the generated scope label after recording the universal-search feature scope. |
 | 2026-11-11 16:51 | Abhishek Samadhiya | Modified: generated phase lists for D-017 and D-018 | Regenerate the launch scope with the industry and workspace-theme decisions recorded under separate IDs. |
 | 2026-11-11 12:49 | Amit | Modified: Industry phase boundary | D-017 moves all 30 documented industries into Phase 1 browsing; generated feature lists refreshed from the spec. |
 | 2026-11-11 12:34 | Amit | Modified: Industry phase boundary | D-017 moves all 30 documented industries into Phase 1 browsing; generated feature lists refreshed from the spec. |
