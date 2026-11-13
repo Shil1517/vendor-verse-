@@ -177,6 +177,7 @@ Rules:
 
 | Date & time (YYYY-MM-DD HH:MM, local) | Updated by | Change | Reason |
 |---|---|---|---|
+| 2026-11-12 14:18 | Sahil Soni | Modified: active backend module status | Discover (search, listing detail, favourites) and bookings modules added under `backend/src/discover/` and `backend/src/bookings/`; both clients use a shared `screens/remote-discovery.jsx` for the real-API screens until the generated client exists. |
 | 2026-11-12 11:52 | Sahil Soni | Modified: active backend module status | Vendor roles module added under `backend/src/vendor-roles/` (D-024). |
 | 2026-11-11 16:52 | Sahil Soni | Modified: business module description | Vendor and Business merged (D-023); no code moved yet. |
 | 2026-11-10 13:59 | Amit | Modified: active backend module status | Vendor verification now has an implemented module under `backend/src/verification/`, not only a planned boundary. |

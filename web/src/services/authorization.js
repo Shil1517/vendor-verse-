@@ -19,7 +19,7 @@ export function ownsCustomerRecord(actor, record) {
 
 export function canOpenRoute(actor, routeRole) {
   if (routeRole === 'auth') return true
-  if (routeRole === 'customer') return actor?.role === 'customer' || (actor?.role === 'vendor' && actor?.buyerMode === true)
+  if (routeRole === 'customer') return actor?.role === 'customer' // buying is Customer mode only (D-022)
   if (routeRole === 'shared') return actor?.role === 'customer' || actor?.role === 'vendor' || actor?.role === 'business'
   if (routeRole === 'vendor') return actor?.role === 'vendor'
   return Boolean(actor?.loggedIn && actor.role === routeRole)

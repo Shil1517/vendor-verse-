@@ -462,6 +462,7 @@ export function Profile() {
           <ListRow icon={CalendarCheck} tone="sky" title="My bookings" onClick={() => nav.go('c_activity', { tab: 'bookings' })} />
           <ListRow icon={FileText} tone="violet" title="My quote requests" onClick={() => nav.go('c_activity', { tab: 'rfqs' })} />
           <ListRow icon={Package} tone="violet" title="Purchase orders" onClick={() => nav.go('c_orders')} />
+          {me.hasVendor && <ListRow icon={Repeat} tone="blue" title="Buy from other vendors" subtitle="Find suppliers, send bulk RFQs, track purchases" onClick={() => nav.go('v_buy')} />}
           <ListRow icon={Star} tone="amber" title="My reviews" subtitle="Given and pending" onClick={() => nav.go('c_reviews')} />
           <ListRow icon={FileSignature} tone="violet" title="My contracts" onClick={() => nav.go('c_activity', { tab: 'contracts' })} />
           <ListRow icon={FileText} tone="slate" title="Pricing & fees" subtitle="Free for customers — see exactly who pays what" onClick={() => nav.go('fees')} />

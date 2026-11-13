@@ -1,6 +1,6 @@
 import {
   Home, Compass, ClipboardList, MessageCircle, User, LayoutDashboard, Briefcase, Package, MoreHorizontal, Users, CalendarClock,
-  TrendingUp, ShieldCheck, BarChart3, Settings, Building2, ShoppingCart,
+  TrendingUp, ShieldCheck, BarChart3, Settings, Building2,
 } from 'lucide-react'
 
 export const ROLES = [
@@ -38,7 +38,6 @@ export const TABS = {
     { id: 'v_dash', k: 'dashboard', icon: LayoutDashboard },
     { id: 'v_work', k: 'work', icon: Briefcase },
     { id: 'v_listings', k: 'listings', icon: Package },
-    { id: 'v_buy', k: 'buy', icon: ShoppingCart },
     { id: 'messages', k: 'messages', icon: MessageCircle },
     { id: 'v_more', k: 'more', icon: MoreHorizontal },
   ],

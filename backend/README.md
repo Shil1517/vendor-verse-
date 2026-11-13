@@ -67,6 +67,10 @@ These routes are also listed in Swagger UI at `/docs`.
 - `POST|GET /v1/vendors/{vendorId}/listings`, `GET|PATCH /v1/listings/{listingId}`, `POST /v1/listings/{listingId}/submit|pause|resume|unpublish` (F-VND-06; owner only; drafts are never public)
 - `GET /v1/vendors/{vendorId}/publication-gates?listingId=` (F-VND-05; computed live, never stored; gates whose module is missing report `met: null`)
 - `GET|PUT|DELETE /v1/listings/{listingId}/availability`, `GET|POST /v1/listings/{listingId}/capacity`, `DELETE /v1/listings/{listingId}/capacity/{windowId}` (F-VND-08)
+- `GET /v1/discover/listings?countryCode=&cityId=&q=&categoryId=&listingType=&minPriceMinor=&maxPriceMinor=&instantOnly=&limit=&cursor=`, `GET /v1/discover/listings/{listingId}` (F-DSC-02, F-DSC-03, F-DSC-05; public; only eligible listings in a live market, organic ranking, `not_provided` instead of zero)
+- `GET /v1/me/favorites`, `PUT|DELETE /v1/me/favorites/{vendorId}` (F-DSC-07; public vendors only)
+- `POST|GET /v1/bookings`, `GET /v1/bookings/{id}`, `GET /v1/vendors/{vendorId}/bookings` (F-BKG-01, F-BKG-02, F-BKG-03, F-BKG-08, F-BKG-10; send `Idempotency-Key`; instant bookings reserve capacity atomically)
+- `POST /v1/bookings/{id}/accept|decline|start|complete|confirm|cancel`, `POST /v1/bookings/{id}/modifications` and `.../modifications/{modificationId}/accept|decline|withdraw` (F-BKG-04 to F-BKG-07, F-BKG-09; deadlines apply when a booking is read; the response deadline comes from the category configuration key `responseDeadlineHours`, with none set there is no deadline)
 - `GET /v1/me/waitlist`, `POST|DELETE /v1/geo/cities/{cityId}/waitlist` (F-GEO-02)
 - `GET /v1/admin/roles`, `GET|POST /v1/admin/users/{userId}/roles`, `DELETE /v1/admin/users/{userId}/roles/{roleCode}` (F-ADM-04; needs `rbac.read` / `rbac.manage`; only SALES_AGENT and SUPER_ADMIN are assignable; reason required and audited; you cannot change your own roles; the last Super Admin cannot be revoked)
 - `GET /v1/admin/taxonomy/categories?industryId=&lifecycle=`, `GET|PATCH /v1/admin/taxonomy/categories/{id}`, `POST /v1/admin/taxonomy/categories`, `POST .../categories/{id}/lifecycle|merge`, `PUT /v1/admin/taxonomy/industries/{id}/category-order`, `POST .../categories/{id}/subcategories`, `PATCH .../subcategories/{id}` (F-TAX-02; needs `taxonomy.manage`; new categories start as Draft, so activate one and set a `marketRules` entry before it shows in public browse)
@@ -172,6 +176,7 @@ The email is stored **unverified** and is not a sign-in identifier; verification
 
 | Date & time (YYYY-MM-DD HH:MM, local) | Updated by | Change | Reason |
 |---|---|---|---|
+| 2026-11-12 14:18 | Sahil Soni | Added: discovery, favourites and booking routes | P1-S3 and P1-S4 stages: `backend/src/discover/` and `backend/src/bookings/`, contract in `packages/api-contract/discovery-booking.openapi.yaml`. |
 | 2026-11-12 12:01 | Sahil Soni | Added: public vendor read `GET /vendors/{vendorId}/public` | Show only verified roles publicly (D-020, D-021); no public-profile screen calls it yet. |
 | 2026-11-12 11:52 | Sahil Soni | Added: vendor roles APIs, role catalogue, role review and the `vendor_roles.manage` permission (migration 016) | Make vendor roles data instead of a fixed list, with role-level verification (D-019 to D-024). |
 | 2026-11-10 13:59 | Amit | Added: vendor verification APIs, reviewer permission and API contract | Deliver the F-VND-03 backend slice without guessing evidence requirements or expiry policy. |

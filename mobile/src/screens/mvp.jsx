@@ -73,7 +73,7 @@ export function RfqGoods({ params = {} }) {
   const moq = l.trade?.moq || 1
   const submit = () => {
     const e = {}
-    if (me.role === 'vendor' && l.vendorId === me.vendorId) return toast('This is your own listing - you cannot order from yourself', 'warn')
+    if (me.hasVendor && l.vendorId === me.vendorId) return toast('This is your own listing - you cannot order from yourself', 'warn')
     if (!(+f.qty >= moq)) e.qty = `Minimum order quantity is ${moq.toLocaleString('en-IN')}`
     if (!f.dest.trim()) e.dest = 'Add a delivery address or site'
     setErrs(e)
@@ -202,8 +202,8 @@ export function VendorBuy() {
   const myPos = orders.filter((o) => o.buyer === me.name)
   const myBookings = bookings.filter((b) => b.customer === me.name)
   return (
-    <Screen title="Buy" subtitle="Source from other vendors and companies" back={false}>
-      <Banner tone="blue" title="Buying with your vendor account">Same account, no mode switch. Orders you place appear here, and orders you receive stay under Work.</Banner>
+    <Screen title="Buy" subtitle="Source from other vendors and companies">
+      <Banner tone="blue" title="Buying happens in Customer mode">You are buying as a customer with your own identity. Orders you receive as a vendor stay under Work in Vendor mode.</Banner>
       <div className="grid grid-cols-3 gap-2">{[['RFQs', myRfqs.length], ['Purchases', myPos.length], ['Bookings', myBookings.length]].map(([k, n]) => <Card key={k} className="!p-3 text-center"><p className="text-xl font-extrabold">{n}</p><p className="text-[11px] text-ink-500">{k}</p></Card>)}</div>
       <Card className="space-y-1">
         <p className="text-sm font-extrabold">Find who to buy from</p>

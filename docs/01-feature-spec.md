@@ -156,7 +156,7 @@ Read order: [README](README.md) · this file · [02-phase-scope.md](02-phase-sco
 | F-BIZ-02 | Business workspace: home, services for vendors, vendor enquiries | P1 | Vendors message the company; company-side inbox. | |
 | F-BIZ-03 | Company directory, storefront and direct ordering | P2 | Verified companies list products with MOQ and lead time; customers order directly and the company accepts, processes and ships. Payment is settled directly with the company; the platform tracks status only. Decision D-015 (closes O-07). | |
 | F-BIZ-04 | Company verification queue | P1 | Admin reviews company evidence. | §13.1 |
-| F-BIZ-05 | Vendor as buyer | P1 | A vendor switches to Customer mode to buy (D-022): find supplier, bulk RFQ, compare, accept, PO, track. Buying as the business: O-19. | Priority review journey 5 |
+| F-BIZ-05 | Vendor as buyer | P1 | A vendor owner switches to Customer mode to buy (D-022): find supplier, bulk RFQ, compare, accept, PO, track. There is no Buy tab in Vendor mode, and a vendor owner cannot order from their own listing. Buying as the business: O-19. | Priority review journey 5 |
 | F-BIZ-06 | Business team roles, approvals, spending limits | P2 | Includes vendor staff accounts. | §24 |
 
 ## 11. Messaging and notifications (MSG)
@@ -295,6 +295,7 @@ Every PRS chapter maps to at least one feature, or to a documented non-goal.
 
 | Date & time (YYYY-MM-DD HH:MM, local) | Updated by | Change | Reason |
 |---|---|---|---|
+| 2026-11-12 13:45 | Sahil Soni | Modified: F-BIZ-05 description | Buying moved fully into Customer mode on web and mobile (D-022). |
 | 2026-11-12 12:01 | Sahil Soni | Modified: F-VND-01 description | Web onboarding now takes multiple vendor roles like mobile (D-023). |
 | 2026-11-12 11:44 | Sahil Soni | Modified: F-VND-01 description | Roles are open-ended and configurable (D-024). |
 | 2026-11-12 11:36 | Sahil Soni | Modified: F-ACC-02, F-BIZ-01 descriptions | Web now hides the Business account too (D-023). |

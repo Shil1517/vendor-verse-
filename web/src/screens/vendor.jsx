@@ -1778,7 +1778,7 @@ export function VendorMore() {
       <div className="vv-vendor-more-body space-y-4 p-4">
         <Card onClick={() => nav.go('v_profile')} className="!p-4"><div className="flex items-center gap-3.5"><Thumb tone={v?.tone || 'teal'} icon={Store} size={56} /><div className="min-w-0 flex-1"><p className="truncate text-base font-extrabold">{v?.name || 'Your business'}</p><p className="text-sm text-ink-500">{me.name}</p><div className="mt-1.5">{v?.status === 'approved' ? <Badge tone="green"><ShieldCheck size={11} />Verified</Badge> : <StatusBadge s={v?.status || 'draft'} />}</div></div><ChevronRight size={18} className="text-ink-300" /></div></Card>
         <Group>
-          <ListRow icon={Package} tone="violet" title="Buy as a business" subtitle="Open supplier-only marketplace" onClick={() => { setMe({ ...me, buyerMode: true }); nav.go('vb_home') }} />
+          <ListRow icon={Package} tone="violet" title="Switch to Customer mode to buy" subtitle="Buying happens in Customer mode — same identity" onClick={() => { setMe({ ...me, role: 'customer', name: me.customerName || me.name, buyerMode: false }); nav.reset('vb_home') }} />
           <ListRow icon={ShieldCheck} tone="emerald" title="Verification" subtitle="Documents & status" onClick={() => nav.go('v_verify')} />
           <ListRow icon={BadgeCheck} tone="sky" title="Vendor roles" subtitle="What your business is, verified one by one" onClick={() => nav.go('v_roles')} />
           <ListRow icon={Package} tone="sky" title="Purchase orders" subtitle="Supplier fulfilment & tracking" onClick={() => nav.go('v_orders')} />

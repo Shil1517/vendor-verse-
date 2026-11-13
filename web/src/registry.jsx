@@ -15,6 +15,12 @@ import * as RV from './screens/p1-review.jsx'
 import * as DP from './screens/p1-depth.jsx'
 import * as SF from './screens/p2-storefront.jsx'
 import * as VR from './screens/vendor-roles.jsx'
+import * as RD from './screens/remote-discovery.jsx'
+import { authService } from './services/authService.js'
+
+/* With the real API (VITE_API_BASE_URL) these screens read and write through it; otherwise the seed-data screen is used. */
+const live = (Remote, Mock) => (authService.isRemote ? Remote : Mock)
+
 
 
 /*  id → { C: component, role, title, fr: [FR codes], bar: status-bar tone, defaultParams: route defaults for the directory }  */
@@ -33,12 +39,12 @@ export const SCREENS = Object.fromEntries([
   R('c_home', WebsiteHome, 'customer', 'Marketplace', ['FR-05', 'FR-10'], { tab: true, bar: 'brand' }),
   R('c_categories', C1.Categories, 'shared', 'All categories', ['FR-04', 'FR-05']),
   R('c_category', C1.Category, 'shared', 'Category detail', ['FR-04', 'FR-05'], { defaultParams: { id: 'elec' } }),
-  R('c_explore', C1.Explore, 'shared', 'Search, filters & results', ['FR-05'], { tab: true }),
-  R('c_listing', C1.ListingDetail, 'shared', 'Product / service detail', ['FR-04', 'FR-05', 'FR-10'], { defaultParams: { id: 'l1' } }),
+  R('c_explore', live(RD.RemoteExplore, C1.Explore), 'shared', 'Search, filters & results', ['FR-05'], { tab: true }),
+  R('c_listing', live(RD.RemoteListingDetail, C1.ListingDetail), 'shared', 'Product / service detail', ['FR-04', 'FR-05', 'FR-10'], { defaultParams: { id: 'l1' } }),
   R('c_vendor', C1.VendorProfile, 'shared', 'Vendor profile', ['FR-03', 'FR-05'], { defaultParams: { id: 'v-me' } }),
-  R('c_activity', C2.Quotes, 'customer', 'Activity', ['FR-08'], { tab: true }),
-  R('c_book_new', C2.BookingNew, 'customer', 'Request a service booking', ['FR-09']),
-  R('c_booking', C2.BookingDetail, 'shared', 'Booking details & actions', ['FR-09', 'FR-11'], { defaultParams: { id: 'BKG-1039' } }),
+  R('c_activity', live(RD.RemoteCustomerBookings, C2.Quotes), 'customer', 'Activity', ['FR-08'], { tab: true }),
+  R('c_book_new', live(RD.RemoteBookNew, C2.BookingNew), 'customer', 'Request a service booking', ['FR-09']),
+  R('c_booking', live(RD.RemoteBookingDetail, C2.BookingDetail), 'shared', 'Booking details & actions', ['FR-09', 'FR-11'], { defaultParams: { id: 'BKG-1039' } }),
   R('c_order_new', C2.OrderNew, 'shared', 'Create purchase order', ['FR-07', 'FR-09']),
   R('c_order', C2.OrderDetail, 'shared', 'Purchase order tracking', ['FR-07', 'FR-09', 'FR-11'], { defaultParams: { id: 'ORD-24020' } }),
   R('c_rfq_new', C2.RfqNew, 'shared', 'Create RFQ', ['FR-08']),
@@ -64,7 +70,7 @@ export const SCREENS = Object.fromEntries([
   R('v_roles', VR.VendorRoles, 'vendor', 'Vendor roles', ['FR-03']),
   R('v_listings', V.VendorListings, 'vendor', 'My listings', ['FR-04'], { tab: true }),
   R('v_listing_edit', V.ListingEdit, 'vendor', 'Add / edit listing', ['FR-04'], { defaultParams: { id: 'l1' } }),
-  R('v_work', V.VendorQuotes, 'vendor', 'Work', ['FR-08'], { tab: true }),
+  R('v_work', live(RD.RemoteVendorBookings, V.VendorQuotes), 'vendor', 'Work', ['FR-08'], { tab: true }),
   R('v_orders', V.VendorOrders, 'vendor', 'Purchase orders', ['FR-09', 'FR-15']),
   R('v_rfq', V.VendorRfq, 'vendor', 'Submit / revise quotation', ['FR-08', 'FR-15'], { defaultParams: { id: 'RFQ-315' } }),
   R('v_perf', V.Performance, 'vendor', 'Performance reports', ['FR-13']),
@@ -125,7 +131,7 @@ export const SCREENS = Object.fromEntries([
   R('c_listing_nodata', MS.ListingNoData, 'shared', 'Listing with missing data', [], { defaultParams: { id: 'l6' } }),
   R('c_listing_trade', MS.ListingTrade, 'shared', 'Trade details', [], { defaultParams: { id: 'l7' } }),
   R('c_product', MS.ProductPage, 'shared', 'Product page: MOQ & tiers', [], { defaultParams: { id: 'l7' } }),
-  R('c_book_instant', C2.BookingNew, 'customer', 'Instant booking', [], { defaultParams: { listingId: 'l11', mode: 'instant' } }),
+  R('c_book_instant', live(RD.RemoteBookNew, C2.BookingNew), 'customer', 'Instant booking', [], { defaultParams: { listingId: 'l11', mode: 'instant' } }),
   R('c_book_series', C2.BookingNew, 'customer', 'Recurring booking series', [], { defaultParams: { listingId: 'l13', mode: 'recurring' } }),
   R('c_book_modify', BK.BookModify, 'customer', 'Request a booking change', [], { defaultParams: { id: 'BKG-1039' } }),
   R('c_booking_done', BK.BookingDone, 'customer', 'Confirm completion (7 days)', [], { defaultParams: { id: 'BKG-1031' } }),
@@ -169,7 +175,7 @@ export const SCREENS = Object.fromEntries([
   R('v_areas', MS.ServiceAreas, 'vendor', 'Service areas'),
   R('v_avail', MS.Availability, 'vendor', 'Availability'),
   R('v_public', MS.PublicProfile, 'vendor', 'Public profile & trust', [], { defaultParams: { id: 'v-me' } }),
-  R('v_booking', BK.VendorBooking, 'vendor', 'Booking requests'),
+  R('v_booking', live(RD.RemoteBookingDetail, BK.VendorBooking), 'vendor', 'Booking requests'),
   R('v_booking_mod', BK.VendorBookingMod, 'vendor', 'Customer change request', [], { defaultParams: { id: 'BKG-1045' } }),
   R('v_leads', BK.VendorLeads, 'vendor', 'Leads'),
   R('v_order', BK.VendorOrder, 'vendor', 'Purchase order (supplier)', [], { defaultParams: { id: 'ORD-24020' } }),
@@ -182,12 +188,13 @@ export const SCREENS = Object.fromEntries([
   R('v_sponsor', BZ.Sponsor, 'vendor', 'Sponsored visibility'),
   R('v_biz_network', BZ.BizNetwork, 'vendor', 'Company network'),
   R('v_biz_profile', BZ.BizProfile, 'vendor', 'Company profile', [], { defaultParams: { id: 'biz1' } }),
-  R('v_buy', BZ.BuyerHome, 'vendor', 'Buy as a business', [], { tab: true }),
-  R('vb_home', BZ.BuyerHome, 'vendor', 'Buyer home'),
-  R('vb_explore', VendorExplore, 'vendor', 'Find a supplier'),
-  R('vb_rfq', BK.RfqGoods, 'vendor', 'Bulk RFQ'),
-  R('vb_compare', BK.RfqCompare, 'vendor', 'Compare quotations', [], { defaultParams: { id: 'RFQ-320' } }),
-  R('vb_order', BK.CustomerOrders, 'vendor', 'Buyer purchase orders'),
+  // buying happens in Customer mode (D-022), so these are customer-role screens
+  R('v_buy', BZ.BuyerHome, 'customer', 'Buy from other vendors (Customer mode)'),
+  R('vb_home', BZ.BuyerHome, 'customer', 'Buyer home'),
+  R('vb_explore', VendorExplore, 'customer', 'Find a supplier'),
+  R('vb_rfq', BK.RfqGoods, 'customer', 'Bulk RFQ'),
+  R('vb_compare', BK.RfqCompare, 'customer', 'Compare quotations', [], { defaultParams: { id: 'RFQ-320' } }),
+  R('vb_order', BK.CustomerOrders, 'customer', 'Buyer purchase orders'),
 
   // ---- business account (D-005) ----
   R('b_eligibility', BZ.BizEligibility, 'shared', 'Business account: eligibility'),

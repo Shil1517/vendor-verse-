@@ -45,8 +45,7 @@ function TabBar() {
   const nav = useNav()
   const { me, t, threads, vendors, leads, listings, bookings, cases } = useApp()
   const tabs = TABS[me.role] || []
-  // a vendor searching to buy stays inside the Buy tab
-  const cur = me.role === 'vendor' && ['c_explore', 'c_explore_suppliers'].includes(nav.id) ? 'v_buy' : nav.id
+  const cur = nav.id
   if (!tabs.some((x) => x.id === cur)) return null
   const badge = (id) => {
     if (id === 'messages') return (me.role === 'business' ? threads.business.filter((x) => x.bizId === me.bizId) : me.role === 'vendor' ? threads.vendor : threads.customer.filter((x) => x.owner === me.name)).reduce((s, x) => s + x.unread, 0)
@@ -289,7 +288,7 @@ function Shell() {
     const reg = SCREENS[id]
     if (reg.role === 'auth') setMe({ ...me, role: null, loggedIn: false, guest: false })
     else if (reg.role === 'shared') { if (!['customer', 'vendor'].includes(me.role)) setMe({ ...me, role: 'customer', loggedIn: true, guest: false, vendorId: null, hasVendor: false, name: ME.customer }) }
-    else if (reg.as === 'vbuyer') setMe({ ...me, role: 'vendor', loggedIn: true, guest: false, vendorId: 'v-me', hasVendor: true, name: ME.vendor })
+    else if (reg.as === 'vbuyer') setMe({ ...me, role: 'customer', loggedIn: true, guest: false, vendorId: 'v-me', hasVendor: true, name: ME.vendor }) // a vendor owner buys in Customer mode (D-022)
     else setMe({ ...me, role: reg.role, loggedIn: true, guest: false, vendorId: reg.role === 'vendor' ? 'v-me' : null, hasVendor: reg.role === 'vendor', bizId: reg.role === 'business' ? 'biz-me' : null, name: ME[reg.role] })
     nav.reset(id, reg.demo || {})
   }
