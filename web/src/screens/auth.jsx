@@ -221,6 +221,11 @@ export function Otp({ params }) {
       }
       return
     }
+    // The vendor role was chosen and the account has a vendor profile but is saved in customer mode: switch it so sign-in opens the vendor workspace.
+    if (authService.isRemote && role === 'vendor' && r.account?.currentMode === 'CUSTOMER' && r.account.availableModes?.includes('VENDOR') && !(r.account.roles || []).some((x) => x === 'SUPER_ADMIN' || x === 'SALES_AGENT')) {
+      const switched = await authService.switchMode('VENDOR')
+      if (switched.ok) r.account = { ...r.account, currentMode: switched.account?.currentMode || 'VENDOR' }
+    }
     const accountRole = r.account ? roleForAccount(r.account) : role
     const same = accountRole === role
     const needsName = authService.isRemote && accountRole === 'customer' && !profile?.displayName
