@@ -12,8 +12,8 @@ const BIZ_STEPS = ['Company', 'Owner', 'Address', 'Registration', 'Documents', '
 /* ============ F-BIZ-05 vendor as buyer ============ */
 
 export function BuyerHome() {
-  return <Page title="Buy as a business" subtitle="Find a supplier, request a bulk quote, order" back={false}>
-    <Banner tone="blue">You are buying, not selling. Switch back any time from the header.</Banner>
+  return <Page title="Buy from other vendors" subtitle="Find a supplier, request a bulk quote, order" back={false}>
+    <Banner tone="blue">You are buying in Customer mode. Switch back to Vendor mode any time from the header.</Banner>
     <Links items={[[Search, 'Find a supplier', 'Search suppliers and manufacturers', 'vb_explore'], [ClipboardList, 'Bulk RFQ', 'Describe goods and quantity', 'vb_rfq'], [ShoppingBag, 'Compare quotations', 'Side by side, one winner', 'vb_compare'], [Package, 'Purchase orders', 'Create and track', 'vb_order']]} />
   </Page>
 }

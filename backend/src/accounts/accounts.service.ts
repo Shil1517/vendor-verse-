@@ -13,6 +13,8 @@ interface AccountRow {
   id: string;
   current_mode: "customer" | "vendor" | "business";
   has_vendor: boolean;
+  /** Active RBAC role codes (CUSTOMER, VENDOR, SALES_AGENT, SUPER_ADMIN). */
+  roles?: string[] | null;
 }
 
 @Injectable()
@@ -23,6 +25,8 @@ export class AccountsService {
     userId: string;
     currentMode: AccountMode;
     availableModes: AccountMode[];
+    /** Lets a client route a SUPER_ADMIN or SALES_AGENT to its own screens. */
+    roles: string[];
   }> {
     const account = await this.loadAccount(user.userId);
     const availableModes = this.availableModes(account);
@@ -32,7 +36,12 @@ export class AccountsService {
         "Current account mode has no eligible account record",
       );
     }
-    return { userId: account.id, currentMode, availableModes };
+    return {
+      userId: account.id,
+      currentMode,
+      availableModes,
+      roles: account.roles ?? [],
+    };
   }
 
   async switchMode(
@@ -84,7 +93,12 @@ export class AccountsService {
          EXISTS (
            SELECT 1 FROM vendors
            WHERE vendors.owner_user_id = account.id
-         ) AS has_vendor
+         ) AS has_vendor,
+         ARRAY(
+           SELECT assignment.role_code FROM user_role_assignments AS assignment
+           WHERE assignment.user_id = account.id AND assignment.revoked_at IS NULL
+           ORDER BY assignment.role_code
+         ) AS roles
        FROM users AS account
        WHERE account.id = $1`,
       [userId],

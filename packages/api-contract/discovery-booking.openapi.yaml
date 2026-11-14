@@ -1,0 +1,507 @@
+openapi: 3.1.0
+info:
+  title: VendorVerse Discovery and Booking API
+  version: 0.1.0
+  summary: Public listing search and detail, favourites, and the booking lifecycle.
+  description: |
+    Implemented in `backend/src/discover` and `backend/src/remote-bookings`; the
+    running service also serves this at `/docs`.
+
+    Discovery is public. Only eligible listings in a live market are returned
+    (account active, content approved, a verified vendor role, a service area,
+    required attributes present). The subscription, category-verification and
+    no-holds gates are not applied yet because their modules are not built.
+    Ranking is organic: plan tier and sponsorship are not signals.
+
+    Missing data stays missing: a price the vendor did not give is
+    `not_provided`, never zero (F-DSC-05).
+
+    Bookings are created by the customer and answered by the vendor's owner.
+    Each state change is one transaction, audited, and raises a notification.
+    Money is never handled (D-002).
+  x-feature-ids:
+    - F-DSC-02
+    - F-DSC-03
+    - F-DSC-04
+    - F-DSC-05
+    - F-DSC-06
+    - F-DSC-07
+    - F-BKG-01
+    - F-BKG-02
+    - F-BKG-03
+    - F-BKG-04
+    - F-BKG-05
+    - F-BKG-06
+    - F-BKG-07
+    - F-BKG-08
+    - F-BKG-09
+    - F-BKG-10
+  x-change-log:
+    - date-time: "2026-11-12 14:30"
+      updated-by: Sahil Soni
+      change: "Added: discovery, favourites and booking API"
+      reason: "Next stages in the build order (P1-S3 discovery, P1-S4 bookings)."
+servers:
+  - url: /v1
+tags:
+  - name: Discover
+  - name: Bookings
+paths:
+  /discover/listings:
+    get:
+      operationId: searchListings
+      tags: [Discover]
+      summary: Search listings (public)
+      parameters:
+        - { name: countryCode, in: query, required: true, schema: { type: string, pattern: "^[A-Z]{2}$" } }
+        - { name: cityId, in: query, schema: { type: string, format: uuid } }
+        - { name: regionId, in: query, schema: { type: string, format: uuid } }
+        - { name: postalCode, in: query, schema: { type: string, maxLength: 16 } }
+        - { name: q, in: query, schema: { type: string, maxLength: 120 } }
+        - { name: industryId, in: query, schema: { type: string, format: uuid } }
+        - { name: categoryId, in: query, schema: { type: string, format: uuid } }
+        - { name: subcategoryId, in: query, schema: { type: string, format: uuid } }
+        - { name: listingType, in: query, schema: { type: string, enum: [service, product] } }
+        - { name: vendorRole, in: query, schema: { type: string } }
+        - { name: minPriceMinor, in: query, schema: { type: integer, minimum: 0 } }
+        - { name: maxPriceMinor, in: query, schema: { type: integer, minimum: 0 } }
+        - { name: instantOnly, in: query, schema: { type: boolean } }
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 50 } }
+        - { name: cursor, in: query, schema: { type: string } }
+      responses:
+        "200":
+          description: A page of matches. `marketLive` false means nothing is publicly searchable there yet.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items, nextCursor, marketLive]
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: "#/components/schemas/SearchItem" }
+                  nextCursor: { type: [string, "null"] }
+                  marketLive: { type: boolean }
+        "400": { $ref: "#/components/responses/Problem" }
+  /discover/listings/{listingId}:
+    get:
+      operationId: getPublicListing
+      tags: [Discover]
+      summary: Listing detail with honest missing-data labels (public)
+      parameters:
+        - { name: listingId, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "200":
+          description: The listing.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ListingDetail" }
+        "404": { $ref: "#/components/responses/Problem" }
+  /me/favorites:
+    get:
+      operationId: listFavorites
+      tags: [Discover]
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200":
+          description: Saved vendors, newest first.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  favorites:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        vendorId: { type: string, format: uuid }
+                        name: { type: string }
+                        roles: { type: array, items: { type: string } }
+                        favoritedAt: { type: string, format: date-time }
+        "401": { $ref: "#/components/responses/Problem" }
+  /me/favorites/{vendorId}:
+    put:
+      operationId: addFavorite
+      tags: [Discover]
+      summary: Save a public vendor (idempotent)
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: vendorId, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "204": { description: Saved. }
+        "404": { $ref: "#/components/responses/Problem" }
+    delete:
+      operationId: removeFavorite
+      tags: [Discover]
+      summary: Remove a saved vendor (idempotent)
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: vendorId, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "204": { description: Removed or was not saved. }
+  /remote-bookings:
+    post:
+      operationId: createBooking
+      tags: [Bookings]
+      summary: Create a booking, instant booking or recurring series
+      description: |
+        Send `Idempotency-Key`: a retried request returns the same booking(s).
+        An instant booking on a listing with instant booking on takes capacity
+        atomically and starts `confirmed`; a lost race answers 409.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: Idempotency-Key, in: header, schema: { type: string, maxLength: 255 } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CreateBooking" }
+      responses:
+        "201":
+          description: The booking, or every occurrence of a series.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  bookings:
+                    type: array
+                    items: { $ref: "#/components/schemas/Booking" }
+        "400": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+    get:
+      operationId: listMyBookings
+      tags: [Bookings]
+      summary: My bookings as a customer
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: state, in: query, schema: { $ref: "#/components/schemas/BookingState" } }
+      responses:
+        "200":
+          description: Newest first.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  bookings:
+                    type: array
+                    items: { $ref: "#/components/schemas/Booking" }
+  /vendors/{vendorId}/remote-bookings:
+    get:
+      operationId: listVendorBookings
+      tags: [Bookings]
+      summary: Vendor booking inbox (owner only)
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: vendorId, in: path, required: true, schema: { type: string, format: uuid } }
+        - { name: state, in: query, schema: { $ref: "#/components/schemas/BookingState" } }
+      responses:
+        "200":
+          description: Only this vendor's bookings.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  bookings:
+                    type: array
+                    items: { $ref: "#/components/schemas/Booking" }
+        "404": { $ref: "#/components/responses/Problem" }
+  /remote-bookings/{bookingId}:
+    get:
+      operationId: getBooking
+      tags: [Bookings]
+      summary: Booking detail with history, terms snapshot, open proposal and conflicts
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { $ref: "#/components/parameters/BookingId" }
+      responses:
+        "200":
+          description: The booking.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/BookingDetail" }
+        "404": { $ref: "#/components/responses/Problem" }
+  /remote-bookings/{bookingId}/accept:
+    post:
+      operationId: acceptBooking
+      tags: [Bookings]
+      summary: Vendor accepts (requested to confirmed)
+      security: [{ bearerAuth: [] }]
+      parameters: [{ $ref: "#/components/parameters/BookingId" }]
+      responses:
+        "200": { $ref: "#/components/responses/BookingResult" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+  /remote-bookings/{bookingId}/decline:
+    post:
+      operationId: declineBooking
+      tags: [Bookings]
+      summary: Vendor declines (requested to declined)
+      security: [{ bearerAuth: [] }]
+      parameters: [{ $ref: "#/components/parameters/BookingId" }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason: { type: string, minLength: 1, maxLength: 1000 }
+      responses:
+        "200": { $ref: "#/components/responses/BookingResult" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+  /remote-bookings/{bookingId}/start:
+    post:
+      operationId: startBooking
+      tags: [Bookings]
+      summary: Vendor starts the work (confirmed to in_progress)
+      security: [{ bearerAuth: [] }]
+      parameters: [{ $ref: "#/components/parameters/BookingId" }]
+      responses:
+        "200": { $ref: "#/components/responses/BookingResult" }
+        "409": { $ref: "#/components/responses/Problem" }
+  /remote-bookings/{bookingId}/complete:
+    post:
+      operationId: completeBooking
+      tags: [Bookings]
+      summary: Vendor marks complete; the customer has 7 days to confirm or report
+      security: [{ bearerAuth: [] }]
+      parameters: [{ $ref: "#/components/parameters/BookingId" }]
+      responses:
+        "200": { $ref: "#/components/responses/BookingResult" }
+        "409": { $ref: "#/components/responses/Problem" }
+  /remote-bookings/{bookingId}/confirm:
+    post:
+      operationId: confirmBooking
+      tags: [Bookings]
+      summary: Customer confirms completion (completed_awaiting to closed)
+      security: [{ bearerAuth: [] }]
+      parameters: [{ $ref: "#/components/parameters/BookingId" }]
+      responses:
+        "200": { $ref: "#/components/responses/BookingResult" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+  /remote-bookings/{bookingId}/cancel:
+    post:
+      operationId: cancelBooking
+      tags: [Bookings]
+      summary: Cancel (customer or vendor); no automatic penalty
+      security: [{ bearerAuth: [] }]
+      parameters: [{ $ref: "#/components/parameters/BookingId" }]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reason: { type: string, maxLength: 1000 }
+                cancelSeries:
+                  type: boolean
+                  description: Customer only. Also cancels later open occurrences of the series (D-011).
+      responses:
+        "200": { $ref: "#/components/responses/BookingResult" }
+        "409": { $ref: "#/components/responses/Problem" }
+  /remote-bookings/{bookingId}/modifications:
+    post:
+      operationId: proposeBookingModification
+      tags: [Bookings]
+      summary: Propose a change; the original terms stand until the other side accepts
+      security: [{ bearerAuth: [] }]
+      parameters: [{ $ref: "#/components/parameters/BookingId" }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [proposedTerms]
+              properties:
+                proposedTerms: { type: object, additionalProperties: true }
+                slotStart: { type: string, format: date-time }
+                slotEnd: { type: string, format: date-time }
+                timeZone: { type: string, examples: [Asia/Kolkata] }
+      responses:
+        "201":
+          description: The booking with its open proposal.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/BookingDetail" }
+        "409": { $ref: "#/components/responses/Problem" }
+  /remote-bookings/{bookingId}/modifications/{modificationId}/{decision}:
+    post:
+      operationId: decideBookingModification
+      tags: [Bookings]
+      summary: Accept or decline the other side's proposal, or withdraw your own
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { $ref: "#/components/parameters/BookingId" }
+        - { name: modificationId, in: path, required: true, schema: { type: string, format: uuid } }
+        - { name: decision, in: path, required: true, schema: { type: string, enum: [accept, decline, withdraw] } }
+      responses:
+        "200":
+          description: The booking.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/BookingDetail" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+components:
+  securitySchemes:
+    bearerAuth: { type: http, scheme: bearer }
+  parameters:
+    BookingId:
+      name: bookingId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+  responses:
+    Problem:
+      description: RFC 9457 problem details.
+      content:
+        application/problem+json:
+          schema: { type: object, additionalProperties: true }
+    BookingResult:
+      description: The booking after the change.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Booking" }
+  schemas:
+    Price:
+      type: object
+      required: [state, minMinor, maxMinor, currency, unit]
+      properties:
+        state: { type: string, enum: [stated, on_request, not_provided] }
+        minMinor: { type: [integer, "null"] }
+        maxMinor: { type: [integer, "null"] }
+        currency: { type: [string, "null"] }
+        unit: { type: [string, "null"] }
+    SearchItem:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        title: { type: string }
+        listingType: { type: string, enum: [service, product] }
+        categoryId: { type: string, format: uuid }
+        categoryName: { type: string }
+        vendor:
+          type: object
+          properties:
+            id: { type: string, format: uuid }
+            name: { type: string }
+            roles: { type: array, items: { type: string } }
+        price: { $ref: "#/components/schemas/Price" }
+        instantBooking: { type: boolean }
+        matchedOn:
+          type: array
+          description: "Why it matched, e.g. coverage:city, coverage:country, title, description, vendor. A coverage level wider than the searched place is a broader-area match."
+          items: { type: string }
+    ListingDetail:
+      allOf:
+        - $ref: "#/components/schemas/SearchItem"
+        - type: object
+          properties:
+            description: { type: [string, "null"] }
+            timeZone: { type: [string, "null"] }
+            attributes: { type: object, additionalProperties: true }
+            serviceAreas: { type: array, items: { type: object, additionalProperties: true } }
+            bookingModes: { type: [array, "null"], items: {} }
+            availability:
+              type: object
+              properties:
+                state: { type: string, enum: [provided, not_provided] }
+                model: { type: string }
+                timeZone: { type: string }
+    BookingState:
+      type: string
+      enum: [draft, requested, confirmed, declined, expired, in_progress, completed_awaiting, closed, cancelled]
+    CreateBooking:
+      type: object
+      required: [listingId]
+      properties:
+        listingId: { type: string, format: uuid }
+        mode: { type: string, enum: [instant, scheduled], default: scheduled }
+        slotStart: { type: string, format: date-time }
+        slotEnd: { type: string, format: date-time }
+        timeZone: { type: string, description: Required with a slot or a recurrence. }
+        requestedTerms: { type: object, additionalProperties: true }
+        recurrence:
+          type: object
+          required: [rule, occurrences]
+          properties:
+            rule: { type: string }
+            occurrences:
+              type: array
+              minItems: 2
+              items:
+                type: object
+                required: [slotStart, slotEnd]
+                properties:
+                  slotStart: { type: string, format: date-time }
+                  slotEnd: { type: string, format: date-time }
+    Booking:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        viewerRole: { type: string, enum: [customer, vendor] }
+        listingId: { type: string, format: uuid }
+        listingTitle: { type: string }
+        vendorId: { type: string, format: uuid }
+        vendorName: { type: string }
+        customerName: { type: [string, "null"], description: Shown to the vendor only. }
+        mode: { type: string, enum: [instant, scheduled] }
+        state: { $ref: "#/components/schemas/BookingState" }
+        slotStart: { type: [string, "null"], format: date-time }
+        slotEnd: { type: [string, "null"], format: date-time }
+        timeZone: { type: [string, "null"] }
+        responseDueAt: { type: [string, "null"], format: date-time }
+        confirmationDueAt: { type: [string, "null"], format: date-time }
+        seriesId: { type: [string, "null"], format: uuid }
+        occurrenceNumber: { type: [integer, "null"] }
+        requestedTerms: { type: object, additionalProperties: true }
+        declineReason: { type: [string, "null"] }
+        cancellationReason: { type: [string, "null"] }
+        cancelledBy: { type: [string, "null"], enum: [customer, vendor, null] }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+    BookingDetail:
+      allOf:
+        - $ref: "#/components/schemas/Booking"
+        - type: object
+          properties:
+            termsSnapshot:
+              type: [object, "null"]
+              description: Immutable terms and policy as they stood at booking time.
+            openModification:
+              type: [object, "null"]
+              properties:
+                id: { type: string, format: uuid }
+                proposedTerms: { type: object, additionalProperties: true }
+                proposedBy: { type: string, enum: [customer, vendor] }
+                createdAt: { type: string, format: date-time }
+            conflictingBookingIds:
+              type: array
+              description: The customer's overlapping bookings. Nothing is cancelled automatically (F-BKG-07).
+              items: { type: string, format: uuid }
+            events:
+              type: array
+              items:
+                type: object
+                properties:
+                  type: { type: string }
+                  fromState: { type: [string, "null"] }
+                  toState: { type: [string, "null"] }
+                  occurredAt: { type: string, format: date-time }
+                  byCustomer: { type: boolean }
+x-draft-notes:
+  - "The response deadline for a requested booking comes from the category configuration key responseDeadlineHours. With none set there is no deadline and no auto-expiry; no value is invented."
+  - "Deadlines (response deadline, 7-day confirmation) are applied when a booking is read until the scheduler worker exists."
+  - "Reporting an issue after completion needs the trust-cases module (not built); a customer who does not confirm closes the booking after 7 days."
+  - "Subscription, category-verification and no-holds publication gates are not applied to search yet (modules not built)."
+  - "Radius coverage is not matched in search yet."

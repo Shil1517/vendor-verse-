@@ -383,3 +383,67 @@ describe('account settings and vendor onboarding calls', () => {
     expect(calls[1].body).toEqual({ status: 'approved', reason: 'Evidence verified' })
   })
 })
+
+describe('discovery and booking calls (F-DSC-02/05/07, F-BKG-*)', () => {
+  const signedIn = (routes) => {
+    const ctx = setup(routes)
+    ctx.store.set(TOKENS)
+    return ctx
+  }
+
+  it('searches without signing in and drops empty filters', async () => {
+    const { service, calls } = setup({ 'GET /discover/listings': reply(200, { items: [{ id: 'l1' }], nextCursor: 'c2', marketLive: true }) })
+    const r = await service.searchListings({ countryCode: 'IN', q: 'electrician', cityId: undefined, instantOnly: false, minPriceMinor: 0, cursor: '' })
+    expect(r).toMatchObject({ ok: true, items: [{ id: 'l1' }], nextCursor: 'c2', marketLive: true })
+    expect(calls[0].auth).toBeUndefined()
+    expect(calls[0].query).toBe('?countryCode=IN&q=electrician&minPriceMinor=0')
+  })
+
+  it('reads a public listing and reports a missing one', async () => {
+    const { service } = setup({ 'GET /discover/listings/l1': reply(200, { id: 'l1', price: { state: 'not_provided' } }), 'GET /discover/listings/gone': reply(404, { detail: 'No such listing' }) })
+    expect((await service.getPublicListing('l1')).listing.price.state).toBe('not_provided')
+    expect(await service.getPublicListing('gone')).toMatchObject({ ok: false, code: 'NOT_FOUND' })
+  })
+
+  it('saves and removes favourite vendors', async () => {
+    const { service, calls } = signedIn({ 'GET /me/favorites': reply(200, { favorites: [{ vendorId: 'v1' }] }), 'PUT /me/favorites/v1': reply(204), 'DELETE /me/favorites/v1': reply(204) })
+    expect((await service.listFavorites()).favorites).toEqual([{ vendorId: 'v1' }])
+    expect((await service.addFavorite('v1')).ok).toBe(true)
+    expect((await service.removeFavorite('v1')).ok).toBe(true)
+    expect(calls.every((c) => c.auth === 'Bearer a1')).toBe(true)
+  })
+
+  it('creates a booking with the caller-supplied idempotency key, so a retry is one booking', async () => {
+    const { service, calls } = signedIn({ 'POST /remote-bookings': reply(201, { bookings: [{ id: 'b1', state: 'requested' }] }) })
+    const body = { listingId: 'l1', slotStart: '2026-12-01T09:00:00Z', slotEnd: '2026-12-01T10:00:00Z', timeZone: 'Asia/Kolkata' }
+    await service.createBooking(body, 'key-1')
+    await service.createBooking(body, 'key-1')
+    expect(calls.map((c) => c.key)).toEqual(['key-1', 'key-1'])
+    expect(calls[0].body).toEqual(body)
+  })
+
+  it('tells a lost instant slot (409) apart from other failures', async () => {
+    const { service } = signedIn({ 'POST /remote-bookings': [reply(409, { detail: 'That slot is no longer available.' }), reply(500, {})] })
+    expect(await service.createBooking({ listingId: 'l1' })).toMatchObject({ ok: false, status: 409, code: 'CONFLICT', message: 'That slot is no longer available.' })
+    expect(await service.createBooking({ listingId: 'l1' })).toMatchObject({ ok: false, code: 'PROVIDER_ERROR' })
+  })
+
+  it('lists, reads and acts on bookings', async () => {
+    const { service, calls } = signedIn({
+      'GET /remote-bookings': reply(200, { bookings: [{ id: 'b1' }] }),
+      'GET /vendors/v1/remote-bookings': reply(200, { bookings: [{ id: 'b2' }] }),
+      'GET /remote-bookings/b1': reply(200, { id: 'b1', events: [] }),
+      'POST /remote-bookings/b1/decline': reply(200, { id: 'b1', state: 'declined' }),
+      'POST /remote-bookings/b1/modifications': reply(201, { id: 'b1', openModification: { id: 'm1' } }),
+      'POST /remote-bookings/b1/modifications/m1/accept': reply(200, { id: 'b1' }),
+    })
+    expect((await service.listMyBookings('requested')).bookings).toEqual([{ id: 'b1' }])
+    expect((await service.listVendorBookings('v1')).bookings).toEqual([{ id: 'b2' }])
+    expect((await service.getBooking('b1')).booking.id).toBe('b1')
+    expect((await service.bookingAction('b1', 'decline', { reason: 'Fully booked' })).booking.state).toBe('declined')
+    expect((await service.proposeBookingModification('b1', { proposedTerms: { notes: 'x' } })).ok).toBe(true)
+    expect((await service.decideBookingModification('b1', 'm1', 'accept')).ok).toBe(true)
+    expect(calls[0].query).toBe('?state=requested')
+    expect(calls[3].body).toEqual({ reason: 'Fully booked' })
+  })
+})

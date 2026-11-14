@@ -53,7 +53,7 @@ const KIND_GROUP_LABEL = { goods: 'Suppliers & manufacturers', services: 'Servic
 export function Explore({ params = {} }) {
   const nav = useNav()
   const { listings, vendors, published, vendor, loc, toast, catsVer, me } = useApp()
-  const buying = me.role === 'vendor'
+  const buying = !!me.hasVendor // a vendor owner buying in Customer mode never sees their own listings (D-022)
   const [q, setQ] = useState(params.q || '')
   const [focus, setFocus] = useState(false)
   const [type, setType] = useState(params.mode === 'vendors' ? 'vendors' : params.kind === 'services' ? 'services' : params.kind && params.kind !== 'service' ? 'products' : 'all')
@@ -141,8 +141,8 @@ export function Explore({ params = {} }) {
 
   return (
     <Screen
-      title={buying ? 'Buy from vendors' : 'Explore'}
-      back={buying}
+      title="Explore"
+      back={false}
       pad={false}
       overlay={
         <Sheet open={open} onClose={() => setOpen(false)} title="Filters" footer={<div className="flex gap-2"><Button variant="secondary" className="flex-1" onClick={() => { setDraft(DEFAULT_F); setDsf({}) }}>Reset</Button><Button className="flex-[2]" onClick={() => { setF(draft); setSf(dsf); setShown(PAGE); setOpen(false) }}>Show results</Button></div>}>

@@ -146,6 +146,14 @@ const MODE_ROLES = { CUSTOMER: 'customer', VENDOR: 'vendor', BUSINESS: 'business
 /** Maps the backend account mode (GET /me) to the client role id. */
 export const roleForMode = (mode) => MODE_ROLES[mode] || 'customer'
 
+/** Role to open after sign-in: a Super Admin or Sales Agent (GET /me `roles`) goes to its own screens, otherwise by mode. */
+export const roleForAccount = (account) => {
+  const roles = account?.roles || []
+  if (roles.includes('SUPER_ADMIN')) return 'admin'
+  if (roles.includes('SALES_AGENT')) return 'agent'
+  return roleForMode(account?.currentMode)
+}
+
 /** Phone numbers keep their country code and lose spacing: "+91 98290 00001" -> "+919829000001". */
 export function canonicalIdentifier(contact) {
   const c = String(contact || '').trim()
@@ -154,7 +162,7 @@ export function canonicalIdentifier(contact) {
 
 /**
  * Real API client for F-ACC-01 (POST /auth/otp/request, /auth/otp/verify, /auth/refresh,
- * /auth/logout and GET /me) and F-ACC-06 (/me/profile, /me/locations), F-ACC-04/05/07/08 (/me/sessions, /me/notification-preferences, /me/data-requests) and F-VND-01/02 (/vendors). Same interface as the mock, except verifyOtp is async and
+ * /auth/logout and GET /me) and F-ACC-06 (/me/profile, /me/locations), F-ACC-04/05/07/08 (/me/sessions, /me/notification-preferences, /me/data-requests) and F-VND-01/02 (/vendors), F-DSC-02/05/07 (/discover, /me/favorites) and F-BKG-* (/bookings). Same interface as the mock, except verifyOtp is async and
  * resolves with the signed-in `account` ({ userId, currentMode, availableModes }).
  * The server owns OTP limits and role; nothing here is a policy value.
  *
@@ -525,7 +533,183 @@ export function createApiAuthService({ baseUrl, fetchImpl = (...args) => globalT
     return r.status === 200 ? { ok: true, ...r.data } : verificationFail(r)
   }
 
-  return { requestOtp, verifyOtp, endSession, getProfile, saveProfile, listLocations, addLocation, updateLocation, removeLocation, listSessions, revokeSession, getNotificationPreferences, saveNotificationPreferences, listDataRequests, requestDataRequest, cancelDataRequest, listNotifications, getUnreadNotificationCount, markNotificationRead, markAllNotificationsRead, createVendor, listMyVendors, updateVendor, getPublicVendor, listVendorRoleCatalogue, listVendorRoles, addVendorRole, removeVendorRole, listVendorRoleReviews, decideVendorRole, listVendorRoleDefinitions, createVendorRoleDefinition, updateVendorRoleDefinition, listVendorDocuments, listVendorVerifications, submitVendorVerification, uploadVendorEvidence, getFile, registerVendorDocument, listVerificationQueue, reviewVerification, getVerificationEvidenceUrl, isRemote: true }
+  /* ---- F-GEO-01 / F-TAX-01 public reads used by search ---- */
+  async function listCities(countryCode) {
+    const r = await call(`/geo/cities?countryCode=${encodeURIComponent(countryCode)}`, { method: 'GET' })
+    return r.status === 200 ? { ok: true, cities: r.data.cities } : profileFail(r)
+  }
+
+  async function listCategories({ countryCode, cityId } = {}) {
+    const q = new URLSearchParams({ countryCode })
+    if (cityId) q.set('cityId', cityId)
+    const r = await call(`/taxonomy/categories?${q}`, { method: 'GET' })
+    return r.status === 200 ? { ok: true, categories: r.data.items } : profileFail(r)
+  }
+
+  /* ---- F-DSC-02 / F-DSC-05 public discovery (no sign-in) ---- */
+  /** GET /discover/listings -> { ok, items, nextCursor, marketLive }. marketLive false means nothing is searchable there yet. Page with `cursor`. */
+  async function searchListings(filters = {}) {
+    const q = new URLSearchParams()
+    for (const [k, v] of Object.entries(filters)) if (v !== undefined && v !== null && v !== '' && v !== false) q.set(k, String(v))
+    const r = await call(`/discover/listings?${q}`, { method: 'GET' })
+    return r.status === 200 ? { ok: true, ...r.data } : profileFail(r)
+  }
+
+  /** price.state is stated | on_request | not_provided and availability.state is provided | not_provided: show them as such, never as zero (F-DSC-05). */
+  async function getPublicListing(listingId) {
+    const r = await call(`/discover/listings/${encodeURIComponent(listingId)}`, { method: 'GET' })
+    return r.status === 200 ? { ok: true, listing: r.data } : profileFail(r)
+  }
+
+  /* ---- F-DSC-07 favourites ---- */
+  async function listFavorites() {
+    const r = await authed('/me/favorites', { method: 'GET' })
+    return r.status === 200 ? { ok: true, favorites: r.data.favorites } : profileFail(r)
+  }
+
+  async function addFavorite(vendorId) {
+    const r = await authed(`/me/favorites/${encodeURIComponent(vendorId)}`, { method: 'PUT' })
+    return r.status === 204 ? { ok: true } : profileFail(r)
+  }
+
+  async function removeFavorite(vendorId) {
+    const r = await authed(`/me/favorites/${encodeURIComponent(vendorId)}`, { method: 'DELETE' })
+    return r.status === 204 ? { ok: true } : profileFail(r)
+  }
+
+  /* ---- F-BKG-* bookings ---- */
+  const bookingFail = (r) => ({
+    ok: false,
+    status: r.status,
+    code: r.status === 0 ? AUTH_ERRORS.NETWORK : r.status === 403 ? 'FORBIDDEN' : r.status === 404 ? AUTH_ERRORS.NOT_FOUND : r.status === 409 ? AUTH_ERRORS.CONFLICT : r.status === 400 ? AUTH_ERRORS.INVALID_PROFILE : AUTH_ERRORS.PROVIDER_ERROR,
+    message: r.data?.detail || r.data?.message || (r.status === 0 ? AUTH_MESSAGES.NETWORK : AUTH_MESSAGES.PROVIDER_ERROR),
+  })
+
+  /**
+   * POST /bookings. Pass one `idempotencyKey` per user action and reuse it on retry, so a double tap creates one booking (F-BKG-08).
+   * body: { listingId, mode?: 'instant'|'scheduled', slotStart?, slotEnd?, timeZone?, requestedTerms?, recurrence?: { rule, occurrences: [{ slotStart, slotEnd }] } }
+   * 409 means the instant slot was taken by someone else.
+   */
+  async function createBooking(body, idempotencyKey = newKey()) {
+    const r = await authed('/remote-bookings', { method: 'POST', body, headers: { 'idempotency-key': idempotencyKey } })
+    return r.status === 201 || r.status === 200 ? { ok: true, bookings: r.data.bookings } : bookingFail(r)
+  }
+
+  async function listMyBookings(state) {
+    const r = await authed(`/remote-bookings${state ? `?state=${encodeURIComponent(state)}` : ''}`, { method: 'GET' })
+    return r.status === 200 ? { ok: true, bookings: r.data.bookings } : bookingFail(r)
+  }
+
+  async function listVendorBookings(vendorId, state) {
+    const r = await authed(`/vendors/${encodeURIComponent(vendorId)}/remote-bookings${state ? `?state=${encodeURIComponent(state)}` : ''}`, { method: 'GET' })
+    return r.status === 200 ? { ok: true, bookings: r.data.bookings } : bookingFail(r)
+  }
+
+  async function getBooking(id) {
+    const r = await authed(`/remote-bookings/${encodeURIComponent(id)}`, { method: 'GET' })
+    return r.status === 200 ? { ok: true, booking: r.data } : bookingFail(r)
+  }
+
+  /** action: accept | decline (needs reason) | start | complete | confirm | cancel (reason?, cancelSeries?) */
+  async function bookingAction(id, action, body) {
+    const r = await authed(`/remote-bookings/${encodeURIComponent(id)}/${action}`, { method: 'POST', body })
+    return r.status === 200 ? { ok: true, booking: r.data } : bookingFail(r)
+  }
+
+  async function proposeBookingModification(id, body) {
+    const r = await authed(`/remote-bookings/${encodeURIComponent(id)}/modifications`, { method: 'POST', body })
+    return r.status === 201 || r.status === 200 ? { ok: true, booking: r.data } : bookingFail(r)
+  }
+
+  /** decision: accept | decline | withdraw */
+  async function decideBookingModification(id, modificationId, decision) {
+    const r = await authed(`/remote-bookings/${encodeURIComponent(id)}/modifications/${encodeURIComponent(modificationId)}/${decision}`, { method: 'POST' })
+    return r.status === 200 ? { ok: true, booking: r.data } : bookingFail(r)
+  }
+
+  /* ---- F-DSC-02 universal search (D-025) ---- */
+  /**
+   * GET /search -> { ok, q, marketLive, signedIn, sections }. Signed in, the caller's own RFQs, bookings, contracts and purchase orders join the public results;
+   * signed out only the public types are asked for. `types` is an array (sent comma-separated). Several types return a short page per section; one type pages with `cursor`.
+   */
+  async function universalSearch({ q, countryCode, cityId, regionId, postalCode, types, limit, cursor } = {}) {
+    const p = new URLSearchParams()
+    for (const [k, v] of Object.entries({ q, countryCode, cityId, regionId, postalCode, limit, cursor })) if (v !== undefined && v !== null && v !== '') p.set(k, String(v))
+    if (types?.length) p.set('types', types.join(','))
+    const path = `/search?${p}`
+    const r = store.get() ? await authed(path, { method: 'GET' }) : await call(path, { method: 'GET' })
+    return r.status === 200 ? { ok: true, ...r.data } : bookingFail(r)
+  }
+
+  /* ---- F-RFQ-01..06 RFQs and quotes (transaction APIs) ---- */
+  /** POST /rfqs. body: { categoryId, kind: 'service'|'goods', requirements: {...free-form, plus listingId for booking fulfilment}, fileIds? }. Creates a draft. */
+  async function createRfq(body) {
+    const r = await authed('/rfqs', { method: 'POST', body })
+    return r.status === 201 || r.status === 200 ? { ok: true, rfq: r.data } : bookingFail(r)
+  }
+
+  /** POST /rfqs/{id}/open. body: { quoteDeadlineAt (ISO, future, chosen by the customer), vendorIds (>= 1, active verified vendors in the category) }. */
+  async function openRfq(id, body) {
+    const r = await authed(`/rfqs/${encodeURIComponent(id)}/open`, { method: 'POST', body })
+    return r.status === 201 || r.status === 200 ? { ok: true, rfq: r.data } : bookingFail(r)
+  }
+
+  async function listMyRfqs() {
+    const r = await authed('/me/rfqs', { method: 'GET' })
+    return r.status === 200 ? { ok: true, rfqs: r.data.rfqs } : bookingFail(r)
+  }
+
+  /** RFQs addressed to this vendor (its own recipient rows only). */
+  async function listVendorRfqs(vendorId) {
+    const r = await authed(`/vendors/${encodeURIComponent(vendorId)}/rfqs`, { method: 'GET' })
+    return r.status === 200 ? { ok: true, rfqs: r.data.rfqs } : bookingFail(r)
+  }
+
+  async function getRfq(id) {
+    const r = await authed(`/rfqs/${encodeURIComponent(id)}`, { method: 'GET' })
+    return r.status === 200 ? { ok: true, rfq: r.data } : bookingFail(r)
+  }
+
+  /** Customer: every quote on the RFQ. Vendor: only its own. -> { rfq, quotes } */
+  async function listRfqQuotes(rfqId) {
+    const r = await authed(`/rfqs/${encodeURIComponent(rfqId)}/quotes`, { method: 'GET' })
+    return r.status === 200 ? { ok: true, rfq: r.data.rfq, quotes: r.data.quotes } : bookingFail(r)
+  }
+
+  /** Vendor: POST /rfqs/{id}/quotes. body: { vendorId, currency: 'INR', totalMinor, scope?, inclusions?, exclusions?, validUntil?, lines? (goods) }. */
+  async function submitQuote(rfqId, body) {
+    const r = await authed(`/rfqs/${encodeURIComponent(rfqId)}/quotes`, { method: 'POST', body })
+    return r.status === 201 || r.status === 200 ? { ok: true, quote: r.data } : bookingFail(r)
+  }
+
+  async function reviseQuote(quoteId, body) {
+    const r = await authed(`/quotes/${encodeURIComponent(quoteId)}/revisions`, { method: 'POST', body })
+    return r.status === 201 || r.status === 200 ? { ok: true, quote: r.data } : bookingFail(r)
+  }
+
+  async function withdrawQuote(quoteId) {
+    const r = await authed(`/quotes/${encodeURIComponent(quoteId)}/withdraw`, { method: 'POST' })
+    return r.status === 200 || r.status === 201 ? { ok: true, quote: r.data } : bookingFail(r)
+  }
+
+  /** Vendor owner: bookable capacity windows of one listing -> windows[{ id, startsAt, endsAt, capacity, reserved }]. */
+  async function listListingCapacity(listingId) {
+    const r = await authed(`/listings/${encodeURIComponent(listingId)}/capacity`, { method: 'GET' })
+    return r.status === 200 ? { ok: true, windows: r.data.windows } : bookingFail(r)
+  }
+
+  /** Customer: accepts exactly one quote. The backend creates the fulfilment in the same transaction. -> { rfqId, quoteId, fulfillment: { type: booking|work_order|contract|purchase_order, id }, terms } */
+  async function acceptQuote(rfqId, quoteId) {
+    const r = await authed(`/rfqs/${encodeURIComponent(rfqId)}/quotes/${encodeURIComponent(quoteId)}/accept`, { method: 'POST' })
+    return r.status === 200 || r.status === 201 ? { ok: true, ...r.data } : bookingFail(r)
+  }
+
+  async function extendRfqDeadline(rfqId, quoteDeadlineAt) {
+    const r = await authed(`/rfqs/${encodeURIComponent(rfqId)}/extend-deadline`, { method: 'POST', body: { quoteDeadlineAt } })
+    return r.status === 200 || r.status === 201 ? { ok: true, rfq: r.data } : bookingFail(r)
+  }
+
+  return { requestOtp, verifyOtp, endSession, getProfile, saveProfile, listLocations, addLocation, updateLocation, removeLocation, listSessions, revokeSession, getNotificationPreferences, saveNotificationPreferences, listDataRequests, requestDataRequest, cancelDataRequest, listNotifications, getUnreadNotificationCount, markNotificationRead, markAllNotificationsRead, createVendor, listMyVendors, updateVendor, getPublicVendor, listVendorRoleCatalogue, listVendorRoles, addVendorRole, removeVendorRole, listVendorRoleReviews, decideVendorRole, listVendorRoleDefinitions, createVendorRoleDefinition, updateVendorRoleDefinition, listVendorDocuments, listVendorVerifications, submitVendorVerification, uploadVendorEvidence, getFile, registerVendorDocument, listVerificationQueue, reviewVerification, getVerificationEvidenceUrl, listCities, listCategories, searchListings, getPublicListing, listFavorites, addFavorite, removeFavorite, createBooking, listMyBookings, listVendorBookings, getBooking, bookingAction, proposeBookingModification, decideBookingModification, universalSearch, createRfq, openRfq, listMyRfqs, listVendorRfqs, getRfq, listRfqQuotes, submitQuote, listListingCapacity, reviseQuote, withdrawQuote, acceptQuote, extendRfqDeadline, isRemote: true }
 }
 
 const apiBaseUrl = import.meta.env?.VITE_API_BASE_URL

@@ -173,7 +173,10 @@ export class AuthService {
            WHERE id = $1`,
           [row.id],
         );
+        // Demo/local only: the flag is off by default and the whole auth module
+        // refuses to start outside local/test (validateEnvironment).
         if (
+          !this.config.get("ALLOW_PRIVILEGED_OTP_SIGNIN", { infer: true }) &&
           roles.rows.some((role) =>
             ["SALES_AGENT", "SUPER_ADMIN"].includes(role.role_code),
           )

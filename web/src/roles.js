@@ -1,6 +1,6 @@
 import {
   Home, Compass, ClipboardList, MessageCircle, User, LayoutDashboard, Briefcase, Package, MoreHorizontal, Users, CalendarClock,
-  Wallet, ShieldCheck, BarChart3, Settings, LineChart, UserRound, Store, Megaphone, CreditCard, TicketPercent, AlertOctagon, Image, History, Camera, Tag, HelpCircle, Languages, Rocket, Bot, CalendarRange, ClipboardCheck, GitBranch, FileSearch, ShieldAlert, FileCog, Activity, SlidersHorizontal, Boxes, ShoppingBag, Building2, TrendingUp, MapPin, FileCheck2, Receipt, Star,
+  Wallet, ShieldCheck, BarChart3, Settings, LineChart, UserRound, Store, Megaphone, CreditCard, TicketPercent, AlertOctagon, Image, History, Camera, Tag, HelpCircle, Languages, Rocket, Bot, CalendarRange, ClipboardCheck, GitBranch, FileSearch, ShieldAlert, FileCog, Activity, SlidersHorizontal, Boxes, Building2, TrendingUp, MapPin, FileCheck2, Receipt, Star,
 } from 'lucide-react'
 
 export const ROLES = [
@@ -32,7 +32,6 @@ export const TABS = {
     { id: 'v_dash', k: 'dashboard', icon: LayoutDashboard },
     { id: 'v_work', k: 'work', icon: Briefcase },
     { id: 'v_listings', k: 'listings', icon: Package },
-    { id: 'v_buy', k: 'buy', icon: ShoppingBag },
     { id: 'messages', k: 'messages', icon: MessageCircle },
     { id: 'v_more', k: 'more', icon: MoreHorizontal },
   ],

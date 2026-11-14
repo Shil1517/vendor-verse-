@@ -21,6 +21,12 @@ export interface AppEnvironmentConfig {
   IDEMPOTENCY_TTL_SECONDS: number;
   IDEMPOTENCY_LOCK_SECONDS: number;
   /**
+   * Demo/local only. Lets SUPER_ADMIN and SALES_AGENT sign in with the OTP alone
+   * (no MFA step) so the admin and agent screens can be demonstrated. Default off.
+   * Safe only because auth itself refuses to run outside local/test (see below).
+   */
+  ALLOW_PRIVILEGED_OTP_SIGNIN: boolean;
+  /**
    * File policy. All optional: with any of them unset, file uploads and
    * downloads are refused (fail closed) because the values are owner
    * decisions that are not made yet.
@@ -178,6 +184,10 @@ export function validateEnvironment(
       environment,
       "IDEMPOTENCY_LOCK_SECONDS",
     ),
+    ALLOW_PRIVILEGED_OTP_SIGNIN:
+      isBlank(environment.ALLOW_PRIVILEGED_OTP_SIGNIN)
+        ? false
+        : requiredBoolean(environment, "ALLOW_PRIVILEGED_OTP_SIGNIN"),
     FILE_STORAGE_PROVIDER: isBlank(fileStorage) ? undefined : "local-test",
     FILE_MAX_BYTES: optionalPositiveInteger(environment, "FILE_MAX_BYTES"),
     FILE_ALLOWED_CONTENT_TYPES: contentTypes?.map((type) => type.toLowerCase()),

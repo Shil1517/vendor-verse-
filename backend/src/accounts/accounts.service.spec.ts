@@ -27,7 +27,14 @@ describe("AccountsService", () => {
 
   it("returns only modes backed by current ownership", async () => {
     query.mockResolvedValue({
-      rows: [{ id: user.userId, current_mode: "vendor", has_vendor: true }],
+      rows: [
+        {
+          id: user.userId,
+          current_mode: "vendor",
+          has_vendor: true,
+          roles: ["CUSTOMER", "VENDOR"],
+        },
+      ],
       rowCount: 1,
       command: "SELECT",
       oid: 0,
@@ -38,6 +45,7 @@ describe("AccountsService", () => {
       userId: user.userId,
       currentMode: "VENDOR",
       availableModes: ["CUSTOMER", "VENDOR"],
+      roles: ["CUSTOMER", "VENDOR"],
     });
   });
 

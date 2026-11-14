@@ -21,6 +21,12 @@ import * as BZ from './screens/business.jsx'
 import * as VR from './screens/vendor_roles.jsx'
 import * as CZ from './screens/customer_biz.jsx'
 import { Messages as G0 } from './screens/customer_misc.jsx'
+import * as RD from './screens/remote-discovery.jsx'
+import { authService } from './services/authService.js'
+
+/* With the real API (VITE_API_BASE_URL) these screens read and write through it; otherwise the seed-data screen is used. */
+const live = (Remote, Mock) => (authService.isRemote ? Remote : Mock)
+
 
 /*  id → { C: component, role, title, sec: [spec sections], sc: [scenario ids], bar: status-bar tone, demo: params used when jumping from the directory }  */
 const R = (id, C, role, title, sec = [], sc = [], extra = {}) => [id, { id, C, role, title, sec, sc, ...extra }]
@@ -47,7 +53,7 @@ export const SCREENS = Object.fromEntries([
   R('c_dash', PF.CustomerDash, 'customer', 'My dashboard', ['V8', 'V4']),
   R('c_listing_trade', C1.ListingDetail, 'customer', 'Supplier listing — trade details', ['V7', 'V1'], ['SC-003'], { demo: { id: 'l30' } }),
   R('c_explore_suppliers', Explore, 'customer', 'Search — suppliers & manufacturers', ['V7', 'S7'], ['SC-001'], { demo: { kind: 'manufacturer' } }),
-  R('c_book_instant', CB.BookNew, 'customer', 'Instant booking', ['V5', 'S8'], ['SC-013'], { demo: { id: 'l12', mode: 'instant' } }),
+  R('c_book_instant', live(RD.RemoteBookNew, CB.BookNew), 'customer', 'Instant booking', ['V5', 'S8'], ['SC-013'], { demo: { id: 'l12', mode: 'instant' } }),
   R('c_contract_new', CT.ContractNew, 'customer', 'Propose a contract', ['V5'], [], { demo: { vendorId: 'v6', listingId: 'l13' } }),
   R('c_contract', CT.ContractDetail, 'customer', 'Contract — terms, e-sign, milestones', ['V5'], [], { demo: { id: 'CT-477' } }),
   R('c_pay', PY.Checkout, 'customer', 'Checkout & escrow', ['V9'], [], { demo: { ref: 'BKG-2099', amount: 3499, vendorId: 'v6' } }),
@@ -57,15 +63,15 @@ export const SCREENS = Object.fromEntries([
   R('c_refund_view', PY.Refund, 'customer', 'Refund status', ['V9'], [], { demo: { id: 'RF-71' } }),
   R('c_wallet', PY.WalletScreen, 'customer', 'Wallet & top-up', ['V9']),
   R('c_category', C1.Category, 'customer', 'Category detail', ['S6', 'S7'], ['SC-001'], { demo: { id: 'home' } }),
-  R('c_explore', Explore, 'customer', 'Search, filters & ranking', ['S7'], ['SC-001', 'SC-002', 'SC-003', 'SC-034'], { tab: true }),
+  R('c_explore', live(RD.RemoteExplore, Explore), 'customer', 'Search, filters & ranking', ['S7'], ['SC-001', 'SC-002', 'SC-003', 'SC-034'], { tab: true }),
   R('c_explore_err', Explore, 'customer', 'Search — error / offline state', ['S7', 'S19'], ['SC-002'], { demo: { state: 'error' } }),
-  R('c_listing', C1.ListingDetail, 'customer', 'Listing detail', ['S7', 'S8', 'S14'], ['SC-003', 'SC-008'], { demo: { id: 'l12' } }),
+  R('c_listing', live(RD.RemoteListingDetail, C1.ListingDetail), 'customer', 'Listing detail', ['S7', 'S8', 'S14'], ['SC-003', 'SC-008'], { demo: { id: 'l12' } }),
   R('c_listing_nodata', C1.ListingDetail, 'customer', 'Listing — missing data labels', ['S7'], ['SC-003'], { demo: { id: 'l15' } }),
   R('c_vendor', C1.VendorProfile, 'customer', 'Vendor profile', ['S5', 'S7', 'S12'], ['SC-003', 'SC-008'], { demo: { id: 'v2' } }),
   R('c_saved', CM.Saved, 'customer', 'Favorites & compare (3)', ['S7'], ['SC-004', 'SC-005'], { demo: { tab: 'compare' } }),
-  R('c_activity', CM.Activity, 'customer', 'Activity: bookings & RFQs', ['S8', 'S9'], ['SC-011', 'SC-014'], { tab: true }),
-  R('c_book_new', CB.BookNew, 'customer', 'Request a booking', ['S8', 'S19'], ['SC-011', 'SC-013', 'SC-014'], { demo: { id: 'l12' } }),
-  R('c_booking', CB.BookingDetail, 'customer', 'Booking detail & timeline', ['S8'], ['SC-011', 'SC-012', 'SC-018', 'SC-019'], { demo: { id: 'BKG-2101' } }),
+  R('c_activity', live(RD.RemoteCustomerBookings, CM.Activity), 'customer', 'Activity: bookings & RFQs', ['S8', 'S9'], ['SC-011', 'SC-014'], { tab: true }),
+  R('c_book_new', live(RD.RemoteBookNew, CB.BookNew), 'customer', 'Request a booking', ['S8', 'S19'], ['SC-011', 'SC-013', 'SC-014'], { demo: { id: 'l12' } }),
+  R('c_booking', live(RD.RemoteBookingDetail, CB.BookingDetail), 'customer', 'Booking detail & timeline', ['S8'], ['SC-011', 'SC-012', 'SC-018', 'SC-019'], { demo: { id: 'BKG-2101' } }),
   R('c_booking_done', CB.BookingDetail, 'customer', 'Booking — confirm completion (7 days)', ['S8'], ['SC-018', 'SC-019'], { demo: { id: 'BKG-2088' } }),
   R('c_book_modify', CB.BookModify, 'customer', 'Request booking change', ['S8'], ['SC-015', 'SC-016'], { demo: { id: 'BKG-2099' } }),
   R('c_conflict', CB.Conflict, 'customer', 'Conflicting confirmations', ['S8'], ['SC-014'], { demo: { req: 'REQ-77' } }),
@@ -99,8 +105,8 @@ export const SCREENS = Object.fromEntries([
   R('v_listing_edit', VA.ListingEdit, 'vendor', 'Add / edit listing', ['S5', 'S6'], ['SC-010'], { demo: { id: 'l1' } }),
   R('v_areas', VA.ServiceAreas, 'vendor', 'Service areas', ['S7'], ['SC-001']),
   R('v_avail', VA.Availability, 'vendor', 'Availability', ['S8'], ['SC-013', 'SC-003']),
-  R('v_work', VB.VendorWork, 'vendor', 'Work: bookings & RFQs', ['S8', 'S9'], ['SC-012'], { tab: true }),
-  R('v_booking', VB.VendorBooking, 'vendor', 'Booking request & actions', ['S8'], ['SC-011', 'SC-012', 'SC-013', 'SC-015', 'SC-016', 'SC-017'], { demo: { id: 'BKG-2090' } }),
+  R('v_work', live(RD.RemoteVendorBookings, VB.VendorWork), 'vendor', 'Work: bookings & RFQs', ['S8', 'S9'], ['SC-012'], { tab: true }),
+  R('v_booking', live(RD.RemoteBookingDetail, VB.VendorBooking), 'vendor', 'Booking request & actions', ['S8'], ['SC-011', 'SC-012', 'SC-013', 'SC-015', 'SC-016', 'SC-017'], { demo: { id: 'BKG-2090' } }),
   R('v_booking_mod', VB.VendorBooking, 'vendor', 'Booking — change requested', ['S8'], ['SC-015', 'SC-016'], { demo: { id: 'BKG-2085' } }),
   R('v_rfq', VB.VendorRfq, 'vendor', 'Submit / revise quotation', ['S9'], ['SC-022', 'SC-023', 'SC-024'], { demo: { id: 'RFQ-315' } }),
   R('v_sub', VB.Subscription, 'vendor', 'Subscription & billing events', ['S11'], ['SC-026', 'SC-027', 'SC-037', 'SC-006']),
@@ -109,7 +115,7 @@ export const SCREENS = Object.fromEntries([
   R('v_reviews', VB.VendorReviews, 'vendor', 'Customer reviews', ['S12'], ['SC-030']),
   R('v_cases', VB.VendorCases, 'vendor', 'Moderation & appeals', ['S12'], ['SC-029', 'SC-038']),
   R('v_perf', VB.Performance, 'vendor', 'Performance metrics', ['S18', 'S8']),
-  R('v_buy', MV.VendorBuy, 'vendor', 'Buy — from vendors & companies (vendor account)', ['V4', 'S7', 'S9'], [], { tab: true }),
+  R('v_buy', MV.VendorBuy, 'customer', 'Buy — from vendors & companies (vendor owner, Customer mode)', ['V4', 'S7', 'S9']),
   R('v_more', VB.VendorMore, 'vendor', 'More', ['S3'], [], { tab: true }),
   R('v_profile', VB.VendorProfile, 'vendor', 'Business profile', ['S3', 'S10']),
   R('v_public', PF.VendorProfileEdit, 'vendor', 'Public profile & trust', ['V4', 'V6']),
@@ -171,7 +177,7 @@ export const SCREENS = Object.fromEntries([
   R('v_leads', MV.Leads, 'vendor', 'Leads: requests, RFQs, orders', ['S8', 'S9']),
   R('v_orders', MV.Orders, 'vendor', 'Purchase orders received', ['S9']),
   R('v_order', MV.OrderDetail, 'vendor', 'Order — accept, process, ship', ['S9'], [], { demo: { id: 'PO-3003' } }),
-  R('vb_home', MV.VendorBuy, 'vendor', 'Buy tab — home (vendor as buyer)', ['V4'], [], { as: 'vbuyer' }),
+  R('vb_home', MV.VendorBuy, 'customer', 'Buy hub (vendor owner, Customer mode)', ['V4'], [], { as: 'vbuyer' }),
   R('vb_explore', Explore, 'customer', 'Buyer mode — find a supplier', ['V4', 'S7'], [], { as: 'vbuyer', demo: { kind: 'manufacturer' } }),
   R('vb_rfq', MV.RfqGoods, 'customer', 'Buyer mode — bulk RFQ', ['V4', 'S9'], [], { as: 'vbuyer', demo: { listingId: 'l40', qty: 300 } }),
   R('vb_compare', CR.RfqDetail, 'customer', 'Buyer mode — compare & accept', ['V4', 'S9'], [], { as: 'vbuyer', demo: { id: 'RFQ-330' } }),

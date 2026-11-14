@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { createApiAuthService, canonicalIdentifier, roleForMode } from './authService.js'
+import { createApiAuthService, canonicalIdentifier, roleForMode, roleForAccount } from './authService.js'
 import { createSessionStore } from './session.js'
 
 const memoryStorage = () => {
@@ -381,5 +381,137 @@ describe('account settings and vendor onboarding calls', () => {
     expect((await service.getVerificationEvidenceUrl('vr1', 'f1')).url).toBe('https://storage.test/download')
     expect(calls[0].query).toBe('?status=submitted&limit=50')
     expect(calls[1].body).toEqual({ status: 'approved', reason: 'Evidence verified' })
+  })
+})
+
+describe('discovery and booking calls (F-DSC-02/05/07, F-BKG-*)', () => {
+  const signedIn = (routes) => {
+    const ctx = setup(routes)
+    ctx.store.set(TOKENS)
+    return ctx
+  }
+
+  it('searches without signing in and drops empty filters', async () => {
+    const { service, calls } = setup({ 'GET /discover/listings': reply(200, { items: [{ id: 'l1' }], nextCursor: 'c2', marketLive: true }) })
+    const r = await service.searchListings({ countryCode: 'IN', q: 'electrician', cityId: undefined, instantOnly: false, minPriceMinor: 0, cursor: '' })
+    expect(r).toMatchObject({ ok: true, items: [{ id: 'l1' }], nextCursor: 'c2', marketLive: true })
+    expect(calls[0].auth).toBeUndefined()
+    expect(calls[0].query).toBe('?countryCode=IN&q=electrician&minPriceMinor=0')
+  })
+
+  it('reads a public listing and reports a missing one', async () => {
+    const { service } = setup({ 'GET /discover/listings/l1': reply(200, { id: 'l1', price: { state: 'not_provided' } }), 'GET /discover/listings/gone': reply(404, { detail: 'No such listing' }) })
+    expect((await service.getPublicListing('l1')).listing.price.state).toBe('not_provided')
+    expect(await service.getPublicListing('gone')).toMatchObject({ ok: false, code: 'NOT_FOUND' })
+  })
+
+  it('saves and removes favourite vendors', async () => {
+    const { service, calls } = signedIn({ 'GET /me/favorites': reply(200, { favorites: [{ vendorId: 'v1' }] }), 'PUT /me/favorites/v1': reply(204), 'DELETE /me/favorites/v1': reply(204) })
+    expect((await service.listFavorites()).favorites).toEqual([{ vendorId: 'v1' }])
+    expect((await service.addFavorite('v1')).ok).toBe(true)
+    expect((await service.removeFavorite('v1')).ok).toBe(true)
+    expect(calls.every((c) => c.auth === 'Bearer a1')).toBe(true)
+  })
+
+  it('creates a booking with the caller-supplied idempotency key, so a retry is one booking', async () => {
+    const { service, calls } = signedIn({ 'POST /remote-bookings': reply(201, { bookings: [{ id: 'b1', state: 'requested' }] }) })
+    const body = { listingId: 'l1', slotStart: '2026-12-01T09:00:00Z', slotEnd: '2026-12-01T10:00:00Z', timeZone: 'Asia/Kolkata' }
+    await service.createBooking(body, 'key-1')
+    await service.createBooking(body, 'key-1')
+    expect(calls.map((c) => c.key)).toEqual(['key-1', 'key-1'])
+    expect(calls[0].body).toEqual(body)
+  })
+
+  it('tells a lost instant slot (409) apart from other failures', async () => {
+    const { service } = signedIn({ 'POST /remote-bookings': [reply(409, { detail: 'That slot is no longer available.' }), reply(500, {})] })
+    expect(await service.createBooking({ listingId: 'l1' })).toMatchObject({ ok: false, status: 409, code: 'CONFLICT', message: 'That slot is no longer available.' })
+    expect(await service.createBooking({ listingId: 'l1' })).toMatchObject({ ok: false, code: 'PROVIDER_ERROR' })
+  })
+
+  it('lists, reads and acts on bookings', async () => {
+    const { service, calls } = signedIn({
+      'GET /remote-bookings': reply(200, { bookings: [{ id: 'b1' }] }),
+      'GET /vendors/v1/remote-bookings': reply(200, { bookings: [{ id: 'b2' }] }),
+      'GET /remote-bookings/b1': reply(200, { id: 'b1', events: [] }),
+      'POST /remote-bookings/b1/decline': reply(200, { id: 'b1', state: 'declined' }),
+      'POST /remote-bookings/b1/modifications': reply(201, { id: 'b1', openModification: { id: 'm1' } }),
+      'POST /remote-bookings/b1/modifications/m1/accept': reply(200, { id: 'b1' }),
+    })
+    expect((await service.listMyBookings('requested')).bookings).toEqual([{ id: 'b1' }])
+    expect((await service.listVendorBookings('v1')).bookings).toEqual([{ id: 'b2' }])
+    expect((await service.getBooking('b1')).booking.id).toBe('b1')
+    expect((await service.bookingAction('b1', 'decline', { reason: 'Fully booked' })).booking.state).toBe('declined')
+    expect((await service.proposeBookingModification('b1', { proposedTerms: { notes: 'x' } })).ok).toBe(true)
+    expect((await service.decideBookingModification('b1', 'm1', 'accept')).ok).toBe(true)
+    expect(calls[0].query).toBe('?state=requested')
+    expect(calls[3].body).toEqual({ reason: 'Fully booked' })
+  })
+  it('universal search: anonymous call carries no token and only the types asked for', async () => {
+    const { service, calls } = setup({ 'GET /search': reply(200, { q: 'pipe', marketLive: true, signedIn: false, sections: { product: { items: [], nextCursor: null } } }) })
+    const r = await service.universalSearch({ q: 'pipe', countryCode: 'IN', types: ['product', 'vendor'], limit: 5 })
+    expect(r.ok).toBe(true)
+    expect(r.sections.product.items).toEqual([])
+    expect(calls[0].query).toContain('types=product%2Cvendor')
+    expect(calls[0].query).toContain('countryCode=IN')
+    expect(calls[0].auth).toBeUndefined()
+  })
+
+  it('universal search: signed in sends the token and a bad request is reported', async () => {
+    const { service, calls } = signedIn({ 'GET /search': [reply(200, { sections: {}, signedIn: true }), reply(400, { detail: 'cursor is not valid' })] })
+    expect((await service.universalSearch({ q: 'pipe', countryCode: 'IN' })).signedIn).toBe(true)
+    expect(calls[0].auth).toBe('Bearer a1')
+    expect(await service.universalSearch({ q: 'pipe', countryCode: 'IN', cursor: 'x' })).toMatchObject({ ok: false, code: 'INVALID_PROFILE' })
+  })
+
+  it('creates, opens and lists an RFQ', async () => {
+    const { service, calls } = signedIn({
+      'POST /rfqs': reply(201, { id: 'r1', state: 'draft' }),
+      'POST /rfqs/r1/open': reply(200, { id: 'r1', state: 'open' }),
+      'GET /me/rfqs': reply(200, { rfqs: [{ id: 'r1' }] }),
+      'GET /vendors/v1/rfqs': reply(200, { rfqs: [{ id: 'r1' }] }),
+      'GET /rfqs/r1': reply(200, { id: 'r1' }),
+    })
+    expect((await service.createRfq({ categoryId: 'c1', kind: 'service', requirements: { title: 'Fix pipe' } })).rfq.id).toBe('r1')
+    expect((await service.openRfq('r1', { quoteDeadlineAt: '2026-12-01T00:00:00Z', vendorIds: ['v1'] })).rfq.state).toBe('open')
+    expect((await service.listMyRfqs()).rfqs).toHaveLength(1)
+    expect((await service.listVendorRfqs('v1')).rfqs).toHaveLength(1)
+    expect((await service.getRfq('r1')).rfq.id).toBe('r1')
+    expect(calls[1].body).toEqual({ quoteDeadlineAt: '2026-12-01T00:00:00Z', vendorIds: ['v1'] })
+  })
+
+  it('submits, lists and accepts a quote and returns the fulfilment', async () => {
+    const { service, calls } = signedIn({
+      'POST /rfqs/r1/quotes': reply(201, { id: 'q1', state: 'submitted' }),
+      'GET /rfqs/r1/quotes': reply(200, { rfq: { id: 'r1' }, quotes: [{ id: 'q1', totalMinor: 150000 }] }),
+      'POST /rfqs/r1/quotes/q1/accept': reply(201, { rfqId: 'r1', quoteId: 'q1', fulfillment: { type: 'booking', id: 'b1' } }),
+    })
+    expect((await service.submitQuote('r1', { vendorId: 'v1', currency: 'INR', totalMinor: 150000 })).quote.id).toBe('q1')
+    expect((await service.listRfqQuotes('r1')).quotes[0].totalMinor).toBe(150000)
+    expect((await service.acceptQuote('r1', 'q1')).fulfillment).toEqual({ type: 'booking', id: 'b1' })
+    expect(calls[0].body).toEqual({ vendorId: 'v1', currency: 'INR', totalMinor: 150000 })
+  })
+
+  it('reports a refused quote acceptance with the server message', async () => {
+    const { service } = signedIn({ 'POST /rfqs/r1/quotes/q1/accept': reply(409, { detail: 'Configure rfqFulfillmentType as booking, work_order, or contract for this service category' }) })
+    expect(await service.acceptQuote('r1', 'q1')).toMatchObject({ ok: false, status: 409, code: 'CONFLICT', message: expect.stringContaining('rfqFulfillmentType') })
+  })
+  it('lists capacity windows of a listing and sends slot terms with a quote', async () => {
+    const { service, calls } = signedIn({
+      'GET /listings/l1/capacity': reply(200, { windows: [{ id: 'w1', startsAt: '2026-12-01T04:00:00Z', endsAt: '2026-12-01T06:00:00Z', capacity: 2, reserved: 1 }] }),
+      'POST /rfqs/r1/quotes': reply(201, { id: 'q1' }),
+    })
+    expect((await service.listListingCapacity('l1')).windows[0].id).toBe('w1')
+    const timeline = { slotStart: '2026-12-01T04:00:00.000Z', slotEnd: '2026-12-01T06:00:00.000Z', timeZone: 'Asia/Kolkata', capacityId: 'w1' }
+    await service.submitQuote('r1', { vendorId: 'v1', currency: 'INR', totalMinor: 1, timeline })
+    expect(calls[1].body.timeline).toEqual(timeline)
+  })
+})
+
+describe('roleForAccount', () => {
+  it('sends a Super Admin or Sales Agent to its own screens and everyone else by mode', () => {
+    expect(roleForAccount({ currentMode: 'CUSTOMER', roles: ['SUPER_ADMIN'] })).toBe('admin')
+    expect(roleForAccount({ currentMode: 'CUSTOMER', roles: ['CUSTOMER', 'SALES_AGENT'] })).toBe('agent')
+    expect(roleForAccount({ currentMode: 'VENDOR', roles: ['CUSTOMER', 'VENDOR'] })).toBe('vendor')
+    expect(roleForAccount({ currentMode: 'CUSTOMER' })).toBe('customer')
   })
 })

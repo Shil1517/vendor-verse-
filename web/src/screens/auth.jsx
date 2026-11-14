@@ -5,7 +5,7 @@ import { useNav } from '../nav.jsx'
 import { HOME, VISIBLE_ROLES } from '../roles.js'
 import { ME } from '../data.jsx'
 import { Button, Input, Segmented, Screen, Checkbox, Banner, useForm, cx } from '../ui.jsx'
-import { authService, isEmail, isPhone, normalizePhone, roleForMode } from '../services/authService.js'
+import { authService, isEmail, isPhone, normalizePhone, roleForAccount } from '../services/authService.js'
 import './auth-visuals.css'
 
 export function Logo({ size = 64, light, blue = false }) {
@@ -221,7 +221,7 @@ export function Otp({ params }) {
       }
       return
     }
-    const accountRole = r.account ? roleForMode(r.account.currentMode) : role
+    const accountRole = r.account ? roleForAccount(r.account) : role
     const same = accountRole === role
     const needsName = authService.isRemote && accountRole === 'customer' && !profile?.displayName
     const extra = { ...(r.account ? { userId: r.account.userId } : {}), ...(profile?.displayName ? { name: profile.displayName } : authService.isRemote ? { name: 'Customer' } : {}) }

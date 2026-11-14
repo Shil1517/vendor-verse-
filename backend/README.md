@@ -67,6 +67,11 @@ These routes are also listed in Swagger UI at `/docs`.
 - `POST|GET /v1/vendors/{vendorId}/listings`, `GET|PATCH /v1/listings/{listingId}`, `POST /v1/listings/{listingId}/submit|pause|resume|unpublish` (F-VND-06; owner only; drafts are never public)
 - `GET /v1/vendors/{vendorId}/publication-gates?listingId=` (F-VND-05; computed live, never stored; gates whose module is missing report `met: null`)
 - `GET|PUT|DELETE /v1/listings/{listingId}/availability`, `GET|POST /v1/listings/{listingId}/capacity`, `DELETE /v1/listings/{listingId}/capacity/{windowId}` (F-VND-08)
+- `GET /v1/discover/listings?countryCode=&cityId=&q=&categoryId=&listingType=&minPriceMinor=&maxPriceMinor=&instantOnly=&limit=&cursor=`, `GET /v1/discover/listings/{listingId}` (F-DSC-02, F-DSC-03, F-DSC-05; public; only eligible listings in a live market, organic ranking, `not_provided` instead of zero)
+- `GET /v1/search?q=&countryCode=&cityId=&types=&limit=&cursor=` (F-DSC-02, D-025; optional bearer. Anonymous: vendors, products, services, categories in a live market. Signed in: also the caller's own RFQs, bookings, contracts and purchase orders, only where the caller is a party; a bad token is 401, a private type without a token is 401; several types return a short page per section, one type can be paged with `cursor`; module `backend/src/search/`, contract `packages/api-contract/search.openapi.yaml`)
+- `GET /v1/me/favorites`, `PUT|DELETE /v1/me/favorites/{vendorId}` (F-DSC-07; public vendors only)
+- `POST|GET /v1/remote-bookings`, `GET /v1/remote-bookings/{id}`, `GET /v1/vendors/{vendorId}/remote-bookings` (module `backend/src/remote-bookings/`, the discovery-slice booking API the web and mobile apps call; F-BKG-01, F-BKG-02, F-BKG-03, F-BKG-08, F-BKG-10; send `Idempotency-Key`; instant bookings reserve capacity atomically)
+- `POST /v1/remote-bookings/{id}/accept|decline|start|complete|confirm|cancel`, `POST /v1/remote-bookings/{id}/modifications` and `.../modifications/{modificationId}/accept|decline|withdraw` (F-BKG-04 to F-BKG-07, F-BKG-09; deadlines apply when a booking is read; the response deadline comes from the category configuration key `responseDeadlineHours`, with none set there is no deadline)
 - `GET /v1/me/waitlist`, `POST|DELETE /v1/geo/cities/{cityId}/waitlist` (F-GEO-02)
 - `GET /v1/admin/roles`, `GET|POST /v1/admin/users/{userId}/roles`, `DELETE /v1/admin/users/{userId}/roles/{roleCode}` (F-ADM-04; needs `rbac.read` / `rbac.manage`; only SALES_AGENT and SUPER_ADMIN are assignable; reason required and audited; you cannot change your own roles; the last Super Admin cannot be revoked)
 - `GET /v1/admin/taxonomy/categories?industryId=&lifecycle=`, `GET|PATCH /v1/admin/taxonomy/categories/{id}`, `POST /v1/admin/taxonomy/categories`, `POST .../categories/{id}/lifecycle|merge`, `PUT /v1/admin/taxonomy/industries/{id}/category-order`, `POST .../categories/{id}/subcategories`, `PATCH .../subcategories/{id}` (F-TAX-02; needs `taxonomy.manage`; new categories start as Draft, so activate one and set a `marketRules` entry before it shows in public browse)
@@ -183,12 +188,27 @@ All routes need a bearer token and act on the signed-in user only (contract: `pa
 
 The email is stored **unverified** and is not a sign-in identifier; verification needs email OTP delivery (CFG-07, open). Name, email and addresses are collected by the Create account screen and saved right after OTP verification; an account that has no name yet is sent to Edit profile after its first sign-in.
 
+## Demo data and smoke test
+
+For demos only, never production (the seed refuses `NODE_ENV=production`):
+
+- `npm run db:seed:demo` makes Jaipur live and adds three categories (Plumbing, Electrical and AC repair, Hardware), four verified vendors, seven approved listings with bookable capacity for the next 14 days, and demo sign-in accounts. Re-running is safe. Demo accounts sign in by phone with OTP `123456` (`OTP_PROVIDER=local-test`): customers `+919000000010` and `+919000000011`, vendor owners `+919000000021` to `+919000000024`.
+- Demo logins (OTP `123456`): Super Admin `+919000000001`, Sales Agent `+919000000002`, customer `+919000000010`, vendor `+919000000021`. Admin and agent sign-in needs `ALLOW_PRIVILEGED_OTP_SIGNIN=true` in the backend `.env` (default off). It is a demo shortcut that skips the MFA step, which is not built yet (the real flow answers 503 for these roles); never enable it where real accounts exist. `GET /v1/me` now also returns `roles` so a client can open the admin or agent screens.
+- `npm run demo:activity` (backend running) adds sample bookings (pending, confirmed, completed, declined) and RFQs (one with a quote waiting, a goods RFQ with two quotes to compare, one with none) through the API for the demo accounts. Re-running skips what exists. The seed now has 7 categories, 8 vendors (`+919000000021` to `+919000000028`), 16 listings and a third customer `+919000000012`.
+- `npm run demo:smoke` drives sign-in, universal search, a booking and the RFQ, quote and accept flow against a running backend (default `http://127.0.0.1:3001/v1`). It creates real rows in that database.
+
 ## Change Log
 
 | Date & time (YYYY-MM-DD HH:MM, local) | Updated by | Change | Reason |
 |---|---|---|---|
+| 2026-11-14 12:10 | Sahil Soni | Added: `ALLOW_PRIVILEGED_OTP_SIGNIN` demo flag, `roles` on GET /me, demo admin and sales-agent accounts | Let the team demo the admin and agent screens against the real API until MFA exists. |
+| 2026-11-14 11:31 | Sahil Soni | Modified: demo seed (more categories, vendors, listings) and added demo activity script | Richer demo data so every web screen has content. |
+| 2026-11-14 11:06 | Sahil Soni | Added: demo seed and smoke scripts | Give the web demo real data and a repeatable end-to-end check against the real API. |
+| 2026-11-13 14:15 | Sahil Soni | Added: `GET /v1/search` universal search | D-025 / F-DSC-02: one search across public content and the caller's authorized private transactions (`backend/src/search/`). |
+| 2026-11-13 13:36 | Sahil Soni | Modified: booking route paths | Our discovery-slice booking API moved to `/v1/remote-bookings` (`backend/src/remote-bookings/`) so it does not clash with Amit's `bookings` module after merging origin/theamitmehra. |
 | 2026-11-13 12:44 | Amit | Added: booking, contract, purchase-order and RFQ handoff routes | Document the implemented transaction APIs, the category-based handoff and explicit gaps; payment APIs remain out of scope. |
 | 2026-11-13 11:16 | Amit | Added: RFQ and quote routes | Document the first transaction API slice and make its current workflow gaps explicit. |
+| 2026-11-12 14:18 | Sahil Soni | Added: discovery, favourites and booking routes | P1-S3 and P1-S4 stages: `backend/src/discover/` and `backend/src/bookings/`, contract in `packages/api-contract/discovery-booking.openapi.yaml`. |
 | 2026-11-12 12:01 | Sahil Soni | Added: public vendor read `GET /vendors/{vendorId}/public` | Show only verified roles publicly (D-020, D-021); no public-profile screen calls it yet. |
 | 2026-11-12 11:52 | Sahil Soni | Added: vendor roles APIs, role catalogue, role review and the `vendor_roles.manage` permission (migration 016) | Make vendor roles data instead of a fixed list, with role-level verification (D-019 to D-024). |
 | 2026-11-10 13:59 | Amit | Added: vendor verification APIs, reviewer permission and API contract | Deliver the F-VND-03 backend slice without guessing evidence requirements or expiry policy. |

@@ -9,7 +9,7 @@ export const JOURNEYS = [
   { id: 'J2', t: 'Business requests bulk manufacturer quotations', who: 'Business buyer', role: 'customer', steps: [['Search suppliers and manufacturers', 'c_explore_suppliers'], ['Product with MOQ and tiers', 'c_product'], ['Submit a goods RFQ', 'c_rfq_goods'], ['Compare quotations', 'c_rfq_compare'], ['Purchase order', 'c_order']] },
   { id: 'J3', t: 'Vendor registers and manages products / services', who: 'Vendor', role: 'vendor', steps: [['Choose vendor type', 'v_register_type'], ['Verification evidence', 'v_verify'], ['Publication checklist', 'v_listing_gate'], ['My listings', 'v_listings']] },
   { id: 'J4', t: 'Admin creates a category and approves a vendor', who: 'Admin', role: 'admin', steps: [['Create category', 'ad_cat_new'], ['Configure fields and rules', 'ad_category'], ['Taxonomy builder', 'ad_taxonomy'], ['Review vendor', 'ad_vendors']] },
-  { id: 'J5', t: 'Vendor-to-vendor procurement', who: 'Vendor as buyer', role: 'vendor', steps: [['Open the Buy tab', 'vb_home'], ['Find a supplier', 'vb_explore'], ['Send bulk RFQ', 'vb_rfq'], ['Compare and accept quotes', 'vb_compare'], ['Track the purchase order', 'vb_order']] },
+  { id: 'J5', t: 'Vendor-to-vendor procurement', who: 'Vendor owner in Customer mode', role: 'customer', steps: [['Switch to Customer mode, open Buy', 'vb_home'], ['Find a supplier', 'vb_explore'], ['Send bulk RFQ', 'vb_rfq'], ['Compare and accept quotes', 'vb_compare'], ['Track the purchase order', 'vb_order']] },
 ]
 
 export function Vision() {
