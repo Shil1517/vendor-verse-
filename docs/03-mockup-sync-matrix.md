@@ -205,6 +205,7 @@ These are mockup behaviours that differ between the apps and must be made the sa
 
 | Date & time (YYYY-MM-DD HH:MM, local) | Updated by | Change | Reason |
 |---|---|---|---|
+| 2026-11-14 13:05 | Sahil Soni | Modified: F-ACC-02 web login (workspace chooser removed; sign-in opens the stored account mode; header switch saves the mode) | The chooser looked wrong and did not decide the workspace; a vendor account now opens in vendor mode because the mode is saved server-side. Statuses unchanged. |
 | 2026-11-14 12:30 | Sahil Soni | Modified: F-ACC-02 web sign-in and vendor registration (persist vendor mode via POST /me/mode) | Vendors were sent to the customer home after sign-in because the stored account mode stayed customer; statuses unchanged. |
 | 2026-11-14 12:24 | Sahil Soni | Modified: F-VND-03 web verification screen (evidence upload optional) | Evidence storage is still open (O-15); the web screen now shows a notice instead of a failure when storage is unavailable, and verification can be submitted without files. Statuses unchanged. |
 | 2026-11-14 12:10 | Sahil Soni | Modified: web sign-in routing note | Web opens the admin or agent screens when GET /me lists SUPER_ADMIN or SALES_AGENT; mobile not changed, statuses unchanged. |

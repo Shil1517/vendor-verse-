@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Phone, Mail, ShieldCheck, Store, User, ArrowRight, Lock, Sparkles, Truck, FileText, Globe } from 'lucide-react'
 import { useApp } from '../store.jsx'
 import { useNav } from '../nav.jsx'
-import { HOME, VISIBLE_ROLES } from '../roles.js'
+import { HOME } from '../roles.js'
 import { ME } from '../data.jsx'
 import { Button, Input, Segmented, Screen, Checkbox, Banner, useForm, cx } from '../ui.jsx'
 import { authService, isEmail, isPhone, normalizePhone, roleForAccount } from '../services/authService.js'
@@ -134,18 +134,6 @@ export function Login({ params = {} }) {
             <Input label="Email address" icon={Mail} type="email" placeholder="you@company.com" value={val} error={err} onChange={(e) => { setVal(e.target.value); setErr('') }} />
           )}
           <Button full size="lg" type="submit">Send OTP</Button>
-
-          <div className="vv-login-roles rounded-2xl p-4 ring-1 ring-inset ring-ink-100">
-            <p className="text-[11px] font-bold uppercase tracking-wider text-ink-400">Choose your workspace</p>
-            <div className="mt-2.5 grid grid-cols-2 gap-2">
-              {VISIBLE_ROLES.map((r) => (
-                <button type="button" key={r.id} onClick={() => setRole(r.id)} className={cx('rounded-xl px-3 py-2.5 text-[13px] font-semibold ring-1 ring-inset transition', role === r.id ? 'bg-brand-600 text-white ring-brand-600' : 'bg-white text-ink-700 ring-ink-200')}>
-                  {r.short}
-                </button>
-              ))}
-            </div>
-            <p className="mt-2.5 text-xs text-ink-500">Sales Agents and Super Admins are invited by the platform — they cannot self-register.</p>
-          </div>
           <p className="text-center text-sm text-ink-500">New to VendorVerse? <button type="button" onClick={() => nav.replace('register')} className="font-bold text-brand-700">Create account</button></p>
         </form>
       </div>
@@ -221,15 +209,10 @@ export function Otp({ params }) {
       }
       return
     }
-    // The vendor role was chosen and the account has a vendor profile but is saved in customer mode: switch it so sign-in opens the vendor workspace.
-    if (authService.isRemote && role === 'vendor' && r.account?.currentMode === 'CUSTOMER' && r.account.availableModes?.includes('VENDOR') && !(r.account.roles || []).some((x) => x === 'SUPER_ADMIN' || x === 'SALES_AGENT')) {
-      const switched = await authService.switchMode('VENDOR')
-      if (switched.ok) r.account = { ...r.account, currentMode: switched.account?.currentMode || 'VENDOR' }
-    }
     const accountRole = r.account ? roleForAccount(r.account) : role
     const same = accountRole === role
     const needsName = authService.isRemote && accountRole === 'customer' && !profile?.displayName
-    const extra = { ...(r.account ? { userId: r.account.userId } : {}), ...(profile?.displayName ? { name: profile.displayName } : authService.isRemote ? { name: 'Customer' } : {}) }
+    const extra = { ...(r.account ? { userId: r.account.userId, hasVendorAccount: !!r.account.availableModes?.includes('VENDOR') } : {}), ...(profile?.displayName ? { name: profile.displayName } : authService.isRemote ? { name: 'Customer' } : {}) }
     if (needsName) {
       signIn(accountRole, extra, 'c_profile_edit', { firstRun: true })
       toast('Welcome! Add your name to finish your profile.')
