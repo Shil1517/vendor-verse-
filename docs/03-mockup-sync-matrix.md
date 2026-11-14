@@ -205,6 +205,8 @@ These are mockup behaviours that differ between the apps and must be made the sa
 
 | Date & time (YYYY-MM-DD HH:MM, local) | Updated by | Change | Reason |
 |---|---|---|---|
+| 2026-11-14 12:30 | Sahil Soni | Modified: F-ACC-02 web sign-in and vendor registration (persist vendor mode via POST /me/mode) | Vendors were sent to the customer home after sign-in because the stored account mode stayed customer; statuses unchanged. |
+| 2026-11-14 12:24 | Sahil Soni | Modified: F-VND-03 web verification screen (evidence upload optional) | Evidence storage is still open (O-15); the web screen now shows a notice instead of a failure when storage is unavailable, and verification can be submitted without files. Statuses unchanged. |
 | 2026-11-14 12:10 | Sahil Soni | Modified: web sign-in routing note | Web opens the admin or agent screens when GET /me lists SUPER_ADMIN or SALES_AGENT; mobile not changed, statuses unchanged. |
 | 2026-11-14 11:30 | Sahil Soni | Modified: F-RFQ-01 and F-RFQ-02 web notes (slot picker on `v_rfq`, listing guidance on `c_rfq_new`) | The backend refuses a booking-type acceptance unless the quote carries a capacity slot. |
 | 2026-11-14 11:05 | Sahil Soni | Modified: F-DSC-02, F-BKG-10, F-RFQ-01 to F-RFQ-04 and F-RFQ-06 web notes (`c_explore`, `c_activity`, `v_work`, `c_rfq_new`, `c_rfq`, `v_rfq` now use the real API) | Web wired to `GET /search` and the RFQ, quote and accept APIs for the demo; statuses unchanged, mobile not wired. |

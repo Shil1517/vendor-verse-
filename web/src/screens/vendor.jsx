@@ -907,6 +907,7 @@ function RemoteVendorVerification({ vendor }) {
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+  const [notice, setNotice] = useState('')
 
   const refresh = async () => {
     const result = await loadRemoteVerification(vendor.id)
@@ -940,10 +941,15 @@ function RemoteVendorVerification({ vendor }) {
     const file = event.target.files?.[0]
     event.target.value = ''
     if (!file) return
-    setBusy(true); setError('')
+    setBusy(true); setError(''); setNotice('')
     const result = await authService.uploadVendorEvidence(file)
     setBusy(false)
-    if (!result.ok) { setError(result.message); return }
+    if (!result.ok) {
+      // Evidence is optional until storage is decided (O-15): an unavailable store is not a failure.
+      if (result.code === 'UNAVAILABLE') setNotice('Evidence upload is not available yet. You can skip it and submit your verification request without files.')
+      else setError(result.message)
+      return
+    }
     const pending = { fileId: result.file.id, fileName: file.name, documentType: documentType.trim() || file.name }
     if (result.file.scanStatus === 'clean') await registerFile(pending)
     else if (['infected', 'failed'].includes(result.file.scanStatus)) setError('The evidence file did not pass the security scan. Choose a different file.')
@@ -975,7 +981,8 @@ function RemoteVendorVerification({ vendor }) {
 
   return (
     <Screen title="Verification" footer={<Button full size="lg" disabled={busy || loading} onClick={submit}>Submit {level} for review</Button>}>
-      <Banner tone="blue">Upload evidence below, then submit an L1–L3 verification request. Files are attached only after the security scan passes.</Banner>
+      <Banner tone="blue">Evidence files are optional for now. Upload them below if you can, then submit an L1–L3 verification request. Files are attached only after the security scan passes.</Banner>
+      {notice && <Banner tone="amber">{notice}</Banner>}
       {error && <Banner tone="red" title="Verification request failed">{error}</Banner>}
       <Card><div className="flex items-center justify-between gap-3"><div><p className="text-xs font-bold uppercase text-ink-400">Current status</p><p className="mt-1 text-sm font-bold">{latest ? statusLabels[latest.status] || latest.status : 'Not submitted'}</p></div>{latest && <Badge tone={latest.status === 'approved' ? 'green' : latest.status === 'rejected' || latest.status === 'revoked' ? 'red' : latest.status === 'info_requested' ? 'amber' : 'blue'}>{latest.level}</Badge>}</div>{latest?.reason && <p className="mt-3 rounded-xl bg-amber-50 p-3 text-sm text-amber-900">{latest.reason}</p>}{latest?.expiresAt && <p className="mt-2 text-xs text-ink-500">Expires {new Date(latest.expiresAt).toLocaleDateString()}</p>}</Card>
       <Section title="Evidence documents">
@@ -1046,6 +1053,7 @@ export function VendorRegister({ params = {} }) {
       if (!result.vendor?.id) return toast('Vendor was created without an ID; reload and contact support before continuing.', 'warn')
       vendorId = result.vendor.id
       created.current = true
+      await authService.switchMode?.('VENDOR') // remember vendor mode so the next sign-in opens the vendor workspace
     }
     const rec = { id: vendorId, name: f.name, owner: f.owner, vendorType, businessType: roles[0], roles: roles.map((code) => ({ code, status: 'pending' })), cat: f.cat, city: f.areas[0], areas: f.areas, branches: f.branches.length, rating: 0, reviews: 0, status: authService.isRemote ? 'pending' : 'submitted', tone: cat(f.cat).tone, since: +f.years, gstin: f.gstin.toUpperCase(), phone: me.phone || '+91 98290 00099', email: f.email, plan: 'Starter', certifications: f.certifications, docs: authService.isRemote ? [] : docList.map((d) => ({ name: d, status: 'pending' })), history: authService.isRemote ? [] : [{ s: 'submitted', at: stamp(), by: f.owner }] }
     setVendors((vs) => [rec, ...vs.filter((x) => x.id !== vendorId && x.id !== 'v-new')])
