@@ -12,7 +12,7 @@ import { AuthService } from "./auth.service";
 const VERIFIER_SECRET = "v".repeat(32);
 const PEPPER = "p".repeat(32);
 
-const SETTINGS: Record<string, string | number> = {
+const SETTINGS: Record<string, string | number | boolean> = {
   OTP_VERIFIER_SECRET: VERIFIER_SECRET,
   SESSION_TOKEN_PEPPER: PEPPER,
   OTP_REQUEST_MAX: 2,
@@ -157,6 +157,25 @@ describe("AuthService", () => {
         String(sql).includes("INSERT INTO auth_sessions"),
       );
       expect(sessions).toHaveLength(0);
+    });
+
+    it("lets a privileged role in with the OTP alone only when the demo flag is on", async () => {
+      SETTINGS.ALLOW_PRIVILEGED_OTP_SIGNIN = true;
+      try {
+        clientQuery
+          .mockResolvedValueOnce(result([challenge()]))
+          .mockResolvedValueOnce(result([{ account_status: "active" }]))
+          .mockResolvedValueOnce(result())
+          .mockResolvedValueOnce(result([{ role_code: "SALES_AGENT" }]))
+          .mockResolvedValue(result());
+        const credentials = await service.verifyOtp({
+          challengeId: "c1",
+          code: "123456",
+        });
+        expect(credentials.accessToken).toBe("jwt");
+      } finally {
+        delete SETTINGS.ALLOW_PRIVILEGED_OTP_SIGNIN;
+      }
     });
 
     it("creates a session for a valid customer code", async () => {

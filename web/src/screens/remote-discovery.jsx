@@ -57,7 +57,7 @@ export const BOOKING_STATUS = {
 }
 const StateBadge = ({ s }) => { const [label, tone] = BOOKING_STATUS[s] || [s, 'gray']; return <Badge tone={tone}>{label}</Badge> }
 
-const fmtWhen = (iso, zone) => {
+export const fmtWhen = (iso, zone) => {
   if (!iso) return 'Time not set'
   try {
     return new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short', ...(zone ? { timeZone: zone } : {}) }).format(new Date(iso))
@@ -67,7 +67,7 @@ const fmtWhen = (iso, zone) => {
 }
 
 /** Runs a loader on mount and when deps change; `reload` refetches. */
-function useLoad(load, deps = []) {
+export function useLoad(load, deps = []) {
   const [state, setState] = useState({ loading: true, error: '', data: null })
   const run = useCallback(() => {
     setState((s) => ({ ...s, loading: true, error: '' }))
@@ -77,10 +77,69 @@ function useLoad(load, deps = []) {
   return { ...state, reload: run }
 }
 
-const Loading = () => <p className="p-6 text-center text-sm text-ink-500">Loading…</p>
-const ErrorBox = ({ message, onRetry }) => <Banner tone="red" title="Could not load" action={onRetry && <Button size="sm" variant="secondary" onClick={onRetry}>Try again</Button>}>{message}</Banner>
+export const Loading = () => <p className="p-6 text-center text-sm text-ink-500">Loading…</p>
+export const ErrorBox = ({ message, onRetry }) => <Banner tone="red" title="Could not load" action={onRetry && <Button size="sm" variant="secondary" onClick={onRetry}>Try again</Button>}>{message}</Banner>
 
 /* ================= SEARCH (F-DSC-02, F-DSC-03, F-DSC-04) ================= */
+/* ---------- universal search (F-DSC-02, D-025) ---------- */
+const PRIVATE_TYPES = ['rfq', 'booking', 'contract', 'purchase_order']
+const PRIVATE_LABEL = { rfq: 'My RFQs', booking: 'My bookings', contract: 'My contracts', purchase_order: 'My purchase orders' }
+const ROLE_LABEL = { customer: 'You are the customer', vendor: 'You are the vendor', buyer: 'You are the buyer', supplier: 'You are the supplier' }
+const PRIVATE_MATCH = { listing: 'Matches the listing', vendor: 'Matches the vendor name', category: 'Matches the category', requirements: 'Matches the request details', scope: 'Matches the scope', item: 'Matches an item' }
+/** The screen a private result opens, by record type and the caller's side. Contracts and purchase orders have no real-API screen yet. */
+const privateTarget = (type, hit) => (type === 'rfq' ? [hit.role === 'vendor' ? 'v_rfq' : 'c_rfq', { id: hit.id }] : type === 'booking' ? [hit.role === 'vendor' ? 'v_booking' : 'c_booking', { id: hit.id }] : null)
+
+/** One search over vendors, categories and (signed in) the caller's own RFQs, bookings, contracts and purchase orders. Products and services are the listing results below. */
+function UniversalPanel({ q, country, cityId, signedIn, onCategory }) {
+  const nav = useNav()
+  const text = q.trim()
+  const [state, setState] = useState({ loading: false, error: '', data: null })
+  useEffect(() => {
+    if (text.length < 2) { setState({ loading: false, error: '', data: null }); return undefined }
+    let live = true
+    const t = setTimeout(async () => {
+      setState((s) => ({ ...s, loading: true, error: '' }))
+      const r = await authService.universalSearch({ q: text, countryCode: country, cityId, types: ['vendor', 'category', ...(signedIn ? PRIVATE_TYPES : [])] })
+      if (live) setState(r.ok ? { loading: false, error: '', data: r } : { loading: false, error: r.message || 'Search failed.', data: null })
+    }, 350)
+    return () => { live = false; clearTimeout(t) }
+  }, [text, country, cityId, signedIn])
+
+  if (text.length < 2) return null
+  if (state.error) return <ErrorBox message={state.error} />
+  const sections = state.data?.sections || {}
+  const vendors = sections.vendor?.items || []
+  const categories = sections.category?.items || []
+  const priv = PRIVATE_TYPES.filter((t) => sections[t]?.items?.length)
+  if (!state.loading && !vendors.length && !categories.length && !priv.length) return null
+  return (
+    <div className="space-y-3">
+      {state.loading && !state.data && <Loading />}
+      {vendors.length > 0 && <Section title="Vendors">{vendors.map((v) => (
+        <Card key={v.id}><p className="truncate text-[15px] font-bold text-ink-900">{v.name}</p><p className="text-xs text-ink-500">{v.roles.join(' · ') || 'Verified vendor'}</p></Card>
+      ))}</Section>}
+      {categories.length > 0 && <Section title="Categories"><div className="flex flex-wrap gap-2">{categories.map((c) => (
+        <button key={c.id} onClick={() => onCategory(c.id)} className="rounded-full bg-white px-3 py-1.5 text-sm font-semibold text-ink-800 ring-1 ring-ink-200">{c.name}</button>
+      ))}</div></Section>}
+      {priv.map((type) => (
+        <Section key={type} title={PRIVATE_LABEL[type]}>{sections[type].items.map((h) => {
+          const target = privateTarget(type, h)
+          return (
+            <Card key={h.id} onClick={target ? () => nav.go(target[0], target[1]) : undefined}>
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0"><p className="truncate text-[15px] font-bold text-ink-900">{h.title || h.categoryName || 'Untitled'}</p><p className="truncate text-xs text-ink-500">{ROLE_LABEL[h.role]}{h.categoryName && h.title ? ` · ${h.categoryName}` : ''}</p></div>
+                <Badge tone="gray">{String(h.state).replace(/_/g, ' ')}</Badge>
+              </div>
+              <p className="mt-1 text-xs text-ink-500">{h.matchedOn.map((m) => PRIVATE_MATCH[m] || m).join(' · ')}</p>
+            </Card>
+          )
+        })}</Section>
+      ))}
+      <p className="text-[11px] text-ink-400">Your RFQs, bookings, contracts and orders are shown only to you{signedIn ? '' : '. Sign in to include them'}.</p>
+    </div>
+  )
+}
+
 export function RemoteExplore({ params = {} }) {
   const nav = useNav()
   const app = useApp()
@@ -134,6 +193,8 @@ export function RemoteExplore({ params = {} }) {
         <Toggle label="Instant booking only" desc="Listings you can book without waiting for a reply" on={instantOnly} onChange={setInstantOnly} />
       </div>
       <div className="space-y-3 p-4">
+        <UniversalPanel q={q} country={country} cityId={cityId} signedIn={Boolean(app.me?.loggedIn)} onCategory={setCategoryId} />
+        {q.trim().length >= 2 && <p className="pt-1 text-xs font-bold uppercase tracking-wide text-ink-500">Products and services</p>}
         {state.error && <ErrorBox message={state.error} onRetry={() => search()} />}
         {!state.error && !state.loading && !state.marketLive && (
           <Banner tone="amber" title="Not live in this area yet">VendorVerse is not open for search in {locale.city || 'this area'} yet, so nothing is shown. Nothing here is hidden from you.</Banner>
@@ -394,13 +455,14 @@ export function RemoteBookingDetail({ params = {} }) {
 /* ================= LISTS: customer activity and vendor inbox (F-BKG-09, F-BKG-10) ================= */
 const FILTERS = [{ id: 'all', label: 'All' }, { id: 'requested', label: 'Requested' }, { id: 'confirmed', label: 'Confirmed' }, { id: 'in_progress', label: 'In progress' }, { id: 'completed_awaiting', label: 'To confirm' }, { id: 'closed', label: 'Closed' }, { id: 'cancelled', label: 'Cancelled' }]
 
-function BookingList({ title, back, load, empty, detail }) {
+export function BookingList({ title, back, load, empty, detail, inline = false, children }) {
   const nav = useNav()
   const [filter, setFilter] = useState('all')
   const { loading, error, data, reload } = useLoad(load, [load])
   const rows = (data?.bookings || []).filter((b) => filter === 'all' || b.state === filter)
   return (
     <Screen title={title} back={back} pad={false}>
+      {children}
       <div className="bg-white px-4 py-3"><Chips value={filter} onChange={setFilter} options={FILTERS} /></div>
       <div className="space-y-3 p-4">
         {loading && !data && <Loading />}

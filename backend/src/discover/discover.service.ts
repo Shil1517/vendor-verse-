@@ -358,7 +358,7 @@ export class DiscoverService {
     };
   }
 
-  private async resolveMarket(query: SearchListingsQueryDto): Promise<{
+  async resolveMarket(query: Pick<SearchListingsQueryDto, "countryCode" | "cityId" | "regionId">): Promise<{
     countryId: string | null;
     cityId: string | null;
     regionId: string | null;
@@ -400,8 +400,8 @@ export class DiscoverService {
   }
 
   /** Active categories whose marketRules enable them in the searched market. */
-  private async enabledCategoryIds(
-    query: SearchListingsQueryDto,
+  async enabledCategoryIds(
+    query: Pick<SearchListingsQueryDto, "countryCode" | "cityId">,
     regionId: string | null,
   ): Promise<string[]> {
     const categories = await this.database.query<{

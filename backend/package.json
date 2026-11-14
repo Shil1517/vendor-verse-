@@ -18,6 +18,9 @@
     "db:rollback": "node --env-file=.env scripts/migrate.cjs down",
     "db:verify": "node --env-file=.env scripts/verify-schema.cjs",
     "db:seed": "node --env-file=.env scripts/seed.cjs",
+    "db:seed:demo": "node --env-file=.env scripts/seed-demo.cjs",
+    "demo:activity": "node scripts/demo-activity.cjs",
+    "demo:smoke": "node scripts/demo-smoke.cjs",
     "admin:first-super-admin": "node --env-file=.env scripts/grant-first-super-admin.cjs"
   },
   "dependencies": {

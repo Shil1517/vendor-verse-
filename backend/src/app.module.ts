@@ -14,6 +14,7 @@ import { HealthController } from "./health/health.controller";
 import { PlatformModule } from "./platform/platform.module";
 import { RbacModule } from "./rbac/rbac.module";
 import { RemoteBookingsModule } from "./remote-bookings/remote-bookings.module";
+import { SearchModule } from "./search/search.module";
 import { RfqModule } from "./rfq/rfq.module";
 import { PurchaseOrdersModule } from "./orders/purchase-orders.module";
 import { TaxonomyModule } from "./taxonomy/taxonomy.module";
@@ -47,6 +48,7 @@ import { validateEnvironment } from "./config/environment";
     VerificationModule,
     DiscoverModule,
     RemoteBookingsModule,
+    SearchModule,
   ],
   controllers: [HealthController],
 })

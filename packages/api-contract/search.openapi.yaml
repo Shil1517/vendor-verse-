@@ -1,0 +1,156 @@
+openapi: 3.1.0
+info:
+  title: VendorVerse Universal Search API
+  version: 0.1.0
+  summary: One search across public marketplace content and the caller's own transactions.
+  description: |
+    Implemented in `backend/src/search`; the running service also serves this
+    at `/docs`.
+
+    Public without a token: vendors, products, services and categories in a
+    live market. Public results reuse the discovery rules (eligible listings
+    only, organic ranking, plan tier is not a signal).
+
+    With a bearer token the same call also searches the caller's own RFQs,
+    bookings, contracts and purchase orders (D-025). A record is returned only
+    to a party to it: the customer or buyer, or the owner of the vendor on the
+    record. A vendor sees only the RFQ it was invited to, never a draft, and
+    the other party's identity is never returned.
+
+    A bearer header that is present must be valid; a bad token is a 401 and is
+    not treated as anonymous. Asking for a private type without a token is a 401.
+  x-feature-ids:
+    - F-DSC-02
+  x-change-log:
+    - date-time: "2026-11-13 14:10"
+      updated-by: Sahil Soni
+      change: "Added: universal search API"
+      reason: "D-025 / F-DSC-02: one search across public content and the caller's authorized private transactions."
+servers:
+  - url: /v1
+tags:
+  - name: Search
+paths:
+  /search:
+    get:
+      operationId: universalSearch
+      tags: [Search]
+      summary: Universal search
+      security:
+        - {}
+        - bearerAuth: []
+      parameters:
+        - { name: q, in: query, required: true, schema: { type: string, minLength: 2, maxLength: 120 } }
+        - { name: countryCode, in: query, required: true, schema: { type: string, pattern: "^[A-Z]{2}$" } }
+        - { name: cityId, in: query, schema: { type: string, format: uuid } }
+        - { name: regionId, in: query, schema: { type: string, format: uuid } }
+        - { name: postalCode, in: query, schema: { type: string, maxLength: 16 } }
+        - name: types
+          in: query
+          description: Comma-separated. Default is the public types, plus the private types when signed in.
+          schema:
+            type: array
+            items: { type: string, enum: [vendor, product, service, category, rfq, booking, contract, purchase_order] }
+            uniqueItems: true
+          style: form
+          explode: false
+        - { name: limit, in: query, description: "Per section. Default 5.", schema: { type: integer, minimum: 1, maximum: 50 } }
+        - { name: cursor, in: query, description: "A section's nextCursor. Only with exactly one type.", schema: { type: string, maxLength: 64 } }
+      responses:
+        "200":
+          description: Results grouped by type.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [q, marketLive, signedIn, sections]
+                properties:
+                  q: { type: string }
+                  marketLive:
+                    type: boolean
+                    description: False when the market is not live; public sections are then empty.
+                  signedIn: { type: boolean }
+                  sections:
+                    type: object
+                    properties:
+                      product: { $ref: "#/components/schemas/ListingSection" }
+                      service: { $ref: "#/components/schemas/ListingSection" }
+                      vendor: { $ref: "#/components/schemas/VendorSection" }
+                      category: { $ref: "#/components/schemas/CategorySection" }
+                      rfq: { $ref: "#/components/schemas/PrivateSection" }
+                      booking: { $ref: "#/components/schemas/PrivateSection" }
+                      contract: { $ref: "#/components/schemas/PrivateSection" }
+                      purchase_order: { $ref: "#/components/schemas/PrivateSection" }
+        "400":
+          description: Invalid query, or a cursor with more than one type.
+        "401":
+          description: Bad or expired token, or a private type requested without one.
+components:
+  securitySchemes:
+    bearerAuth: { type: http, scheme: bearer }
+  schemas:
+    ListingSection:
+      type: object
+      required: [items, nextCursor]
+      properties:
+        items:
+          type: array
+          description: Same item shape as GET /discover/listings.
+          items: { type: object, additionalProperties: true }
+        nextCursor: { type: [string, "null"] }
+    VendorSection:
+      type: object
+      required: [items, nextCursor]
+      properties:
+        items:
+          type: array
+          items:
+            type: object
+            required: [id, name, roles, matchedOn]
+            properties:
+              id: { type: string, format: uuid }
+              name: { type: string }
+              roles: { type: array, items: { type: string } }
+              matchedOn: { type: array, items: { type: string } }
+        nextCursor: { type: "null", description: "Vendors are not paged." }
+    CategorySection:
+      type: object
+      required: [items, nextCursor]
+      properties:
+        items:
+          type: array
+          items:
+            type: object
+            required: [id, name, industryId, matchedOn]
+            properties:
+              id: { type: string, format: uuid }
+              name: { type: string }
+              industryId: { type: string, format: uuid }
+              matchedOn: { type: array, items: { type: string, enum: [name, alias] } }
+        nextCursor: { type: [string, "null"] }
+    PrivateSection:
+      type: object
+      required: [items, nextCursor]
+      properties:
+        items:
+          type: array
+          items:
+            type: object
+            required: [id, role, state, title, categoryName, matchedOn]
+            properties:
+              id: { type: string, format: uuid }
+              role:
+                type: string
+                enum: [customer, vendor, buyer, supplier]
+                description: The caller's side of the record.
+              state: { type: string }
+              title: { type: [string, "null"] }
+              categoryName: { type: [string, "null"] }
+              matchedOn: { type: array, items: { type: string } }
+        nextCursor: { type: [string, "null"] }
+x-draft-notes:
+  - "Vendors are derived from the best 50 eligible listing matches whose vendor name matched, so a vendor with no eligible in-coverage listing is never shown. The section is not paged."
+  - "Matching is case-insensitive substring (ILIKE). Ranking beyond the discovery order, typo tolerance and the search-indexer worker are not built."
+  - "Private records match on listing/item/vendor/category names and the top-level text fields of RFQ requirements and contract scope."
+  - "Work orders are not searched: D-025 lists RFQs, bookings, contracts and purchase orders only."
+  - "Radius coverage and the subscription, category-verification and no-holds publication gates are not applied (same as discovery)."

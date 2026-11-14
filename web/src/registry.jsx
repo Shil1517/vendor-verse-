@@ -16,6 +16,7 @@ import * as DP from './screens/p1-depth.jsx'
 import * as SF from './screens/p2-storefront.jsx'
 import * as VR from './screens/vendor-roles.jsx'
 import * as RD from './screens/remote-discovery.jsx'
+import * as RR from './screens/remote-rfq.jsx'
 import { authService } from './services/authService.js'
 
 /* With the real API (VITE_API_BASE_URL) these screens read and write through it; otherwise the seed-data screen is used. */
@@ -42,13 +43,13 @@ export const SCREENS = Object.fromEntries([
   R('c_explore', live(RD.RemoteExplore, C1.Explore), 'shared', 'Search, filters & results', ['FR-05'], { tab: true }),
   R('c_listing', live(RD.RemoteListingDetail, C1.ListingDetail), 'shared', 'Product / service detail', ['FR-04', 'FR-05', 'FR-10'], { defaultParams: { id: 'l1' } }),
   R('c_vendor', C1.VendorProfile, 'shared', 'Vendor profile', ['FR-03', 'FR-05'], { defaultParams: { id: 'v-me' } }),
-  R('c_activity', live(RD.RemoteCustomerBookings, C2.Quotes), 'customer', 'Activity', ['FR-08'], { tab: true }),
+  R('c_activity', live(RR.RemoteActivity, C2.Quotes), 'customer', 'Activity', ['FR-08'], { tab: true }),
   R('c_book_new', live(RD.RemoteBookNew, C2.BookingNew), 'customer', 'Request a service booking', ['FR-09']),
   R('c_booking', live(RD.RemoteBookingDetail, C2.BookingDetail), 'shared', 'Booking details & actions', ['FR-09', 'FR-11'], { defaultParams: { id: 'BKG-1039' } }),
   R('c_order_new', C2.OrderNew, 'shared', 'Create purchase order', ['FR-07', 'FR-09']),
   R('c_order', C2.OrderDetail, 'shared', 'Purchase order tracking', ['FR-07', 'FR-09', 'FR-11'], { defaultParams: { id: 'ORD-24020' } }),
-  R('c_rfq_new', C2.RfqNew, 'shared', 'Create RFQ', ['FR-08']),
-  R('c_rfq', C2.RfqDetail, 'shared', 'RFQ & compare quotations', ['FR-08', 'FR-15'], { defaultParams: { id: 'RFQ-311' } }),
+  R('c_rfq_new', live(RR.RemoteRfqNew, C2.RfqNew), 'shared', 'Create RFQ', ['FR-08']),
+  R('c_rfq', live(RR.RemoteRfqDetail, C2.RfqDetail), 'shared', 'RFQ & compare quotations', ['FR-08', 'FR-15'], { defaultParams: { id: 'RFQ-311' } }),
   R('c_saved', C2.Saved, 'customer', 'Saved & compare', ['FR-05']),
   R('messages', C2.Messages, 'shared', 'Messages (customer and vendor)', ['FR-10'], { tab: true }),
   R('chat', C2.Chat, 'shared', 'Chat', ['FR-10'], { defaultParams: { id: 't1' } }),
@@ -70,9 +71,9 @@ export const SCREENS = Object.fromEntries([
   R('v_roles', VR.VendorRoles, 'vendor', 'Vendor roles', ['FR-03']),
   R('v_listings', V.VendorListings, 'vendor', 'My listings', ['FR-04'], { tab: true }),
   R('v_listing_edit', V.ListingEdit, 'vendor', 'Add / edit listing', ['FR-04'], { defaultParams: { id: 'l1' } }),
-  R('v_work', live(RD.RemoteVendorBookings, V.VendorQuotes), 'vendor', 'Work', ['FR-08'], { tab: true }),
+  R('v_work', live(RR.RemoteVendorWork, V.VendorQuotes), 'vendor', 'Work', ['FR-08'], { tab: true }),
   R('v_orders', V.VendorOrders, 'vendor', 'Purchase orders', ['FR-09', 'FR-15']),
-  R('v_rfq', V.VendorRfq, 'vendor', 'Submit / revise quotation', ['FR-08', 'FR-15'], { defaultParams: { id: 'RFQ-315' } }),
+  R('v_rfq', live(RR.RemoteVendorRfq, V.VendorRfq), 'vendor', 'Submit / revise quotation', ['FR-08', 'FR-15'], { defaultParams: { id: 'RFQ-315' } }),
   R('v_perf', V.Performance, 'vendor', 'Performance reports', ['FR-13']),
   R('v_reviews', V.VendorReviews, 'vendor', 'Customer reviews', ['FR-11']),
   R('v_more', V.VendorMore, 'vendor', 'More', ['FR-02'], { tab: true }),
