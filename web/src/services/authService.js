@@ -715,7 +715,271 @@ export function createApiAuthService({ baseUrl, fetchImpl = (...args) => globalT
     return r.status === 200 || r.status === 201 ? { ok: true, rfq: r.data } : bookingFail(r)
   }
 
-  return { requestOtp, verifyOtp, endSession, getProfile, saveProfile, listLocations, addLocation, updateLocation, removeLocation, listSessions, revokeSession, getNotificationPreferences, saveNotificationPreferences, listDataRequests, requestDataRequest, cancelDataRequest, listNotifications, getUnreadNotificationCount, markNotificationRead, markAllNotificationsRead, createVendor, switchMode, listMyVendors, updateVendor, getPublicVendor, listVendorRoleCatalogue, listVendorRoles, addVendorRole, removeVendorRole, listVendorRoleReviews, decideVendorRole, listVendorRoleDefinitions, createVendorRoleDefinition, updateVendorRoleDefinition, listVendorDocuments, listVendorVerifications, submitVendorVerification, uploadVendorEvidence, getFile, registerVendorDocument, listVerificationQueue, reviewVerification, getVerificationEvidenceUrl, listCities, listCategories, searchListings, getPublicListing, listFavorites, addFavorite, removeFavorite, createBooking, listMyBookings, listVendorBookings, getBooking, bookingAction, proposeBookingModification, decideBookingModification, universalSearch, createRfq, openRfq, listMyRfqs, listVendorRfqs, getRfq, listRfqQuotes, submitQuote, listListingCapacity, reviseQuote, withdrawQuote, acceptQuote, extendRfqDeadline, isRemote: true }
+  /* ---- F-RFQ-04 work orders, F-CON-* contracts, F-GDS-03/04 purchase orders, F-BKG-* local bookings (transaction APIs) ---- */
+  const enc = encodeURIComponent
+  const created = (r) => r.status === 200 || r.status === 201
+
+  /** Work orders return raw snake_case rows: id, customer_user_id, vendor_id, state, scope, completed_at, confirmation_due_at, created_at. */
+  async function listMyWorkOrders() {
+    const r = await authed('/me/work-orders', { method: 'GET' })
+    return r.status === 200 ? { ok: true, workOrders: r.data.workOrders } : bookingFail(r)
+  }
+  async function listVendorWorkOrders(vendorId) {
+    const r = await authed(`/vendors/${enc(vendorId)}/work-orders`, { method: 'GET' })
+    return r.status === 200 ? { ok: true, workOrders: r.data.workOrders } : bookingFail(r)
+  }
+  async function getWorkOrder(id) {
+    const r = await authed(`/work-orders/${enc(id)}`, { method: 'GET' })
+    return r.status === 200 ? { ok: true, workOrder: r.data } : bookingFail(r)
+  }
+  /** action: start | complete (vendor) | confirm (customer) | cancel (either party) */
+  async function workOrderAction(id, action) {
+    const r = await authed(`/work-orders/${enc(id)}/actions`, { method: 'POST', body: { action } })
+    return created(r) ? { ok: true, workOrder: r.data } : bookingFail(r)
+  }
+
+  /** POST /contracts. body: { vendorId, categoryId, scope: {...}, schedule?, priceSchedule?, term? }. Refused unless the category configures an approved contract template. */
+  async function proposeContract(body) {
+    const r = await authed('/contracts', { method: 'POST', body })
+    return created(r) ? { ok: true, contract: r.data } : bookingFail(r)
+  }
+  async function listMyContracts() {
+    const r = await authed('/me/contracts', { method: 'GET' })
+    return r.status === 200 ? { ok: true, contracts: r.data.contracts } : bookingFail(r)
+  }
+  async function listVendorContracts(vendorId) {
+    const r = await authed(`/vendors/${enc(vendorId)}/contracts`, { method: 'GET' })
+    return r.status === 200 ? { ok: true, contracts: r.data.contracts } : bookingFail(r)
+  }
+  /** -> contract with version { scope, schedule, priceSchedule, term }, acceptances[] and milestones[] */
+  async function getContract(id) {
+    const r = await authed(`/contracts/${enc(id)}`, { method: 'GET' })
+    return r.status === 200 ? { ok: true, contract: r.data } : bookingFail(r)
+  }
+  /** A new immutable version (counter). Both parties must accept the same current version. */
+  async function reviseContract(id, body) {
+    const r = await authed(`/contracts/${enc(id)}/versions`, { method: 'POST', body })
+    return created(r) ? { ok: true, contract: r.data } : bookingFail(r)
+  }
+  async function acceptContract(id) {
+    const r = await authed(`/contracts/${enc(id)}/accept`, { method: 'POST' })
+    return created(r) ? { ok: true, contract: r.data } : bookingFail(r)
+  }
+  async function declineContract(id, reason) {
+    const r = await authed(`/contracts/${enc(id)}/decline`, { method: 'POST', body: { reason } })
+    return created(r) ? { ok: true, contract: r.data } : bookingFail(r)
+  }
+  /** body: { title, terms?, amountMinor?, currency?, dueAt? } */
+  async function addContractMilestone(id, body) {
+    const r = await authed(`/contracts/${enc(id)}/milestones`, { method: 'POST', body })
+    return created(r) ? { ok: true, contract: r.data } : bookingFail(r)
+  }
+  /** action: start | complete | confirm | dispute (needs supportCaseId) | resolve */
+  async function milestoneAction(milestoneId, action, supportCaseId) {
+    const r = await authed(`/milestones/${enc(milestoneId)}/actions`, { method: 'POST', body: { action, ...(supportCaseId ? { supportCaseId } : {}) } })
+    return created(r) ? { ok: true, contract: r.data } : bookingFail(r)
+  }
+  async function completeContract(id) {
+    const r = await authed(`/contracts/${enc(id)}/complete`, { method: 'POST' })
+    return created(r) ? { ok: true, contract: r.data } : bookingFail(r)
+  }
+
+  /** Purchase orders are created by accepting a goods RFQ quote; no payment API is involved. View: { id, buyerUserId, buyerVendorId, supplierVendorId, state, terms, createdAt }. */
+  async function listMyPurchaseOrders() {
+    const r = await authed('/me/purchase-orders', { method: 'GET' })
+    return r.status === 200 ? { ok: true, purchaseOrders: r.data.purchaseOrders } : bookingFail(r)
+  }
+  async function listVendorPurchaseOrders(vendorId) {
+    const r = await authed(`/vendors/${enc(vendorId)}/purchase-orders`, { method: 'GET' })
+    return r.status === 200 ? { ok: true, purchaseOrders: r.data.purchaseOrders } : bookingFail(r)
+  }
+  async function getPurchaseOrder(id) {
+    const r = await authed(`/purchase-orders/${enc(id)}`, { method: 'GET' })
+    return r.status === 200 ? { ok: true, purchaseOrder: r.data } : bookingFail(r)
+  }
+  /** action: accept | reject | process | ship (carrier?, trackingReference?) | deliver | complete | cancel | delivery_exception (reason?) */
+  async function purchaseOrderAction(id, action, extra = {}) {
+    const r = await authed(`/purchase-orders/${enc(id)}/actions`, { method: 'POST', body: { action, ...extra } })
+    return created(r) ? { ok: true, purchaseOrder: r.data } : bookingFail(r)
+  }
+  async function openPurchaseOrderDispute(id, supportCaseId) {
+    const r = await authed(`/purchase-orders/${enc(id)}/disputes`, { method: 'POST', body: { supportCaseId } })
+    return created(r) ? { ok: true, dispute: r.data } : bookingFail(r)
+  }
+  /** outcome: replace | credit_note | partial_refund | close. Records the agreed outcome only; it moves no funds. */
+  async function resolvePurchaseOrderDispute(disputeId, outcome) {
+    const r = await authed(`/purchase-order-disputes/${enc(disputeId)}/resolve`, { method: 'POST', body: { outcome } })
+    return created(r) ? { ok: true, dispute: r.data } : bookingFail(r)
+  }
+
+  /** Local (in-person) bookings: POST /bookings needs an Idempotency-Key. body: { listingId, mode: 'instant'|'scheduled', slotStart, slotEnd, timeZone, capacityId?, requestedTerms? } */
+  async function createLocalBooking(body, idempotencyKey = newKey()) {
+    const r = await authed('/bookings', { method: 'POST', body, headers: { 'idempotency-key': idempotencyKey } })
+    return created(r) ? { ok: true, booking: r.data } : bookingFail(r)
+  }
+  /** body: { listingId, recurrenceRule, timeZone, occurrences: [{ slotStart, slotEnd, capacityId? }], requestedTerms? } -> { bookings } */
+  async function createLocalBookingSeries(body, idempotencyKey = newKey()) {
+    const r = await authed('/booking-series', { method: 'POST', body, headers: { 'idempotency-key': idempotencyKey } })
+    return created(r) ? { ok: true, bookings: r.data.bookings } : bookingFail(r)
+  }
+  async function listMyLocalBookings() {
+    const r = await authed('/me/bookings', { method: 'GET' })
+    return r.status === 200 ? { ok: true, bookings: r.data.bookings } : bookingFail(r)
+  }
+  async function listVendorLocalBookings(vendorId) {
+    const r = await authed(`/vendors/${enc(vendorId)}/bookings`, { method: 'GET' })
+    return r.status === 200 ? { ok: true, bookings: r.data.bookings } : bookingFail(r)
+  }
+  async function getLocalBooking(id) {
+    const r = await authed(`/bookings/${enc(id)}`, { method: 'GET' })
+    return r.status === 200 ? { ok: true, booking: r.data } : bookingFail(r)
+  }
+  async function listLocalBookingEvents(id) {
+    const r = await authed(`/bookings/${enc(id)}/events`, { method: 'GET' })
+    return r.status === 200 ? { ok: true, events: r.data.events } : bookingFail(r)
+  }
+  /** action: accept | decline (reason) | start | complete */
+  async function localBookingAction(id, action, extra = {}) {
+    const r = await authed(`/bookings/${enc(id)}/actions`, { method: 'POST', body: { action, ...extra } })
+    return created(r) ? { ok: true, booking: r.data } : bookingFail(r)
+  }
+  /** scope: occurrence | series */
+  async function cancelLocalBooking(id, reason, scope) {
+    const r = await authed(`/bookings/${enc(id)}/cancel`, { method: 'POST', body: { reason, ...(scope ? { scope } : {}) } })
+    return created(r) ? { ok: true, booking: r.data } : bookingFail(r)
+  }
+  async function proposeLocalBookingModification(id, proposedTerms) {
+    const r = await authed(`/bookings/${enc(id)}/modifications`, { method: 'POST', body: { proposedTerms } })
+    return created(r) ? { ok: true, booking: r.data } : bookingFail(r)
+  }
+  async function decideLocalBookingModification(modificationId, accept) {
+    const r = await authed(`/booking-modifications/${enc(modificationId)}/decision`, { method: 'POST', body: { accept } })
+    return created(r) ? { ok: true, booking: r.data } : bookingFail(r)
+  }
+  async function confirmLocalBookingCompletion(id) {
+    const r = await authed(`/bookings/${enc(id)}/confirm-completion`, { method: 'POST' })
+    return created(r) ? { ok: true, booking: r.data } : bookingFail(r)
+  }
+  async function reportLocalBookingCompletion(id, supportCaseId) {
+    const r = await authed(`/bookings/${enc(id)}/report-completion`, { method: 'POST', body: { supportCaseId } })
+    return created(r) ? { ok: true, booking: r.data } : bookingFail(r)
+  }
+  async function resolveLocalBookingConflicts(keepBookingId, cancelBookingIds) {
+    const r = await authed('/bookings/conflicts/resolve', { method: 'POST', body: { keepBookingId, cancelBookingIds } })
+    return created(r) ? { ok: true, ...r.data } : bookingFail(r)
+  }
+
+  /* ---- F-GEO-*, F-TAX-01, F-VND-05/06 vendor listings and coverage (remaining reads and vendor-side writes) ---- */
+  const bad = (r) => ({ ok: false, status: r.status, code: r.status === 0 ? AUTH_ERRORS.NETWORK : r.status === 403 ? 'FORBIDDEN' : r.status === 404 ? AUTH_ERRORS.NOT_FOUND : r.status === 409 ? AUTH_ERRORS.CONFLICT : r.status === 400 ? AUTH_ERRORS.INVALID_PROFILE : AUTH_ERRORS.PROVIDER_ERROR, message: r.data?.detail || r.data?.message || (r.status === 0 ? AUTH_MESSAGES.NETWORK : AUTH_MESSAGES.PROVIDER_ERROR) })
+  const query = (o = {}) => { const p = new URLSearchParams(); for (const [k, v] of Object.entries(o)) if (v !== undefined && v !== null && v !== '') p.set(k, String(v)); return p.size ? `?${p}` : '' }
+  const okBody = (r) => r.status === 200 || r.status === 201
+
+  async function listCountries() {
+    const r = await call('/geo/countries', { method: 'GET' })
+    return r.status === 200 ? { ok: true, countries: r.data.countries } : bad(r)
+  }
+  async function listRegions(countryCode) {
+    const r = await call(`/geo/regions${query({ countryCode })}`, { method: 'GET' })
+    return r.status === 200 ? { ok: true, regions: r.data.regions } : bad(r)
+  }
+  async function listLocalities(cityId) {
+    const r = await call(`/geo/localities${query({ cityId })}`, { method: 'GET' })
+    return r.status === 200 ? { ok: true, localities: r.data.localities } : bad(r)
+  }
+  /** A city that is not live can be joined for a waitlist; a live city is refused with 400. */
+  async function listMyWaitlist() {
+    const r = await authed('/me/waitlist', { method: 'GET' })
+    return r.status === 200 ? { ok: true, entries: r.data.entries } : bad(r)
+  }
+  async function joinCityWaitlist(cityId) {
+    const r = await authed(`/geo/cities/${encodeURIComponent(cityId)}/waitlist`, { method: 'POST' })
+    return okBody(r) ? { ok: true, entry: r.data } : bad(r)
+  }
+  async function leaveCityWaitlist(cityId) {
+    const r = await authed(`/geo/cities/${encodeURIComponent(cityId)}/waitlist`, { method: 'DELETE' })
+    return r.status === 204 ? { ok: true } : bad(r)
+  }
+
+  async function listIndustries({ countryCode, cityId } = {}) {
+    const r = await call(`/taxonomy/industries${query({ countryCode, cityId })}`, { method: 'GET' })
+    return r.status === 200 ? { ok: true, industries: r.data.items } : bad(r)
+  }
+  async function getCategory(categoryId, { countryCode, cityId } = {}) {
+    const r = await call(`/taxonomy/categories/${encodeURIComponent(categoryId)}${query({ countryCode, cityId })}`, { method: 'GET' })
+    return r.status === 200 ? { ok: true, category: r.data } : bad(r)
+  }
+
+  /** Vendor owner listing management. Create sends an Idempotency-Key; a new listing is a draft and is never public until submitted and approved. */
+  async function createListing(vendorId, body, idempotencyKey = newKey()) {
+    const r = await authed(`/vendors/${encodeURIComponent(vendorId)}/listings`, { method: 'POST', body, headers: { 'idempotency-key': idempotencyKey } })
+    return okBody(r) ? { ok: true, listing: r.data } : bad(r)
+  }
+  async function listVendorListings(vendorId) {
+    const r = await authed(`/vendors/${encodeURIComponent(vendorId)}/listings`, { method: 'GET' })
+    return r.status === 200 ? { ok: true, listings: r.data.listings } : bad(r)
+  }
+  async function getListing(listingId) {
+    const r = await authed(`/listings/${encodeURIComponent(listingId)}`, { method: 'GET' })
+    return r.status === 200 ? { ok: true, listing: r.data } : bad(r)
+  }
+  async function updateListing(listingId, patch) {
+    const r = await authed(`/listings/${encodeURIComponent(listingId)}`, { method: 'PATCH', body: patch })
+    return r.status === 200 ? { ok: true, listing: r.data } : bad(r)
+  }
+  /** transition: submit | pause | resume | unpublish */
+  async function listingTransition(listingId, transition) {
+    const r = await authed(`/listings/${encodeURIComponent(listingId)}/${transition}`, { method: 'POST' })
+    return okBody(r) ? { ok: true, listing: r.data } : bad(r)
+  }
+  /** Six gates computed live; a gate with met null cannot be evaluated yet and keeps canPublish false. */
+  async function getPublicationGates(vendorId, listingId) {
+    const r = await authed(`/vendors/${encodeURIComponent(vendorId)}/publication-gates${query({ listingId })}`, { method: 'GET' })
+    return r.status === 200 ? { ok: true, gates: r.data } : bad(r)
+  }
+  async function getListingAvailability(listingId) {
+    const r = await authed(`/listings/${encodeURIComponent(listingId)}/availability`, { method: 'GET' })
+    return r.status === 200 ? { ok: true, availability: r.data } : bad(r)
+  }
+  /** body: { availabilityModel, timeZone, weeklySchedule: { mon: [{ start: 'HH:MM', end: 'HH:MM' }] }, validFrom?, validTo? } */
+  async function saveListingAvailability(listingId, body) {
+    const r = await authed(`/listings/${encodeURIComponent(listingId)}/availability`, { method: 'PUT', body })
+    return okBody(r) ? { ok: true, availability: r.data } : bad(r)
+  }
+  async function clearListingAvailability(listingId) {
+    const r = await authed(`/listings/${encodeURIComponent(listingId)}/availability`, { method: 'DELETE' })
+    return r.status === 204 ? { ok: true } : bad(r)
+  }
+  /** body: { startsAt, endsAt (ISO), capacity (whole number) } */
+  async function addListingCapacity(listingId, body) {
+    const r = await authed(`/listings/${encodeURIComponent(listingId)}/capacity`, { method: 'POST', body })
+    return okBody(r) ? { ok: true, window: r.data } : bad(r)
+  }
+  async function removeListingCapacity(listingId, windowId) {
+    const r = await authed(`/listings/${encodeURIComponent(listingId)}/capacity/${encodeURIComponent(windowId)}`, { method: 'DELETE' })
+    return r.status === 204 ? { ok: true } : bad(r)
+  }
+
+  /** Coverage is always explicit (no worldwide). body by coverageType: city { cityId } | pincode { countryCode, postalCode } | region { regionId } | country { countryCode } | radius { radiusKm, latitude, longitude } | remote. */
+  async function listServiceAreas(vendorId) {
+    const r = await authed(`/vendors/${encodeURIComponent(vendorId)}/service-areas`, { method: 'GET' })
+    return r.status === 200 ? { ok: true, serviceAreas: r.data.serviceAreas } : bad(r)
+  }
+  async function addServiceArea(vendorId, body, idempotencyKey = newKey()) {
+    const r = await authed(`/vendors/${encodeURIComponent(vendorId)}/service-areas`, { method: 'POST', body, headers: { 'idempotency-key': idempotencyKey } })
+    return okBody(r) ? { ok: true, serviceArea: r.data } : bad(r)
+  }
+  async function removeServiceArea(vendorId, areaId) {
+    const r = await authed(`/vendors/${encodeURIComponent(vendorId)}/service-areas/${encodeURIComponent(areaId)}`, { method: 'DELETE' })
+    return r.status === 204 ? { ok: true } : bad(r)
+  }
+
+  /** Short-lived download link for a file the caller owns. */
+  async function getFileDownloadUrl(fileId) {
+    const r = await authed(`/files/${encodeURIComponent(fileId)}/download-url`, { method: 'GET' })
+    return r.status === 200 ? { ok: true, ...r.data } : bad(r)
+  }
+
+  return { requestOtp, verifyOtp, endSession, getProfile, saveProfile, listLocations, addLocation, updateLocation, removeLocation, listSessions, revokeSession, getNotificationPreferences, saveNotificationPreferences, listDataRequests, requestDataRequest, cancelDataRequest, listNotifications, getUnreadNotificationCount, markNotificationRead, markAllNotificationsRead, createVendor, switchMode, listMyVendors, updateVendor, getPublicVendor, listVendorRoleCatalogue, listVendorRoles, addVendorRole, removeVendorRole, listVendorRoleReviews, decideVendorRole, listVendorRoleDefinitions, createVendorRoleDefinition, updateVendorRoleDefinition, listVendorDocuments, listVendorVerifications, submitVendorVerification, uploadVendorEvidence, getFile, registerVendorDocument, listVerificationQueue, reviewVerification, getVerificationEvidenceUrl, listCities, listCategories, searchListings, getPublicListing, listFavorites, addFavorite, removeFavorite, createBooking, listMyBookings, listVendorBookings, getBooking, bookingAction, proposeBookingModification, decideBookingModification, universalSearch, createRfq, openRfq, listMyRfqs, listVendorRfqs, getRfq, listRfqQuotes, submitQuote, listListingCapacity, reviseQuote, withdrawQuote, acceptQuote, extendRfqDeadline, listMyWorkOrders, listVendorWorkOrders, getWorkOrder, workOrderAction, proposeContract, listMyContracts, listVendorContracts, getContract, reviseContract, acceptContract, declineContract, addContractMilestone, milestoneAction, completeContract, listMyPurchaseOrders, listVendorPurchaseOrders, getPurchaseOrder, purchaseOrderAction, openPurchaseOrderDispute, resolvePurchaseOrderDispute, createLocalBooking, createLocalBookingSeries, listMyLocalBookings, listVendorLocalBookings, getLocalBooking, listLocalBookingEvents, localBookingAction, cancelLocalBooking, proposeLocalBookingModification, decideLocalBookingModification, confirmLocalBookingCompletion, reportLocalBookingCompletion, resolveLocalBookingConflicts, listCountries, listRegions, listLocalities, listMyWaitlist, joinCityWaitlist, leaveCityWaitlist, listIndustries, getCategory, createListing, listVendorListings, getListing, updateListing, listingTransition, getPublicationGates, getListingAvailability, saveListingAvailability, clearListingAvailability, addListingCapacity, removeListingCapacity, listServiceAreas, addServiceArea, removeServiceArea, getFileDownloadUrl, isRemote: true }
 }
 
 const apiBaseUrl = import.meta.env?.VITE_API_BASE_URL
