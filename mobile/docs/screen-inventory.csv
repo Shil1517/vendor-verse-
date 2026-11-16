@@ -155,3 +155,5 @@
 "ad_taxonomy","Taxonomy builder","admin","MVP","V2 S6",""
 "ad_commission","Revenue & commission","admin","P2","V9 V8",""
 "ad_more","More","admin","MVP","S4",""
+"c_work_order","Work order","customer","MVP","S9",""
+"v_work_order","Work order (vendor)","vendor","MVP","S9",""
