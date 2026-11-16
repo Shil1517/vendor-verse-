@@ -8,6 +8,7 @@ import {
   IsInt,
   IsOptional,
   IsString,
+  IsUUID,
   Length,
   Matches,
   Max,
@@ -120,4 +121,22 @@ export class UpdateVendorDto {
   @Min(1800)
   @Max(2100)
   yearEstablished?: number;
+
+  @ApiPropertyOptional({
+    description:
+      "A clean uploaded file with purpose vendor-logo; queued for review.",
+    format: "uuid",
+  })
+  @NotNullWhenPresent()
+  @IsUUID()
+  logoFileId?: string;
+
+  @ApiPropertyOptional({
+    description:
+      "A clean uploaded file with purpose vendor-banner; queued for review.",
+    format: "uuid",
+  })
+  @NotNullWhenPresent()
+  @IsUUID()
+  bannerFileId?: string;
 }

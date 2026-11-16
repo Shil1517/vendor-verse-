@@ -52,7 +52,7 @@ These routes are also listed in Swagger UI at `/docs`.
 - `POST /v1/files` (declare a file, get a signed upload URL), `POST /v1/files/:id/complete`, `GET /v1/files/:id`, `GET /v1/files/:id/download-url` (clean files only). Files are private and owner-only; verification reviewers can get a short-lived URL only for clean evidence attached to a verification.
 - `GET /v1/me/notifications`, `GET /v1/me/notifications/unread-count`, `POST /v1/me/notifications/:id/read`, `POST /v1/me/notifications/read-all` (F-MSG-04)
 - `GET|POST /v1/me/data-requests`, `POST /v1/me/data-requests/{requestId}/cancel` (F-ACC-04, F-ACC-05; records the request only, no verification or fulfilment)
-- `POST /v1/vendors`, `GET /v1/vendors/mine`, `GET|PATCH /v1/vendors/{vendorId}` (F-VND-01, F-VND-02; owner only; creates a registered, unpublished vendor)
+- `POST /v1/vendors`, `GET /v1/vendors/mine`, `GET|PATCH /v1/vendors/{vendorId}` (F-VND-01, F-VND-02; owner only; creates a registered, unpublished vendor; PATCH accepts clean `vendor-logo` / `vendor-banner` files and returns their review status for F-VND-07)
 - `POST /v1/vendors` also takes `roleCodes` (more vendor roles; `businessType` is the primary role), and every vendor view lists its `roles` with status (D-023). Role codes are checked against the role catalogue, not a fixed list (D-024)
 - `GET /v1/vendors/{vendorId}/public` (F-VND-09; no sign-in; shows only verified roles and answers 404 for a vendor with none, D-020, D-021; ratings, response metrics and publication gates are not part of it yet)
 - `GET /v1/vendor-roles` (the active role catalogue with the documents each role requires)
@@ -65,6 +65,10 @@ These routes are also listed in Swagger UI at `/docs`.
 - `GET /v1/geo/countries`, `/geo/regions?countryCode=`, `/geo/cities?countryCode=&regionId=` (with launchStatus), `/geo/localities?cityId=` (F-GEO-01, F-GEO-02; public)
 - `GET|POST /v1/vendors/{vendorId}/service-areas`, `DELETE /v1/vendors/{vendorId}/service-areas/{areaId}` (F-GEO-06; owner only; city, pincode, region, country, radius or remote, never worldwide)
 - `POST|GET /v1/vendors/{vendorId}/listings`, `GET|PATCH /v1/listings/{listingId}`, `POST /v1/listings/{listingId}/submit|pause|resume|unpublish` (F-VND-06; owner only; drafts are never public)
+- `POST /v1/listings/{listingId}/media`, `DELETE /v1/listings/{listingId}/media/{mediaId}`, `GET /v1/listings/{listingId}` (F-VND-07; owner only; clean files use `listing-photo` or `listing-portfolio`; pending media returns an approved listing to review)
+- `GET /v1/admin/listings?limit=&cursor=`, `POST /v1/admin/listings/{listingId}/decision`, `POST /v1/admin/listings/{listingId}/media/{mediaId}/decision`, `GET /v1/admin/listings/{listingId}/media/{mediaId}/download-url` (F-VND-07; requires `listing.review`; reasoned decisions, own-vendor reviews blocked, pending media must be reviewed before approval)
+- `GET /v1/admin/listing-duplicates?limit=&cursor=`, `POST /v1/admin/listing-duplicates/{flagId}/decision` (F-VND-07; same vendor, category/type, normalized title and exact declared service area; candidates are flagged for human review, never merged or deleted)
+- `GET /v1/admin/vendor-profile-images?limit=&cursor=`, `POST /v1/admin/vendors/{vendorId}/profile-images/decision`, `GET /v1/admin/vendors/{vendorId}/profile-images/{imageType}/{fileId}/download-url` (F-VND-07; requires `listing.review`; private clean files only)
 - `GET /v1/vendors/{vendorId}/publication-gates?listingId=` (F-VND-05; computed live, never stored; gates whose module is missing report `met: null`)
 - `GET|PUT|DELETE /v1/listings/{listingId}/availability`, `GET|POST /v1/listings/{listingId}/capacity`, `DELETE /v1/listings/{listingId}/capacity/{windowId}` (F-VND-08)
 - `GET /v1/discover/listings?countryCode=&cityId=&q=&categoryId=&listingType=&minPriceMinor=&maxPriceMinor=&instantOnly=&limit=&cursor=`, `GET /v1/discover/listings/{listingId}` (F-DSC-02, F-DSC-03, F-DSC-05; public; only eligible listings in a live market, organic ranking, `not_provided` instead of zero)
@@ -201,6 +205,7 @@ For demos only, never production (the seed refuses `NODE_ENV=production`):
 
 | Date & time (YYYY-MM-DD HH:MM, local) | Updated by | Change | Reason |
 |---|---|---|---|
+| 2026-11-16 15:17 | tanya sen | Added: F-VND-07 listing review, media and duplicate APIs | Document the new reasoned review queues, conservative duplicate matching and profile-image moderation routes. |
 | 2026-11-14 12:10 | Sahil Soni | Added: `ALLOW_PRIVILEGED_OTP_SIGNIN` demo flag, `roles` on GET /me, demo admin and sales-agent accounts | Let the team demo the admin and agent screens against the real API until MFA exists. |
 | 2026-11-14 11:31 | Sahil Soni | Modified: demo seed (more categories, vendors, listings) and added demo activity script | Richer demo data so every web screen has content. |
 | 2026-11-14 11:06 | Sahil Soni | Added: demo seed and smoke scripts | Give the web demo real data and a repeatable end-to-end check against the real API. |

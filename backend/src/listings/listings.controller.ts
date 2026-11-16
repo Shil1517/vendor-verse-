@@ -36,6 +36,7 @@ import {
   CreateCapacityWindowDto,
   UpsertAvailabilityRuleDto,
 } from "./dto/availability.dto";
+import { CreateListingMediaDto } from "./dto/listing-review.dto";
 import { CreateListingDto, UpdateListingDto } from "./dto/listing.dto";
 import { ListingsService } from "./listings.service";
 import { PublicationGatesService } from "./publication-gates.service";
@@ -181,6 +182,43 @@ export class ListingsController {
     @Param("listingId", ParseUUIDPipe) listingId: string,
   ) {
     return this.listings.transition(user, listingId, "unpublish");
+  }
+
+  @Post("listings/:listingId/media")
+  @ApiOperation({
+    summary: "Attach a clean photo or portfolio file to a listing (F-VND-07)",
+    description:
+      "Photo files use purpose listing-photo; portfolio files use listing-portfolio. New media remains pending moderation.",
+  })
+  @ApiCreatedResponse({ description: "The attached listing media." })
+  @ApiBadRequestResponse({
+    description:
+      "The uploaded file is not clean, owned by the caller, or has the wrong purpose.",
+  })
+  @ApiConflictResponse({
+    description: "The listing is not editable in its current state.",
+  })
+  addMedia(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param("listingId", ParseUUIDPipe) listingId: string,
+    @Body() request: CreateListingMediaDto,
+  ) {
+    return this.listings.addMedia(user, listingId, request);
+  }
+
+  @Delete("listings/:listingId/media/:mediaId")
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: "Remove media from an editable listing (F-VND-07)" })
+  @ApiNoContentResponse()
+  @ApiConflictResponse({
+    description: "The listing is not editable in its current state.",
+  })
+  removeMedia(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param("listingId", ParseUUIDPipe) listingId: string,
+    @Param("mediaId", ParseUUIDPipe) mediaId: string,
+  ) {
+    return this.listings.removeMedia(user, listingId, mediaId);
   }
 
   /* ---- availability (F-VND-08) ---- */

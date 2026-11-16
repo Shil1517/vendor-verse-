@@ -15,6 +15,7 @@ import { DatabaseService } from "../database/database.service";
 import { AuditService } from "../platform/audit.service";
 import { OutboxService } from "../platform/outbox.service";
 import { CreateFileDto } from "./dto/files.dto";
+import type { ProfileImageType } from "../listings/dto/listing-review.dto";
 import {
   FILE_STORAGE_PROVIDER,
   FileStorageProvider,
@@ -215,7 +216,9 @@ export class FilesService {
     );
     const row = result.rows[0];
     if (!row) {
-      throw new NotFoundException("No clean evidence file for this verification");
+      throw new NotFoundException(
+        "No clean evidence file for this verification",
+      );
     }
     const url = await policy.storage.createDownloadUrl({
       storageKey: row.storage_key,
@@ -227,6 +230,78 @@ export class FilesService {
       targetType: "file",
       targetId: fileId,
       metadata: { verificationId },
+    });
+    return { url, expiresInSeconds: policy.downloadTtl };
+  }
+
+  async reviewListingMediaDownloadUrl(
+    reviewer: AuthenticatedUser,
+    listingId: string,
+    mediaId: string,
+  ): Promise<{ url: string; expiresInSeconds: number }> {
+    const policy = this.policy();
+    const result = await this.database.query<FileRow>(
+      `SELECT file.id, file.purpose, file.storage_key, file.original_name,
+              file.content_type, file.size_bytes, file.scan_status,
+              file.uploaded_at, file.created_at
+       FROM files AS file
+       JOIN listing_media AS media ON media.file_id = file.id
+       WHERE media.listing_id = $1 AND media.id = $2
+         AND file.uploaded_at IS NOT NULL AND file.scan_status = 'clean'`,
+      [listingId, mediaId],
+    );
+    const row = result.rows[0];
+    if (!row) {
+      throw new NotFoundException("No clean media file for this listing");
+    }
+    const url = await policy.storage.createDownloadUrl({
+      storageKey: row.storage_key,
+      expiresInSeconds: policy.downloadTtl,
+    });
+    await this.audit.record({
+      actorUserId: reviewer.userId,
+      action: "listing.media.download",
+      targetType: "file",
+      targetId: row.id,
+      metadata: { listingId, mediaId },
+    });
+    return { url, expiresInSeconds: policy.downloadTtl };
+  }
+
+  async reviewVendorProfileImageDownloadUrl(
+    reviewer: AuthenticatedUser,
+    vendorId: string,
+    imageType: ProfileImageType,
+    fileId: string,
+  ): Promise<{ url: string; expiresInSeconds: number }> {
+    const policy = this.policy();
+    const result = await this.database.query<FileRow>(
+      `SELECT file.id, file.purpose, file.storage_key, file.original_name,
+              file.content_type, file.size_bytes, file.scan_status,
+              file.uploaded_at, file.created_at
+       FROM files AS file
+       JOIN vendor_profiles AS profile
+         ON profile.vendor_id = $1
+        AND CASE WHEN $2 = 'logo' THEN profile.logo_file_id
+                 ELSE profile.banner_file_id END = file.id
+       WHERE file.id = $3
+         AND file.uploaded_at IS NOT NULL AND file.scan_status = 'clean'`,
+      [vendorId, imageType, fileId],
+    );
+    const row = result.rows[0];
+    if (!row) {
+      throw new NotFoundException("No clean current vendor profile image");
+    }
+    const url = await policy.storage.createDownloadUrl({
+      storageKey: row.storage_key,
+      expiresInSeconds: policy.downloadTtl,
+    });
+    await this.audit.record({
+      actorUserId: reviewer.userId,
+      action: "vendor.profile_image.download",
+      targetType: "file",
+      targetId: fileId,
+      metadata: { vendorId, imageType },
     });
     return { url, expiresInSeconds: policy.downloadTtl };
   }
