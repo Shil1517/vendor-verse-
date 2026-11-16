@@ -15,6 +15,7 @@ import { useApp } from '../store.jsx'
 import { useNav } from '../nav.jsx'
 import { authService } from '../services/authService.js'
 import { BookingList, ErrorBox, Loading, fmtWhen, minorToText, useLoad } from './remote-discovery.jsx'
+import { ContractRows, WorkOrderRows } from './remote-transactions.jsx'
 
 const RFQ_STATE = {
   draft: ['Draft', 'gray'], open: ['Open for quotes', 'blue'], accepted: ['Quote accepted', 'teal'], expired: ['Expired', 'gray'], cancelled: ['Cancelled', 'gray'],
@@ -52,6 +53,8 @@ export function RemoteActivity() {
   const rfqs = useLoad(() => authService.listMyRfqs(), [])
   const nav = useNav()
   const load = useCallback(() => authService.listMyBookings(), [])
+  const work = useLoad(() => authService.listMyWorkOrders(), [])
+  const contracts = useLoad(() => authService.listMyContracts(), [])
   return (
     <BookingList title="Activity" back={false} load={load} detail="c_booking" empty="When you book a service it shows up here.">
       <div className="space-y-3 px-4 pt-4">
@@ -59,6 +62,16 @@ export function RemoteActivity() {
           {rfqs.loading && !rfqs.data && <Loading />}
           {rfqs.error && <ErrorBox message={rfqs.error} onRetry={rfqs.reload} />}
           {rfqs.data && <RfqRows rfqs={rfqs.data.rfqs} detail="c_rfq" empty="Ask vendors for quotes and compare them here." />}
+        </Section>
+        <Section title="Work orders">
+          {work.loading && !work.data && <Loading />}
+          {work.error && <ErrorBox message={work.error} onRetry={work.reload} />}
+          {work.data && <WorkOrderRows items={work.data.workOrders} detail="c_work_order" empty="Accepted quotes that become work orders appear here." />}
+        </Section>
+        <Section title="Contracts">
+          {contracts.loading && !contracts.data && <Loading />}
+          {contracts.error && <ErrorBox message={contracts.error} onRetry={contracts.reload} />}
+          {contracts.data && <ContractRows items={contracts.data.contracts} detail="c_contract" empty="Contracts you propose or accept appear here." />}
         </Section>
         <p className="text-xs font-bold uppercase tracking-wide text-ink-500">Bookings</p>
       </div>
@@ -72,6 +85,8 @@ export function RemoteVendorWork() {
   const vendorId = mine.data?.vendors?.[0]?.id
   const rfqs = useLoad(() => (vendorId ? authService.listVendorRfqs(vendorId) : Promise.resolve({ ok: true, rfqs: [] })), [vendorId])
   const load = useCallback(() => (vendorId ? authService.listVendorBookings(vendorId) : Promise.resolve({ ok: true, bookings: [] })), [vendorId])
+  const work = useLoad(() => (vendorId ? authService.listVendorWorkOrders(vendorId) : Promise.resolve({ ok: true, workOrders: [] })), [vendorId])
+  const contracts = useLoad(() => (vendorId ? authService.listVendorContracts(vendorId) : Promise.resolve({ ok: true, contracts: [] })), [vendorId])
   if (mine.loading) return <Screen title="Work" back={false}><Loading /></Screen>
   if (mine.error) return <Screen title="Work" back={false}><ErrorBox message={mine.error} onRetry={mine.reload} /></Screen>
   return (
@@ -81,6 +96,16 @@ export function RemoteVendorWork() {
           {rfqs.loading && !rfqs.data && <Loading />}
           {rfqs.error && <ErrorBox message={rfqs.error} onRetry={rfqs.reload} />}
           {rfqs.data && <RfqRows rfqs={rfqs.data.rfqs} detail="v_rfq" empty={vendorId ? 'RFQs from customers that match your categories appear here.' : 'Register your business to receive RFQs.'} />}
+        </Section>
+        <Section title="Work orders">
+          {work.loading && !work.data && <Loading />}
+          {work.error && <ErrorBox message={work.error} onRetry={work.reload} />}
+          {work.data && <WorkOrderRows items={work.data.workOrders} detail="v_work_order" empty="Accepted quotes that become work orders appear here." />}
+        </Section>
+        <Section title="Contracts">
+          {contracts.loading && !contracts.data && <Loading />}
+          {contracts.error && <ErrorBox message={contracts.error} onRetry={contracts.reload} />}
+          {contracts.data && <ContractRows items={contracts.data.contracts} detail="v_contract" empty="Contracts proposed to you appear here." />}
         </Section>
         <p className="text-xs font-bold uppercase tracking-wide text-ink-500">Bookings</p>
       </div>

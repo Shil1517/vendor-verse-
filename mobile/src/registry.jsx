@@ -23,6 +23,7 @@ import * as CZ from './screens/customer_biz.jsx'
 import { Messages as G0 } from './screens/customer_misc.jsx'
 import * as RD from './screens/remote-discovery.jsx'
 import * as RR from './screens/remote-rfq.jsx'
+import * as RT from './screens/remote-transactions.jsx'
 import { authService } from './services/authService.js'
 
 /* With the real API (VITE_API_BASE_URL) these screens read and write through it; otherwise the seed-data screen is used. */
@@ -55,8 +56,8 @@ export const SCREENS = Object.fromEntries([
   R('c_listing_trade', C1.ListingDetail, 'customer', 'Supplier listing — trade details', ['V7', 'V1'], ['SC-003'], { demo: { id: 'l30' } }),
   R('c_explore_suppliers', Explore, 'customer', 'Search — suppliers & manufacturers', ['V7', 'S7'], ['SC-001'], { demo: { kind: 'manufacturer' } }),
   R('c_book_instant', live(RD.RemoteBookNew, CB.BookNew), 'customer', 'Instant booking', ['V5', 'S8'], ['SC-013'], { demo: { id: 'l12', mode: 'instant' } }),
-  R('c_contract_new', CT.ContractNew, 'customer', 'Propose a contract', ['V5'], [], { demo: { vendorId: 'v6', listingId: 'l13' } }),
-  R('c_contract', CT.ContractDetail, 'customer', 'Contract — terms, e-sign, milestones', ['V5'], [], { demo: { id: 'CT-477' } }),
+  R('c_contract_new', live(RT.RemoteContractNew, CT.ContractNew), 'customer', 'Propose a contract', ['V5'], [], { demo: { vendorId: 'v6', listingId: 'l13' } }),
+  R('c_contract', live(RT.RemoteContractDetail, CT.ContractDetail), 'customer', 'Contract — terms, e-sign, milestones', ['V5'], [], { demo: { id: 'CT-477' } }),
   R('c_pay', PY.Checkout, 'customer', 'Checkout & escrow', ['V9'], [], { demo: { ref: 'BKG-2099', amount: 3499, vendorId: 'v6' } }),
   R('c_payments', PY.PaymentsHub, 'customer', 'Payments, methods & invoices', ['V9']),
   R('c_pay_fx', PY.Checkout, 'customer', 'Checkout — foreign currency (FX shown)', ['V9', 'V7'], [], { demo: { ref: 'RFQ-300 · supplier order', amount: 120, cur: 'USD', vendorId: 'v21' } }),
@@ -78,6 +79,8 @@ export const SCREENS = Object.fromEntries([
   R('c_conflict', CB.Conflict, 'customer', 'Conflicting confirmations', ['S8'], ['SC-014'], { demo: { req: 'REQ-77' } }),
   R('c_rfq_new', live(RR.RemoteRfqNew, CR.RfqNew), 'customer', 'Create RFQ', ['S9'], ['SC-020']),
   R('c_rfq', live(RR.RemoteRfqDetail, CR.RfqDetail), 'customer', 'RFQ, quotes & atomic accept', ['S9'], ['SC-022', 'SC-023', 'SC-024', 'SC-025'], { demo: { id: 'RFQ-311' } }),
+  R('c_work_order', RT.RemoteCustomerWorkOrder, 'customer', 'Work order', ['S9']),
+  R('v_work_order', RT.RemoteVendorWorkOrder, 'vendor', 'Work order (vendor)', ['S9']),
   R('c_rfq_open', CR.RfqDetail, 'customer', 'RFQ — accepted terms snapshot', ['S9', 'S14'], ['SC-021', 'SC-025'], { demo: { id: 'RFQ-290' } }),
   R('c_rfq_none', CR.RfqDetail, 'customer', 'RFQ — no quotes received', ['S9'], ['SC-020'], { demo: { id: 'RFQ-285' } }),
   R('c_rfq_edit', CR.RfqEdit, 'customer', 'Edit RFQ (revision)', ['S9'], ['SC-021'], { demo: { id: 'RFQ-311' } }),
@@ -120,7 +123,7 @@ export const SCREENS = Object.fromEntries([
   R('v_more', VB.VendorMore, 'vendor', 'More', ['S3'], [], { tab: true }),
   R('v_profile', VB.VendorProfile, 'vendor', 'Business profile', ['S3', 'S10']),
   R('v_public', PF.VendorProfileEdit, 'vendor', 'Public profile & trust', ['V4', 'V6']),
-  R('v_contract', CT.ContractDetail, 'vendor', 'Contract — respond, counter, sign', ['V5'], [], { demo: { id: 'CT-490' } }),
+  R('v_contract', live(RT.RemoteContractDetail, CT.ContractDetail), 'vendor', 'Contract — respond, counter, sign', ['V5'], [], { demo: { id: 'CT-490' } }),
   R('v_payouts', PY.VendorPayouts, 'vendor', 'Earnings, payouts & commission', ['V9']),
   R('v_checkout', PY.PlanCheckout, 'vendor', 'Plan checkout — tax, coupon, proration', ['V9', 'S11'], ['SC-037'], { demo: { plan: 'Pro' } }),
   R('v_checkout_down', PY.PlanCheckout, 'vendor', 'Plan change — scheduled downgrade', ['V9', 'S11'], [], { demo: { plan: 'Starter' } }),
@@ -171,13 +174,13 @@ export const SCREENS = Object.fromEntries([
   R('c_companies', CZ.CompanyDirectory, 'customer', 'Companies — buy directly', ['V4', 'S9']),
   R('c_company', CZ.CompanyStore, 'customer', 'Company storefront & products', ['V4', 'S9'], [], { demo: { id: 'biz1' } }),
   R('c_company_order', CZ.CompanyOrderNew, 'customer', 'Order from a company', ['V4', 'S9'], [], { demo: { id: 'biz1', product: 'bp1' } }),
-  R('c_orders', MV.Orders, 'customer', 'Purchase orders', ['S9']),
-  R('c_order', MV.OrderDetail, 'customer', 'Purchase order — status timeline', ['S9'], [], { demo: { id: 'PO-3002' } }),
+  R('c_orders', live(RT.RemoteCustomerOrders, MV.Orders), 'customer', 'Purchase orders', ['S9']),
+  R('c_order', live(RT.RemoteOrderDetail, MV.OrderDetail), 'customer', 'Purchase order — status timeline', ['S9'], [], { demo: { id: 'PO-3002' } }),
   R('c_order_failed', MV.OrderDetail, 'customer', 'Purchase order — payment failed', ['S9', 'S11'], [], { demo: { id: 'PO-2971' } }),
   R('c_order_exc', MV.OrderDetail, 'customer', 'Purchase order — delivery exception', ['S9'], [], { demo: { id: 'PO-2955' } }),
   R('v_leads', MV.Leads, 'vendor', 'Leads: requests, RFQs, orders', ['S8', 'S9']),
-  R('v_orders', MV.Orders, 'vendor', 'Purchase orders received', ['S9']),
-  R('v_order', MV.OrderDetail, 'vendor', 'Order — accept, process, ship', ['S9'], [], { demo: { id: 'PO-3003' } }),
+  R('v_orders', live(RT.RemoteVendorOrders, MV.Orders), 'vendor', 'Purchase orders received', ['S9']),
+  R('v_order', live(RT.RemoteOrderDetail, MV.OrderDetail), 'vendor', 'Order — accept, process, ship', ['S9'], [], { demo: { id: 'PO-3003' } }),
   R('vb_home', MV.VendorBuy, 'customer', 'Buy hub (vendor owner, Customer mode)', ['V4'], [], { as: 'vbuyer' }),
   R('vb_explore', Explore, 'customer', 'Buyer mode — find a supplier', ['V4', 'S7'], [], { as: 'vbuyer', demo: { kind: 'manufacturer' } }),
   R('vb_rfq', MV.RfqGoods, 'customer', 'Buyer mode — bulk RFQ', ['V4', 'S9'], [], { as: 'vbuyer', demo: { listingId: 'l40', qty: 300 } }),

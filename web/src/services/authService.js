@@ -715,7 +715,161 @@ export function createApiAuthService({ baseUrl, fetchImpl = (...args) => globalT
     return r.status === 200 || r.status === 201 ? { ok: true, rfq: r.data } : bookingFail(r)
   }
 
-  return { requestOtp, verifyOtp, endSession, getProfile, saveProfile, listLocations, addLocation, updateLocation, removeLocation, listSessions, revokeSession, getNotificationPreferences, saveNotificationPreferences, listDataRequests, requestDataRequest, cancelDataRequest, listNotifications, getUnreadNotificationCount, markNotificationRead, markAllNotificationsRead, createVendor, switchMode, listMyVendors, updateVendor, getPublicVendor, listVendorRoleCatalogue, listVendorRoles, addVendorRole, removeVendorRole, listVendorRoleReviews, decideVendorRole, listVendorRoleDefinitions, createVendorRoleDefinition, updateVendorRoleDefinition, listVendorDocuments, listVendorVerifications, submitVendorVerification, uploadVendorEvidence, getFile, registerVendorDocument, listVerificationQueue, reviewVerification, getVerificationEvidenceUrl, listCities, listCategories, searchListings, getPublicListing, listFavorites, addFavorite, removeFavorite, createBooking, listMyBookings, listVendorBookings, getBooking, bookingAction, proposeBookingModification, decideBookingModification, universalSearch, createRfq, openRfq, listMyRfqs, listVendorRfqs, getRfq, listRfqQuotes, submitQuote, listListingCapacity, reviseQuote, withdrawQuote, acceptQuote, extendRfqDeadline, isRemote: true }
+  /* ---- F-RFQ-04 work orders, F-CON-* contracts, F-GDS-03/04 purchase orders, F-BKG-* local bookings (transaction APIs) ---- */
+  const enc = encodeURIComponent
+  const created = (r) => r.status === 200 || r.status === 201
+
+  /** Work orders return raw snake_case rows: id, customer_user_id, vendor_id, state, scope, completed_at, confirmation_due_at, created_at. */
+  async function listMyWorkOrders() {
+    const r = await authed('/me/work-orders', { method: 'GET' })
+    return r.status === 200 ? { ok: true, workOrders: r.data.workOrders } : bookingFail(r)
+  }
+  async function listVendorWorkOrders(vendorId) {
+    const r = await authed(`/vendors/${enc(vendorId)}/work-orders`, { method: 'GET' })
+    return r.status === 200 ? { ok: true, workOrders: r.data.workOrders } : bookingFail(r)
+  }
+  async function getWorkOrder(id) {
+    const r = await authed(`/work-orders/${enc(id)}`, { method: 'GET' })
+    return r.status === 200 ? { ok: true, workOrder: r.data } : bookingFail(r)
+  }
+  /** action: start | complete (vendor) | confirm (customer) | cancel (either party) */
+  async function workOrderAction(id, action) {
+    const r = await authed(`/work-orders/${enc(id)}/actions`, { method: 'POST', body: { action } })
+    return created(r) ? { ok: true, workOrder: r.data } : bookingFail(r)
+  }
+
+  /** POST /contracts. body: { vendorId, categoryId, scope: {...}, schedule?, priceSchedule?, term? }. Refused unless the category configures an approved contract template. */
+  async function proposeContract(body) {
+    const r = await authed('/contracts', { method: 'POST', body })
+    return created(r) ? { ok: true, contract: r.data } : bookingFail(r)
+  }
+  async function listMyContracts() {
+    const r = await authed('/me/contracts', { method: 'GET' })
+    return r.status === 200 ? { ok: true, contracts: r.data.contracts } : bookingFail(r)
+  }
+  async function listVendorContracts(vendorId) {
+    const r = await authed(`/vendors/${enc(vendorId)}/contracts`, { method: 'GET' })
+    return r.status === 200 ? { ok: true, contracts: r.data.contracts } : bookingFail(r)
+  }
+  /** -> contract with version { scope, schedule, priceSchedule, term }, acceptances[] and milestones[] */
+  async function getContract(id) {
+    const r = await authed(`/contracts/${enc(id)}`, { method: 'GET' })
+    return r.status === 200 ? { ok: true, contract: r.data } : bookingFail(r)
+  }
+  /** A new immutable version (counter). Both parties must accept the same current version. */
+  async function reviseContract(id, body) {
+    const r = await authed(`/contracts/${enc(id)}/versions`, { method: 'POST', body })
+    return created(r) ? { ok: true, contract: r.data } : bookingFail(r)
+  }
+  async function acceptContract(id) {
+    const r = await authed(`/contracts/${enc(id)}/accept`, { method: 'POST' })
+    return created(r) ? { ok: true, contract: r.data } : bookingFail(r)
+  }
+  async function declineContract(id, reason) {
+    const r = await authed(`/contracts/${enc(id)}/decline`, { method: 'POST', body: { reason } })
+    return created(r) ? { ok: true, contract: r.data } : bookingFail(r)
+  }
+  /** body: { title, terms?, amountMinor?, currency?, dueAt? } */
+  async function addContractMilestone(id, body) {
+    const r = await authed(`/contracts/${enc(id)}/milestones`, { method: 'POST', body })
+    return created(r) ? { ok: true, contract: r.data } : bookingFail(r)
+  }
+  /** action: start | complete | confirm | dispute (needs supportCaseId) | resolve */
+  async function milestoneAction(milestoneId, action, supportCaseId) {
+    const r = await authed(`/milestones/${enc(milestoneId)}/actions`, { method: 'POST', body: { action, ...(supportCaseId ? { supportCaseId } : {}) } })
+    return created(r) ? { ok: true, contract: r.data } : bookingFail(r)
+  }
+  async function completeContract(id) {
+    const r = await authed(`/contracts/${enc(id)}/complete`, { method: 'POST' })
+    return created(r) ? { ok: true, contract: r.data } : bookingFail(r)
+  }
+
+  /** Purchase orders are created by accepting a goods RFQ quote; no payment API is involved. View: { id, buyerUserId, buyerVendorId, supplierVendorId, state, terms, createdAt }. */
+  async function listMyPurchaseOrders() {
+    const r = await authed('/me/purchase-orders', { method: 'GET' })
+    return r.status === 200 ? { ok: true, purchaseOrders: r.data.purchaseOrders } : bookingFail(r)
+  }
+  async function listVendorPurchaseOrders(vendorId) {
+    const r = await authed(`/vendors/${enc(vendorId)}/purchase-orders`, { method: 'GET' })
+    return r.status === 200 ? { ok: true, purchaseOrders: r.data.purchaseOrders } : bookingFail(r)
+  }
+  async function getPurchaseOrder(id) {
+    const r = await authed(`/purchase-orders/${enc(id)}`, { method: 'GET' })
+    return r.status === 200 ? { ok: true, purchaseOrder: r.data } : bookingFail(r)
+  }
+  /** action: accept | reject | process | ship (carrier?, trackingReference?) | deliver | complete | cancel | delivery_exception (reason?) */
+  async function purchaseOrderAction(id, action, extra = {}) {
+    const r = await authed(`/purchase-orders/${enc(id)}/actions`, { method: 'POST', body: { action, ...extra } })
+    return created(r) ? { ok: true, purchaseOrder: r.data } : bookingFail(r)
+  }
+  async function openPurchaseOrderDispute(id, supportCaseId) {
+    const r = await authed(`/purchase-orders/${enc(id)}/disputes`, { method: 'POST', body: { supportCaseId } })
+    return created(r) ? { ok: true, dispute: r.data } : bookingFail(r)
+  }
+  /** outcome: replace | credit_note | partial_refund | close. Records the agreed outcome only; it moves no funds. */
+  async function resolvePurchaseOrderDispute(disputeId, outcome) {
+    const r = await authed(`/purchase-order-disputes/${enc(disputeId)}/resolve`, { method: 'POST', body: { outcome } })
+    return created(r) ? { ok: true, dispute: r.data } : bookingFail(r)
+  }
+
+  /** Local (in-person) bookings: POST /bookings needs an Idempotency-Key. body: { listingId, mode: 'instant'|'scheduled', slotStart, slotEnd, timeZone, capacityId?, requestedTerms? } */
+  async function createLocalBooking(body, idempotencyKey = newKey()) {
+    const r = await authed('/bookings', { method: 'POST', body, headers: { 'idempotency-key': idempotencyKey } })
+    return created(r) ? { ok: true, booking: r.data } : bookingFail(r)
+  }
+  /** body: { listingId, recurrenceRule, timeZone, occurrences: [{ slotStart, slotEnd, capacityId? }], requestedTerms? } -> { bookings } */
+  async function createLocalBookingSeries(body, idempotencyKey = newKey()) {
+    const r = await authed('/booking-series', { method: 'POST', body, headers: { 'idempotency-key': idempotencyKey } })
+    return created(r) ? { ok: true, bookings: r.data.bookings } : bookingFail(r)
+  }
+  async function listMyLocalBookings() {
+    const r = await authed('/me/bookings', { method: 'GET' })
+    return r.status === 200 ? { ok: true, bookings: r.data.bookings } : bookingFail(r)
+  }
+  async function listVendorLocalBookings(vendorId) {
+    const r = await authed(`/vendors/${enc(vendorId)}/bookings`, { method: 'GET' })
+    return r.status === 200 ? { ok: true, bookings: r.data.bookings } : bookingFail(r)
+  }
+  async function getLocalBooking(id) {
+    const r = await authed(`/bookings/${enc(id)}`, { method: 'GET' })
+    return r.status === 200 ? { ok: true, booking: r.data } : bookingFail(r)
+  }
+  async function listLocalBookingEvents(id) {
+    const r = await authed(`/bookings/${enc(id)}/events`, { method: 'GET' })
+    return r.status === 200 ? { ok: true, events: r.data.events } : bookingFail(r)
+  }
+  /** action: accept | decline (reason) | start | complete */
+  async function localBookingAction(id, action, extra = {}) {
+    const r = await authed(`/bookings/${enc(id)}/actions`, { method: 'POST', body: { action, ...extra } })
+    return created(r) ? { ok: true, booking: r.data } : bookingFail(r)
+  }
+  /** scope: occurrence | series */
+  async function cancelLocalBooking(id, reason, scope) {
+    const r = await authed(`/bookings/${enc(id)}/cancel`, { method: 'POST', body: { reason, ...(scope ? { scope } : {}) } })
+    return created(r) ? { ok: true, booking: r.data } : bookingFail(r)
+  }
+  async function proposeLocalBookingModification(id, proposedTerms) {
+    const r = await authed(`/bookings/${enc(id)}/modifications`, { method: 'POST', body: { proposedTerms } })
+    return created(r) ? { ok: true, booking: r.data } : bookingFail(r)
+  }
+  async function decideLocalBookingModification(modificationId, accept) {
+    const r = await authed(`/booking-modifications/${enc(modificationId)}/decision`, { method: 'POST', body: { accept } })
+    return created(r) ? { ok: true, booking: r.data } : bookingFail(r)
+  }
+  async function confirmLocalBookingCompletion(id) {
+    const r = await authed(`/bookings/${enc(id)}/confirm-completion`, { method: 'POST' })
+    return created(r) ? { ok: true, booking: r.data } : bookingFail(r)
+  }
+  async function reportLocalBookingCompletion(id, supportCaseId) {
+    const r = await authed(`/bookings/${enc(id)}/report-completion`, { method: 'POST', body: { supportCaseId } })
+    return created(r) ? { ok: true, booking: r.data } : bookingFail(r)
+  }
+  async function resolveLocalBookingConflicts(keepBookingId, cancelBookingIds) {
+    const r = await authed('/bookings/conflicts/resolve', { method: 'POST', body: { keepBookingId, cancelBookingIds } })
+    return created(r) ? { ok: true, ...r.data } : bookingFail(r)
+  }
+
+  return { requestOtp, verifyOtp, endSession, getProfile, saveProfile, listLocations, addLocation, updateLocation, removeLocation, listSessions, revokeSession, getNotificationPreferences, saveNotificationPreferences, listDataRequests, requestDataRequest, cancelDataRequest, listNotifications, getUnreadNotificationCount, markNotificationRead, markAllNotificationsRead, createVendor, switchMode, listMyVendors, updateVendor, getPublicVendor, listVendorRoleCatalogue, listVendorRoles, addVendorRole, removeVendorRole, listVendorRoleReviews, decideVendorRole, listVendorRoleDefinitions, createVendorRoleDefinition, updateVendorRoleDefinition, listVendorDocuments, listVendorVerifications, submitVendorVerification, uploadVendorEvidence, getFile, registerVendorDocument, listVerificationQueue, reviewVerification, getVerificationEvidenceUrl, listCities, listCategories, searchListings, getPublicListing, listFavorites, addFavorite, removeFavorite, createBooking, listMyBookings, listVendorBookings, getBooking, bookingAction, proposeBookingModification, decideBookingModification, universalSearch, createRfq, openRfq, listMyRfqs, listVendorRfqs, getRfq, listRfqQuotes, submitQuote, listListingCapacity, reviseQuote, withdrawQuote, acceptQuote, extendRfqDeadline, listMyWorkOrders, listVendorWorkOrders, getWorkOrder, workOrderAction, proposeContract, listMyContracts, listVendorContracts, getContract, reviseContract, acceptContract, declineContract, addContractMilestone, milestoneAction, completeContract, listMyPurchaseOrders, listVendorPurchaseOrders, getPurchaseOrder, purchaseOrderAction, openPurchaseOrderDispute, resolvePurchaseOrderDispute, createLocalBooking, createLocalBookingSeries, listMyLocalBookings, listVendorLocalBookings, getLocalBooking, listLocalBookingEvents, localBookingAction, cancelLocalBooking, proposeLocalBookingModification, decideLocalBookingModification, confirmLocalBookingCompletion, reportLocalBookingCompletion, resolveLocalBookingConflicts, isRemote: true }
 }
 
 const apiBaseUrl = import.meta.env?.VITE_API_BASE_URL
