@@ -148,13 +148,62 @@ describe("VendorsService", () => {
         languages: ["en", "hi"],
       });
       const profile = clientQuery.mock.calls[2];
-      expect(profile[1]).toEqual(["v1", null, "d", '["en","hi"]', null]);
+      expect(profile[1]).toEqual([
+        "v1",
+        null,
+        "d",
+        '["en","hi"]',
+        null,
+        null,
+        null,
+      ]);
       expect(record).toHaveBeenCalledWith(
         expect.objectContaining({
           metadata: { fields: ["description", "languages"] },
         }),
         expect.anything(),
       );
+    });
+
+    it("accepts only a clean owner logo file and reports it pending review", async () => {
+      clientQuery
+        .mockResolvedValueOnce(result([{}]))
+        .mockResolvedValueOnce(result([{}]))
+        .mockResolvedValue(result());
+      query.mockResolvedValueOnce(
+        result([
+          vendorRow({
+            logo_file_id: "file1",
+            logo_review_status: null,
+          }),
+        ]),
+      );
+
+      const view = await service.update(user, "v1", {
+        logoFileId: "file1",
+      });
+
+      expect(clientQuery.mock.calls[1][0]).toContain("scan_status = 'clean'");
+      expect(clientQuery.mock.calls[1][1]).toEqual([
+        "file1",
+        "u1",
+        "vendor-logo",
+      ]);
+      expect(view).toMatchObject({
+        logoFileId: "file1",
+        logoReviewStatus: "pending",
+      });
+    });
+
+    it("rejects a profile image that is not an uploaded clean owner file", async () => {
+      clientQuery
+        .mockResolvedValueOnce(result([{}]))
+        .mockResolvedValueOnce(result());
+      await expect(
+        service.update(user, "v1", { bannerFileId: "file2" }),
+      ).rejects.toBeInstanceOf(BadRequestException);
+      expect(clientQuery).toHaveBeenCalledTimes(2);
+      expect(record).not.toHaveBeenCalled();
     });
   });
 
@@ -247,6 +296,9 @@ describe("VendorsService", () => {
       expect(
         await errors(UpdateVendorDto, { legalName: null, languages: ["fr"] }),
       ).toEqual(expect.arrayContaining(["legalName", "languages"]));
+      expect(
+        await errors(UpdateVendorDto, { logoFileId: "not-a-uuid" }),
+      ).toContain("logoFileId");
       expect(await errors(UpdateVendorDto, {})).toEqual([]);
     });
   });

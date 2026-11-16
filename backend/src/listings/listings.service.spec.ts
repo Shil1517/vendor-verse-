@@ -202,7 +202,10 @@ describe("ListingsService", () => {
       ["approved", "unpublish", "unpublished"],
     ] as const)("%s + %s -> %s", async (from, action, to) => {
       const h = await run(from, action);
-      expect(h.clientQuery.mock.calls[1][1]).toEqual(["l1", to]);
+      const update = h.clientQuery.mock.calls.find(([sql]) =>
+        String(sql).includes("UPDATE listings SET content_state"),
+      );
+      expect(update?.[1]).toEqual(["l1", to]);
     });
 
     it.each([
@@ -217,6 +220,62 @@ describe("ListingsService", () => {
       await expect(
         new ListingsService(h.database, h.audit).transition(user, "l1", action),
       ).rejects.toBeInstanceOf(ConflictException);
+    });
+
+    it("flags exact same-owner, same-service and same-location titles on submit", async () => {
+      const h = harness();
+      h.clientQuery
+        .mockResolvedValueOnce(result([{ content_state: "draft" }]))
+        .mockResolvedValueOnce(result([{ id: "l2" }]))
+        .mockResolvedValueOnce(result())
+        .mockResolvedValue(result());
+      h.query.mockResolvedValueOnce(result([listingRow()]));
+
+      await new ListingsService(h.database, h.audit).transition(
+        user,
+        "l1",
+        "submit",
+      );
+
+      const matcher = h.clientQuery.mock.calls.find(([sql]) =>
+        String(sql).includes("SELECT DISTINCT candidate.id"),
+      );
+      expect(matcher?.[0]).toContain("service_areas");
+      const insert = h.clientQuery.mock.calls.find(([sql]) =>
+        String(sql).includes("INSERT INTO duplicate_flags"),
+      );
+      expect(insert?.[1][3]).toContain("same_normalized_title");
+    });
+
+    it("attaches only clean owner media with the matching purpose", async () => {
+      const h = harness();
+      h.clientQuery
+        .mockResolvedValueOnce(result([{ content_state: "approved" }]))
+        .mockResolvedValueOnce(result([{}]))
+        .mockResolvedValueOnce(
+          result([{ id: "m1", created_at: new Date("2026-11-05T10:00:00Z") }]),
+        )
+        .mockResolvedValue(result());
+      const media = await new ListingsService(h.database, h.audit).addMedia(
+        user,
+        "l1",
+        { fileId: "f1", mediaType: "photo" },
+      );
+      expect(media).toMatchObject({
+        listingId: "l1",
+        fileId: "f1",
+        moderationState: "pending",
+      });
+      expect(h.clientQuery.mock.calls[1][1]).toEqual([
+        "f1",
+        "u1",
+        "listing-photo",
+      ]);
+      expect(
+        h.clientQuery.mock.calls.some(([sql]) =>
+          String(sql).includes("SET content_state = $2"),
+        ),
+      ).toBe(true);
     });
   });
 

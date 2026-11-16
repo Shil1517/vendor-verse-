@@ -31,6 +31,10 @@ export interface VendorView {
   description: string | null;
   languages: string[];
   yearEstablished: number | null;
+  logoFileId: string | null;
+  logoReviewStatus: "pending" | "approved" | "rejected" | null;
+  bannerFileId: string | null;
+  bannerReviewStatus: "pending" | "approved" | "rejected" | null;
   createdAt: string;
 }
 
@@ -64,13 +68,20 @@ interface PublicVendorRow {
 interface VendorRow {
   id: string;
   business_type: BusinessType | null;
-  roles?: Array<{ roleCode: string; status: VendorRoleSummary["status"] }> | null;
+  roles?: Array<{
+    roleCode: string;
+    status: VendorRoleSummary["status"];
+  }> | null;
   legal_name: string | null;
   registration_country: string | null;
   trading_name: string | null;
   description: string | null;
   languages: string[] | null;
   year_established: number | null;
+  logo_file_id: string | null;
+  logo_review_status: "approved" | "rejected" | null;
+  banner_file_id: string | null;
+  banner_review_status: "approved" | "rejected" | null;
   created_at: Date;
 }
 
@@ -81,7 +92,14 @@ const VENDOR_SELECT = `SELECT v.id, v.business_type,
          FROM vendor_roles AS r WHERE r.vendor_id = v.id) AS roles,
         v.legal_name,
         v.registration_country, p.trading_name, p.description,
-        p.languages, p.year_established, v.created_at
+        p.languages, p.year_established, p.logo_file_id, p.banner_file_id,
+        (SELECT review.status FROM vendor_profile_image_reviews AS review
+         WHERE review.vendor_id = v.id AND review.image_type = 'logo'
+           AND review.file_id = p.logo_file_id) AS logo_review_status,
+        (SELECT review.status FROM vendor_profile_image_reviews AS review
+         WHERE review.vendor_id = v.id AND review.image_type = 'banner'
+           AND review.file_id = p.banner_file_id) AS banner_review_status,
+        v.created_at
  FROM vendors AS v
  LEFT JOIN vendor_profiles AS p ON p.vendor_id = v.id`;
 
@@ -202,6 +220,22 @@ export class VendorsService {
           [vendorId, request.businessType],
         );
       }
+      if (request.logoFileId !== undefined) {
+        await this.assertProfileImage(
+          client,
+          request.logoFileId,
+          user.userId,
+          "vendor-logo",
+        );
+      }
+      if (request.bannerFileId !== undefined) {
+        await this.assertProfileImage(
+          client,
+          request.bannerFileId,
+          user.userId,
+          "vendor-banner",
+        );
+      }
       await client.query(
         `UPDATE vendors
          SET business_type = COALESCE($2, business_type),
@@ -211,14 +245,17 @@ export class VendorsService {
       );
       await client.query(
         `INSERT INTO vendor_profiles
-           (vendor_id, trading_name, description, languages, year_established)
-         VALUES ($1, $2, $3, COALESCE($4::jsonb, '[]'::jsonb), $5)
+           (vendor_id, trading_name, description, languages, year_established,
+            logo_file_id, banner_file_id)
+         VALUES ($1, $2, $3, COALESCE($4::jsonb, '[]'::jsonb), $5, $6, $7)
          ON CONFLICT (vendor_id) DO UPDATE
          SET trading_name = COALESCE($2, vendor_profiles.trading_name),
              description = COALESCE($3, vendor_profiles.description),
              languages = COALESCE($4::jsonb, vendor_profiles.languages),
              year_established =
-               COALESCE($5, vendor_profiles.year_established)`,
+               COALESCE($5, vendor_profiles.year_established),
+             logo_file_id = COALESCE($6, vendor_profiles.logo_file_id),
+             banner_file_id = COALESCE($7, vendor_profiles.banner_file_id)`,
         [
           vendorId,
           request.tradingName ?? null,
@@ -227,6 +264,8 @@ export class VendorsService {
             ? null
             : JSON.stringify(request.languages),
           request.yearEstablished ?? null,
+          request.logoFileId ?? null,
+          request.bannerFileId ?? null,
         ],
       );
       await this.audit.record(
@@ -303,6 +342,25 @@ export class VendorsService {
       );
     }
   }
+
+  private async assertProfileImage(
+    client: { query: DatabaseService["query"] },
+    fileId: string,
+    userId: string,
+    purpose: "vendor-logo" | "vendor-banner",
+  ): Promise<void> {
+    const file = await client.query(
+      `SELECT 1 FROM files
+         WHERE id = $1 AND owner_user_id = $2 AND purpose = $3
+           AND uploaded_at IS NOT NULL AND scan_status = 'clean'`,
+      [fileId, userId, purpose],
+    );
+    if (file.rowCount !== 1) {
+      throw new BadRequestException(
+        `Profile image must be an uploaded, clean file with purpose ${purpose}`,
+      );
+    }
+  }
 }
 
 function toView(row: VendorRow): VendorView {
@@ -320,6 +378,14 @@ function toView(row: VendorRow): VendorView {
     description: row.description,
     languages: row.languages ?? [],
     yearEstablished: row.year_established,
+    logoFileId: row.logo_file_id ?? null,
+    logoReviewStatus: row.logo_file_id
+      ? (row.logo_review_status ?? "pending")
+      : null,
+    bannerFileId: row.banner_file_id ?? null,
+    bannerReviewStatus: row.banner_file_id
+      ? (row.banner_review_status ?? "pending")
+      : null,
     createdAt: row.created_at.toISOString(),
   };
 }

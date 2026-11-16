@@ -92,7 +92,7 @@ export class VendorsController {
   @ApiOperation({
     summary: "Edit the vendor's own details and profile",
     description:
-      "Omitted fields are unchanged. Verification level, ratings and other platform-computed fields cannot be set here.",
+      "Omitted fields are unchanged. Profile image fields require clean uploaded files with purpose vendor-logo/vendor-banner and enter the F-VND-07 review queue. Verification level, ratings and other platform-computed fields cannot be set here.",
   })
   @ApiOkResponse({ description: "The updated vendor." })
   @ApiBadRequestResponse({ description: "A field failed validation." })
