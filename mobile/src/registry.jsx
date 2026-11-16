@@ -24,6 +24,7 @@ import { Messages as G0 } from './screens/customer_misc.jsx'
 import * as RD from './screens/remote-discovery.jsx'
 import * as RR from './screens/remote-rfq.jsx'
 import * as RT from './screens/remote-transactions.jsx'
+import * as RL from './screens/remote-listings.jsx'
 import { authService } from './services/authService.js'
 
 /* With the real API (VITE_API_BASE_URL) these screens read and write through it; otherwise the seed-data screen is used. */
@@ -104,11 +105,11 @@ export const SCREENS = Object.fromEntries([
   R('v_register_svc', VA.VendorRegister, 'vendor', 'Onboarding — service provider path', ['S5', 'S6'], ['SC-008'], { demo: { type: 'service' } }),
   R('v_verify', VA.VendorVerify, 'vendor', 'Verification status', ['S5'], ['SC-008', 'SC-009']),
   R('v_roles', VR.VendorRoles, 'vendor', 'Vendor roles — add, status, remove', ['S5'], ['SC-008']),
-  R('v_listings', VA.VendorListings, 'vendor', 'My listings & plan limit', ['S5', 'S11'], ['SC-006', 'SC-007'], { tab: true }),
-  R('v_listing_gate', VA.ListingGate, 'vendor', 'Publication checklist (6 gates)', ['S5'], ['SC-006', 'SC-007', 'SC-008', 'SC-009', 'SC-010'], { demo: { id: 'l3' } }),
-  R('v_listing_edit', VA.ListingEdit, 'vendor', 'Add / edit listing', ['S5', 'S6'], ['SC-010'], { demo: { id: 'l1' } }),
+  R('v_listings', live(RL.RemoteVendorListings, VA.VendorListings), 'vendor', 'My listings & plan limit', ['S5', 'S11'], ['SC-006', 'SC-007'], { tab: true }),
+  R('v_listing_gate', live(RL.RemoteListingGate, VA.ListingGate), 'vendor', 'Publication checklist (6 gates)', ['S5'], ['SC-006', 'SC-007', 'SC-008', 'SC-009', 'SC-010'], { demo: { id: 'l3' } }),
+  R('v_listing_edit', live(RL.RemoteListingEdit, VA.ListingEdit), 'vendor', 'Add / edit listing', ['S5', 'S6'], ['SC-010'], { demo: { id: 'l1' } }),
   R('v_areas', VA.ServiceAreas, 'vendor', 'Service areas', ['S7'], ['SC-001']),
-  R('v_avail', VA.Availability, 'vendor', 'Availability', ['S8'], ['SC-013', 'SC-003']),
+  R('v_avail', live(RL.RemoteAvailability, VA.Availability), 'vendor', 'Availability', ['S8'], ['SC-013', 'SC-003']),
   R('v_work', live(RR.RemoteVendorWork, VB.VendorWork), 'vendor', 'Work: bookings & RFQs', ['S8', 'S9'], ['SC-012'], { tab: true }),
   R('v_booking', live(RD.RemoteBookingDetail, VB.VendorBooking), 'vendor', 'Booking request & actions', ['S8'], ['SC-011', 'SC-012', 'SC-013', 'SC-015', 'SC-016', 'SC-017'], { demo: { id: 'BKG-2090' } }),
   R('v_booking_mod', VB.VendorBooking, 'vendor', 'Booking — change requested', ['S8'], ['SC-015', 'SC-016'], { demo: { id: 'BKG-2085' } }),

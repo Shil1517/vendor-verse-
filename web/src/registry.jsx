@@ -18,6 +18,7 @@ import * as VR from './screens/vendor-roles.jsx'
 import * as RD from './screens/remote-discovery.jsx'
 import * as RR from './screens/remote-rfq.jsx'
 import * as RT from './screens/remote-transactions.jsx'
+import * as RL from './screens/remote-listings.jsx'
 import { authService } from './services/authService.js'
 
 /* With the real API (VITE_API_BASE_URL) these screens read and write through it; otherwise the seed-data screen is used. */
@@ -72,8 +73,8 @@ export const SCREENS = Object.fromEntries([
   R('v_register', V.VendorRegister, 'shared', 'Vendor account creation', ['FR-03']),
   R('v_verify', V.VendorVerify, 'vendor', 'Verification status', ['FR-03', 'FR-15']),
   R('v_roles', VR.VendorRoles, 'vendor', 'Vendor roles', ['FR-03']),
-  R('v_listings', V.VendorListings, 'vendor', 'My listings', ['FR-04'], { tab: true }),
-  R('v_listing_edit', V.ListingEdit, 'vendor', 'Add / edit listing', ['FR-04'], { defaultParams: { id: 'l1' } }),
+  R('v_listings', live(RL.RemoteVendorListings, V.VendorListings), 'vendor', 'My listings', ['FR-04'], { tab: true }),
+  R('v_listing_edit', live(RL.RemoteListingEdit, V.ListingEdit), 'vendor', 'Add / edit listing', ['FR-04'], { defaultParams: { id: 'l1' } }),
   R('v_work', live(RR.RemoteVendorWork, V.VendorQuotes), 'vendor', 'Work', ['FR-08'], { tab: true }),
   R('v_orders', live(RT.RemoteVendorOrders, V.VendorOrders), 'vendor', 'Purchase orders', ['FR-09', 'FR-15']),
   R('v_rfq', live(RR.RemoteVendorRfq, V.VendorRfq), 'vendor', 'Submit / revise quotation', ['FR-08', 'FR-15'], { defaultParams: { id: 'RFQ-315' } }),
@@ -175,9 +176,9 @@ export const SCREENS = Object.fromEntries([
   R('v_register_type', MS.RegisterType, 'shared', 'Become a vendor'),
   R('v_register_mfr', MS.RegisterMfr, 'shared', 'Manufacturer / supplier registration'),
   R('v_register_svc', MS.RegisterSvc, 'shared', 'Service provider registration'),
-  R('v_listing_gate', MS.ListingGate, 'vendor', 'Publication checklist'),
+  R('v_listing_gate', live(RL.RemoteListingGate, MS.ListingGate), 'vendor', 'Publication checklist'),
   R('v_areas', MS.ServiceAreas, 'vendor', 'Service areas'),
-  R('v_avail', MS.Availability, 'vendor', 'Availability'),
+  R('v_avail', live(RL.RemoteAvailability, MS.Availability), 'vendor', 'Availability'),
   R('v_public', MS.PublicProfile, 'vendor', 'Public profile & trust', [], { defaultParams: { id: 'v-me' } }),
   R('v_booking', live(RD.RemoteBookingDetail, BK.VendorBooking), 'vendor', 'Booking requests'),
   R('v_booking_mod', BK.VendorBookingMod, 'vendor', 'Customer change request', [], { defaultParams: { id: 'BKG-1045' } }),
