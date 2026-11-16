@@ -617,3 +617,92 @@ describe('createApiAuthService: work orders, contracts, purchase orders and loca
     expect(calls[12].body).toEqual({ keepBookingId: 'b1', cancelBookingIds: ['b2'] })
   })
 })
+
+describe('createApiAuthService: geo, taxonomy, listings and coverage', () => {
+  const signedIn = (routes) => {
+    const ctx = setup(routes)
+    ctx.store.set(TOKENS)
+    return ctx
+  }
+
+  it('reads the public geography and taxonomy without a token', async () => {
+    const { service, calls } = setup({
+      'GET /geo/countries': reply(200, { countries: [{ code: 'IN' }] }),
+      'GET /geo/regions': reply(200, { regions: [{ id: 'r1' }] }),
+      'GET /geo/localities': reply(200, { localities: [{ id: 'p1' }] }),
+      'GET /taxonomy/industries': reply(200, { items: [{ industryId: 'i1' }] }),
+      'GET /taxonomy/categories/c1': reply(200, { id: 'c1' }),
+    })
+    expect((await service.listCountries()).countries).toHaveLength(1)
+    expect((await service.listRegions('IN')).regions).toHaveLength(1)
+    expect((await service.listLocalities('city1')).localities).toHaveLength(1)
+    expect((await service.listIndustries({ countryCode: 'IN' })).industries).toHaveLength(1)
+    expect((await service.getCategory('c1', { countryCode: 'IN', cityId: 'x' })).category.id).toBe('c1')
+    expect(calls[1].query).toBe('?countryCode=IN')
+    expect(calls[2].query).toBe('?cityId=city1')
+    expect(calls[4].query).toBe('?countryCode=IN&cityId=x')
+    expect(calls.every((c) => c.auth === undefined)).toBe(true)
+  })
+
+  it('joins, lists and leaves a city waitlist', async () => {
+    const { service } = signedIn({
+      'GET /me/waitlist': reply(200, { entries: [{ cityId: 'c1' }] }),
+      'POST /geo/cities/c1/waitlist': [reply(201, { cityId: 'c1' }), reply(400, { detail: 'That city is already live' })],
+      'DELETE /geo/cities/c1/waitlist': reply(204),
+    })
+    expect((await service.listMyWaitlist()).entries).toHaveLength(1)
+    expect((await service.joinCityWaitlist('c1')).entry.cityId).toBe('c1')
+    expect(await service.joinCityWaitlist('c1')).toMatchObject({ ok: false, code: 'INVALID_PROFILE', message: 'That city is already live' })
+    expect((await service.leaveCityWaitlist('c1')).ok).toBe(true)
+  })
+
+  it('creates a listing with an idempotency key and runs its lifecycle', async () => {
+    const { service, calls } = signedIn({
+      'POST /vendors/v1/listings': reply(201, { id: 'l1', state: 'draft' }),
+      'GET /vendors/v1/listings': reply(200, { listings: [{ id: 'l1' }] }),
+      'GET /listings/l1': reply(200, { id: 'l1' }),
+      'PATCH /listings/l1': reply(200, { id: 'l1', title: 'New' }),
+      'POST /listings/l1/submit': reply(200, { id: 'l1', state: 'pending_review' }),
+      'GET /vendors/v1/publication-gates': reply(200, { canPublish: false, gates: [] }),
+    })
+    expect((await service.createListing('v1', { categoryId: 'c1', listingType: 'service', title: 'Pipe repair' }, 'k1')).listing.id).toBe('l1')
+    expect(calls[0].key).toBe('k1')
+    expect((await service.listVendorListings('v1')).listings).toHaveLength(1)
+    expect((await service.getListing('l1')).listing.id).toBe('l1')
+    expect((await service.updateListing('l1', { title: 'New' })).listing.title).toBe('New')
+    expect((await service.listingTransition('l1', 'submit')).listing.state).toBe('pending_review')
+    expect((await service.getPublicationGates('v1', 'l1')).gates.canPublish).toBe(false)
+    expect(calls[5].query).toBe('?listingId=l1')
+  })
+
+  it('saves availability and capacity windows and removes them', async () => {
+    const { service, calls } = signedIn({
+      'GET /listings/l1/availability': reply(200, { availabilityModel: 'weekly_slots' }),
+      'PUT /listings/l1/availability': reply(200, { availabilityModel: 'weekly_slots' }),
+      'DELETE /listings/l1/availability': reply(204),
+      'POST /listings/l1/capacity': reply(201, { id: 'w1' }),
+      'DELETE /listings/l1/capacity/w1': reply(204),
+    })
+    expect((await service.getListingAvailability('l1')).availability.availabilityModel).toBe('weekly_slots')
+    const body = { availabilityModel: 'weekly_slots', timeZone: 'Asia/Kolkata', weeklySchedule: { mon: [{ start: '09:00', end: '18:00' }] } }
+    expect((await service.saveListingAvailability('l1', body)).ok).toBe(true)
+    expect(calls[1].body).toEqual(body)
+    expect((await service.clearListingAvailability('l1')).ok).toBe(true)
+    expect((await service.addListingCapacity('l1', { startsAt: '2026-12-01T04:00:00Z', endsAt: '2026-12-01T06:00:00Z', capacity: 2 })).window.id).toBe('w1')
+    expect((await service.removeListingCapacity('l1', 'w1')).ok).toBe(true)
+  })
+
+  it('manages service areas and requests a file download link', async () => {
+    const { service, calls } = signedIn({
+      'GET /vendors/v1/service-areas': reply(200, { serviceAreas: [{ id: 'a1' }] }),
+      'POST /vendors/v1/service-areas': reply(201, { id: 'a2' }),
+      'DELETE /vendors/v1/service-areas/a2': reply(204),
+      'GET /files/f1/download-url': reply(200, { url: 'https://files.test/f1', expiresAt: '2026-12-01T00:00:00Z' }),
+    })
+    expect((await service.listServiceAreas('v1')).serviceAreas).toHaveLength(1)
+    expect((await service.addServiceArea('v1', { coverageType: 'city', cityId: 'c1' }, 'k2')).serviceArea.id).toBe('a2')
+    expect(calls[1].key).toBe('k2')
+    expect((await service.removeServiceArea('v1', 'a2')).ok).toBe(true)
+    expect((await service.getFileDownloadUrl('f1')).url).toBe('https://files.test/f1')
+  })
+})

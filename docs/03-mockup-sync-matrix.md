@@ -205,6 +205,7 @@ These are mockup behaviours that differ between the apps and must be made the sa
 
 | Date & time (YYYY-MM-DD HH:MM, local) | Updated by | Change | Reason |
 |---|---|---|---|
+| 2026-11-16 15:10 | Sahil Soni | Modified: no status change (client methods only for F-VND-05/06 listings, F-GEO waitlist and lists, F-TAX-01 detail) | Web and mobile `authService` now have tested methods for these APIs; no screen calls them yet, so statuses and screen notes stay as they were. |
 | 2026-11-16 14:40 | Sahil Soni | Added: screens `c_work_order` and `v_work_order` (F-RFQ-04). Modified: F-GDS-03, F-GDS-04, F-CON-01, F-CON-02 notes (orders, contracts and work orders use the real API on web and mobile) | Wired the transaction APIs (work orders, contracts, purchase orders) into both apps; statuses unchanged, disputes and payments not wired. |
 | 2026-11-16 12:20 | Sahil Soni | Modified: F-DSC-02, F-BKG-10, F-RFQ-01 to F-RFQ-04 and F-RFQ-06 mobile notes (`c_explore` search panel, `c_activity`, `v_work`, `c_rfq_new`, `c_rfq`, `v_rfq` use the real API) | Mobile had no RFQ or universal-search calls; ported from web so both apps behave the same (D-013). Statuses unchanged. |
 | 2026-11-14 16:28 | Sahil Soni | Modified: F-ACC-01 web `register` layout only | Sign-up stretched edge to edge on wide screens; it now uses the same split card as sign-in. Fields, validation and flow are unchanged. |
