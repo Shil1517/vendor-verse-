@@ -22,6 +22,7 @@ import * as VR from './screens/vendor_roles.jsx'
 import * as CZ from './screens/customer_biz.jsx'
 import { Messages as G0 } from './screens/customer_misc.jsx'
 import * as RD from './screens/remote-discovery.jsx'
+import * as RR from './screens/remote-rfq.jsx'
 import { authService } from './services/authService.js'
 
 /* With the real API (VITE_API_BASE_URL) these screens read and write through it; otherwise the seed-data screen is used. */
@@ -69,14 +70,14 @@ export const SCREENS = Object.fromEntries([
   R('c_listing_nodata', C1.ListingDetail, 'customer', 'Listing — missing data labels', ['S7'], ['SC-003'], { demo: { id: 'l15' } }),
   R('c_vendor', C1.VendorProfile, 'customer', 'Vendor profile', ['S5', 'S7', 'S12'], ['SC-003', 'SC-008'], { demo: { id: 'v2' } }),
   R('c_saved', CM.Saved, 'customer', 'Favorites & compare (3)', ['S7'], ['SC-004', 'SC-005'], { demo: { tab: 'compare' } }),
-  R('c_activity', live(RD.RemoteCustomerBookings, CM.Activity), 'customer', 'Activity: bookings & RFQs', ['S8', 'S9'], ['SC-011', 'SC-014'], { tab: true }),
+  R('c_activity', live(RR.RemoteActivity, CM.Activity), 'customer', 'Activity: bookings & RFQs', ['S8', 'S9'], ['SC-011', 'SC-014'], { tab: true }),
   R('c_book_new', live(RD.RemoteBookNew, CB.BookNew), 'customer', 'Request a booking', ['S8', 'S19'], ['SC-011', 'SC-013', 'SC-014'], { demo: { id: 'l12' } }),
   R('c_booking', live(RD.RemoteBookingDetail, CB.BookingDetail), 'customer', 'Booking detail & timeline', ['S8'], ['SC-011', 'SC-012', 'SC-018', 'SC-019'], { demo: { id: 'BKG-2101' } }),
   R('c_booking_done', CB.BookingDetail, 'customer', 'Booking — confirm completion (7 days)', ['S8'], ['SC-018', 'SC-019'], { demo: { id: 'BKG-2088' } }),
   R('c_book_modify', CB.BookModify, 'customer', 'Request booking change', ['S8'], ['SC-015', 'SC-016'], { demo: { id: 'BKG-2099' } }),
   R('c_conflict', CB.Conflict, 'customer', 'Conflicting confirmations', ['S8'], ['SC-014'], { demo: { req: 'REQ-77' } }),
-  R('c_rfq_new', CR.RfqNew, 'customer', 'Create RFQ', ['S9'], ['SC-020']),
-  R('c_rfq', CR.RfqDetail, 'customer', 'RFQ, quotes & atomic accept', ['S9'], ['SC-022', 'SC-023', 'SC-024', 'SC-025'], { demo: { id: 'RFQ-311' } }),
+  R('c_rfq_new', live(RR.RemoteRfqNew, CR.RfqNew), 'customer', 'Create RFQ', ['S9'], ['SC-020']),
+  R('c_rfq', live(RR.RemoteRfqDetail, CR.RfqDetail), 'customer', 'RFQ, quotes & atomic accept', ['S9'], ['SC-022', 'SC-023', 'SC-024', 'SC-025'], { demo: { id: 'RFQ-311' } }),
   R('c_rfq_open', CR.RfqDetail, 'customer', 'RFQ — accepted terms snapshot', ['S9', 'S14'], ['SC-021', 'SC-025'], { demo: { id: 'RFQ-290' } }),
   R('c_rfq_none', CR.RfqDetail, 'customer', 'RFQ — no quotes received', ['S9'], ['SC-020'], { demo: { id: 'RFQ-285' } }),
   R('c_rfq_edit', CR.RfqEdit, 'customer', 'Edit RFQ (revision)', ['S9'], ['SC-021'], { demo: { id: 'RFQ-311' } }),
@@ -105,10 +106,10 @@ export const SCREENS = Object.fromEntries([
   R('v_listing_edit', VA.ListingEdit, 'vendor', 'Add / edit listing', ['S5', 'S6'], ['SC-010'], { demo: { id: 'l1' } }),
   R('v_areas', VA.ServiceAreas, 'vendor', 'Service areas', ['S7'], ['SC-001']),
   R('v_avail', VA.Availability, 'vendor', 'Availability', ['S8'], ['SC-013', 'SC-003']),
-  R('v_work', live(RD.RemoteVendorBookings, VB.VendorWork), 'vendor', 'Work: bookings & RFQs', ['S8', 'S9'], ['SC-012'], { tab: true }),
+  R('v_work', live(RR.RemoteVendorWork, VB.VendorWork), 'vendor', 'Work: bookings & RFQs', ['S8', 'S9'], ['SC-012'], { tab: true }),
   R('v_booking', live(RD.RemoteBookingDetail, VB.VendorBooking), 'vendor', 'Booking request & actions', ['S8'], ['SC-011', 'SC-012', 'SC-013', 'SC-015', 'SC-016', 'SC-017'], { demo: { id: 'BKG-2090' } }),
   R('v_booking_mod', VB.VendorBooking, 'vendor', 'Booking — change requested', ['S8'], ['SC-015', 'SC-016'], { demo: { id: 'BKG-2085' } }),
-  R('v_rfq', VB.VendorRfq, 'vendor', 'Submit / revise quotation', ['S9'], ['SC-022', 'SC-023', 'SC-024'], { demo: { id: 'RFQ-315' } }),
+  R('v_rfq', live(RR.RemoteVendorRfq, VB.VendorRfq), 'vendor', 'Submit / revise quotation', ['S9'], ['SC-022', 'SC-023', 'SC-024'], { demo: { id: 'RFQ-315' } }),
   R('v_sub', VB.Subscription, 'vendor', 'Subscription & billing events', ['S11'], ['SC-026', 'SC-027', 'SC-037', 'SC-006']),
   R('v_plans', VB.Plans, 'vendor', 'Compare plans (sample)', ['S11']),
   R('v_sponsor', VB.Sponsor, 'vendor', 'Sponsored visibility', ['S7', 'S11'], ['SC-034']),
