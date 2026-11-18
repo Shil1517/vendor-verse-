@@ -54,16 +54,19 @@ function HeroImageCarousel() {
   const [active, setActive] = useState(0)
   const change = (step) => setActive((current) => (current + step + LANDING_SHOWCASE.length) % LANDING_SHOWCASE.length)
   useEffect(() => {
+    if (LANDING_SHOWCASE.length < 2) return undefined
     const timer = window.setInterval(() => setActive((current) => (current + 1) % LANDING_SHOWCASE.length), 5200)
     return () => window.clearInterval(timer)
   }, [])
-  return <div className="vv-hero-showcase" aria-label="VendorVerse platform previews" aria-live="polite">
-    {LANDING_SHOWCASE.map((image, index) => <img key={image.src} className={cx('vv-hero-image', index === active && 'is-active')} src={image.src} alt={image.alt} />)}
-    <button type="button" className="vv-hero-showcase-arrow vv-hero-showcase-arrow-left" onClick={() => change(-1)} aria-label="Show previous preview"><ChevronLeft size={18} /></button>
-    <button type="button" className="vv-hero-showcase-arrow vv-hero-showcase-arrow-right" onClick={() => change(1)} aria-label="Show next preview"><ChevronRight size={18} /></button>
-    <div className="vv-hero-showcase-dots">
-      {LANDING_SHOWCASE.map((image, index) => <button key={image.src} type="button" className={cx(index === active && 'is-active')} onClick={() => setActive(index)} aria-label={`Show preview ${index + 1}`} aria-pressed={index === active} />)}
-    </div>
+  return <div className="vv-hero-showcase" aria-label="VendorVerse platform preview" aria-live={LANDING_SHOWCASE.length > 1 ? 'polite' : 'off'}>
+    {LANDING_SHOWCASE.map((image, index) => <img key={image.src} className={cx('vv-hero-image', index === active && 'is-active')} src={image.src} alt={image.alt} fetchPriority="high" decoding="async" />)}
+    {LANDING_SHOWCASE.length > 1 && <>
+      <button type="button" className="vv-hero-showcase-arrow vv-hero-showcase-arrow-left" onClick={() => change(-1)} aria-label="Show previous preview"><ChevronLeft size={18} /></button>
+      <button type="button" className="vv-hero-showcase-arrow vv-hero-showcase-arrow-right" onClick={() => change(1)} aria-label="Show next preview"><ChevronRight size={18} /></button>
+      <div className="vv-hero-showcase-dots">
+        {LANDING_SHOWCASE.map((image, index) => <button key={image.src} type="button" className={cx(index === active && 'is-active')} onClick={() => setActive(index)} aria-label={`Show preview ${index + 1}`} aria-pressed={index === active} />)}
+      </div>
+    </>}
   </div>
 }
 
@@ -75,8 +78,8 @@ function PopularListingCard({ listing, vendor, nav, saved, toggleSaved }) {
   return <article className="overflow-hidden rounded-2xl border border-ink-100 bg-white transition hover:-translate-y-1 hover:shadow-xl"><button onClick={() => nav.go('c_listing', { id: listing.id })} className="relative flex h-40 w-full items-center justify-center bg-ink-50"><Thumb tone={listing.tone} icon={cat(listing.cat).icon} size={82} /><span className="absolute left-3 top-3 rounded-full bg-white px-2.5 py-1 text-[11px] font-bold text-ink-600">{cat(listing.cat).name}</span></button><div className="p-4"><button onClick={() => nav.go('c_listing', { id: listing.id })} className="line-clamp-2 min-h-10 text-left text-sm font-extrabold text-ink-900 hover:text-brand-700">{listing.title}</button><button onClick={() => nav.go('c_vendor', { id: vendor?.id })} className="mt-1 block text-xs text-ink-500 hover:text-brand-700">{vendor?.name || 'Local vendor'} · {vendor?.city}</button><div className="mt-4 flex items-center justify-between"><span className="text-lg font-black text-ink-900">{fmt(listing.price)}<span className="ml-1 text-xs font-medium text-ink-500">/{listing.unit}</span></span><button onClick={() => toggleSaved(listing.id)} aria-label={saved.includes(listing.id) ? 'Remove from saved' : 'Save listing'} className={cx('grid size-9 place-items-center rounded-full border transition', saved.includes(listing.id) ? 'border-rose-200 bg-rose-50 text-rose-600' : 'border-ink-200 text-ink-500 hover:border-rose-200 hover:text-rose-600')}><Heart size={17} className={saved.includes(listing.id) ? 'fill-current' : ''} /></button></div></div></article>
 }
 
-function TrainMarquee({ children, className, direction = 'left' }) {
-  return <div className={`vv-train-marquee ${className || ''} ${direction === 'right' ? 'vv-train-right' : 'vv-train-left'}`}><div className="vv-train-track">{children}</div><div className="vv-train-track" aria-hidden="true">{children}</div></div>
+function HomeCardGrid({ children }) {
+  return <div className="vv-home-card-grid">{children}</div>
 }
 
 export function WebsiteHome() {
@@ -139,22 +142,22 @@ export function WebsiteHome() {
 
         <section className="vv-market-vendors">
           <div className="mb-5 flex items-end justify-between"><div><p className="text-xs font-extrabold uppercase tracking-[.16em] text-brand-700">Chosen for quality</p><h2 className="mt-1 text-2xl font-extrabold tracking-tight text-ink-900">Featured verified vendors</h2></div><button onClick={() => nav.go('c_explore', { mode: 'vendors' })} className="flex items-center gap-1 text-sm font-bold text-brand-700">Browse vendors <ArrowRight size={16} /></button></div>
-           <TrainMarquee className="vv-vendor-train" direction="right">
+           <HomeCardGrid>
            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
             {featured.map((v) => <Card key={v.id} onClick={() => nav.go('c_vendor', { id: v.id })} className="group overflow-hidden !p-0 transition hover:-translate-y-1 hover:shadow-xl"><div className={cx('relative h-28 bg-gradient-to-br', GRAD[v.tone])}><div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" /><span className="absolute right-3 top-3 flex items-center gap-1 rounded-full bg-white px-2.5 py-1 text-xs font-extrabold text-ink-900"><Star size={13} className="fill-amber-400 text-amber-400" />{v.rating.toFixed(1)}</span></div><div className="px-4 pb-4"><div className="-mt-7 grid size-14 place-items-center rounded-2xl border-4 border-white bg-white shadow"><Avatar name={v.name} size={42} /></div><h3 className="mt-2 truncate font-extrabold text-ink-900">{v.name}</h3><p className="text-xs font-semibold text-brand-700">{v.country || 'India'} · Global vendor</p><p className="mt-1 text-sm text-ink-500">{cat(v.cat).name} · {v.city}</p><div className="mt-4 flex items-center justify-between border-t border-ink-100 pt-3 text-xs"><span className="inline-flex items-center gap-1 font-bold text-emerald-700"><BadgeCheck size={15} /> Verified</span><span className="text-ink-500">{v.reviews} reviews</span></div></div></Card>)}
            </div>
-           </TrainMarquee>
+           </HomeCardGrid>
          </section>
 
         <section className="rounded-[2rem] bg-ink-50 p-6 sm:p-8 lg:flex lg:items-center lg:justify-between lg:gap-8 lg:p-10"><div className="max-w-2xl"><p className="text-xs font-extrabold uppercase tracking-[.16em] text-brand-700">For larger requirements</p><h2 className="mt-2 text-2xl font-extrabold tracking-tight text-ink-900 sm:text-3xl">One request. Multiple quotations.</h2><p className="mt-2 text-sm leading-relaxed text-ink-600">Share what you need and compare responses from vendors that fit your requirements.</p></div><div className="mt-5 flex flex-wrap gap-3 lg:mt-0"><Button onClick={() => nav.go('c_rfq_new')}><FileText size={17} /> Create an RFQ</Button><Button variant="secondary" onClick={() => nav.go('messages')}><MessageCircle size={17} /> Talk to vendors</Button></div></section>
 
         <section>
           <div className="mb-5 flex items-end justify-between"><div><p className="text-xs font-extrabold uppercase tracking-[.16em] text-brand-700">Popular this week</p><h2 className="mt-1 text-2xl font-extrabold tracking-tight text-ink-900">Products and services</h2></div><button onClick={() => nav.go('c_explore')} className="flex items-center gap-1 text-sm font-bold text-brand-700">View marketplace <ArrowRight size={16} /></button></div>
-           <TrainMarquee className="vv-listing-train" direction="left">
+           <HomeCardGrid>
            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
             {popular.map((l) => { const v = vendors.find((x) => x.id === l.vendorId); return <article key={l.id} className="overflow-hidden rounded-2xl border border-ink-100 bg-white transition hover:-translate-y-1 hover:shadow-xl"><button onClick={() => nav.go('c_listing', { id: l.id })} className="relative flex h-40 w-full items-center justify-center bg-ink-50"><Thumb tone={l.tone} icon={cat(l.cat).icon} size={82} /><span className="absolute left-3 top-3 rounded-full bg-white px-2.5 py-1 text-[11px] font-bold text-ink-600">{cat(l.cat).name}</span></button><div className="p-4"><button onClick={() => nav.go('c_listing', { id: l.id })} className="line-clamp-2 min-h-10 text-left text-sm font-extrabold text-ink-900 hover:text-brand-700">{l.title}</button><button onClick={() => nav.go('c_vendor', { id: v?.id })} className="mt-1 block text-xs text-ink-500 hover:text-brand-700">{v?.name || 'Local vendor'} · {v?.city}</button><div className="mt-4 flex items-center justify-between"><span className="text-lg font-black text-ink-900">{fmt(l.price)}<span className="ml-1 text-xs font-medium text-ink-500">/{l.unit}</span></span><button onClick={() => toggleSaved(l.id)} aria-label={saved.includes(l.id) ? 'Remove from saved' : 'Save listing'} className={cx('grid size-9 place-items-center rounded-full border transition', saved.includes(l.id) ? 'border-rose-200 bg-rose-50 text-rose-600' : 'border-ink-200 text-ink-500 hover:border-rose-200 hover:text-rose-600')}><Heart size={17} className={saved.includes(l.id) ? 'fill-current' : ''} /></button></div></div></article> })}
            </div>
-           </TrainMarquee>
+           </HomeCardGrid>
          </section>
 
         <footer className="flex flex-col gap-4 border-t border-ink-100 pt-6 text-xs text-ink-500 sm:flex-row sm:items-center sm:justify-between"><span>© 2026 VendorVerse · Products, services and quotations</span><div className="flex gap-5"><button onClick={() => nav.go('c_cases')} className="hover:text-brand-700">Help & support</button><button onClick={() => nav.go(me.guest ? 'login' : 'c_profile')} className="hover:text-brand-700">{me.guest ? 'Sign in' : 'My account'}</button></div></footer>
