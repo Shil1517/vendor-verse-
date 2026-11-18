@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Battery, Signal, Wifi, Search, X, LayoutGrid, CheckCircle2, AlertTriangle, Info, ChevronRight, FileCheck2, Rocket, Users2, Target, HelpCircle, Smartphone, Menu, Bell, Globe, ArrowLeftRight, PanelRightClose, PanelRightOpen, PanelLeftClose, PanelLeftOpen, LogOut, MapPin } from 'lucide-react'
 import { AppProvider, COUNTRY_SETTINGS, LOCATION_PRESETS, useApp } from './store.jsx'
 import { canOpenRoute } from './services/authorization.js'
@@ -6,6 +6,7 @@ import { authService } from './services/authService.js'
 import { NavProvider, useNav } from './nav.jsx'
 import { HOME, TABS, ROLES, ADMIN_SIDEBAR } from './roles.js'
 import { SCREENS, GROUPS } from './registry.jsx'
+import { pathForScreen, screenForLocation } from './screen-routes.js'
 import { Logo } from './screens/auth.jsx'
 import { VendorWorkspace } from './screens/vendor.jsx'
 import { ThemeToggle } from './components/ThemeToggle.jsx'
@@ -21,7 +22,7 @@ import './screens/dashboard-reference.css'
 import './layout.css'
 import './workspace-themes.css'
 
-const INITIAL_SCREEN = window.location.hash.replace(/^#\/?/, '')
+const INITIAL_ROUTE = screenForLocation(window.location, SCREENS)
 
 function useViewport() {
   const [v, setV] = useState({ w: window.innerWidth, h: window.innerHeight })
@@ -304,6 +305,7 @@ function Shell() {
   const { me, setMe, t } = useApp()
   const { w } = useViewport()
   const [drawer, setDrawer] = useState(false)
+  const skipFirstUrlSync = useRef(true)
   const [agentSidebarCollapsed, setAgentSidebarCollapsed] = useState(false)
   const [adminSidebarCollapsed, setAdminSidebarCollapsed] = useState(false)
   const desktop = w >= 768
@@ -331,17 +333,35 @@ function Shell() {
     nav.reset(id, reg.defaultParams || {})
   }
 
-  // deep links: /#/c_home opens that screen; the hash follows navigation
+  // Deep links accept both the current readable paths and legacy /#/screen-id links.
   useEffect(() => {
-    if (SCREENS[INITIAL_SCREEN]) jump(INITIAL_SCREEN)
+    if (SCREENS[INITIAL_ROUTE.id]) {
+      const { id, params } = INITIAL_ROUTE
+      const reg = SCREENS[id]
+      if (reg.role === 'auth' || id === 'c_home') nav.reset(id, params)
+      else {
+        const role = reg.role === 'shared' ? (me.role || 'customer') : reg.role
+        if ((role === 'customer' && me.role === 'customer') || canOpenRoute(me, role)) nav.reset(id, params)
+        else nav.reset('login', { role, next: id, nextParams: params })
+      }
+    }
   }, [])
-  useEffect(() => { window.history.replaceState(null, '', `#/${nav.id}`) }, [nav.id])
-  // typing a link or using the browser back/forward buttons changes the hash: follow it
   useEffect(() => {
-    const onHash = () => { const id = window.location.hash.replace(/^#\/?/, ''); if (SCREENS[id] && id !== nav.id) jump(id) }
-    window.addEventListener('hashchange', onHash)
-    return () => window.removeEventListener('hashchange', onHash)
-  }, [nav.id, me.role, me.loggedIn])
+    if (skipFirstUrlSync.current) { skipFirstUrlSync.current = false; return }
+    const next = pathForScreen(nav.id, nav.params)
+    if (`${window.location.pathname}${window.location.search}` !== next || window.location.hash) {
+      window.history.pushState({ route: nav.id }, '', next)
+    }
+  }, [nav.id, nav.params])
+  // Browser back/forward follows the readable URL.
+  useEffect(() => {
+    const onPopState = () => {
+      const { id, params } = screenForLocation(window.location, SCREENS)
+      if (SCREENS[id]) nav.reset(id, params)
+    }
+    window.addEventListener('popstate', onPopState)
+    return () => window.removeEventListener('popstate', onPopState)
+  }, [nav.reset])
 
   return (
     <div className={cx('flex h-full min-h-0 bg-white', showAgentSidebar ? 'vv-agent-shell' : showAdminSidebar ? 'vv-admin-shell' : 'flex-col', showAgentSidebar && agentSidebarCollapsed && 'is-agent-sidebar-collapsed', showVendorWorkspace && 'vv-global-vendor-shell', showBusinessWorkspace && 'vv-business-shell')}>
