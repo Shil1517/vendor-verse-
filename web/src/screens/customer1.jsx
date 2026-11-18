@@ -9,6 +9,7 @@ import { useApp } from '../store.jsx'
 import { useNav } from '../nav.jsx'
 import { findCity } from '../geo.js'
 import { CATS, INDUSTRIES, cat, calcPrice, BUSY_SLOTS, SLOTS, listing as findListing } from '../data.jsx'
+import { searchIndustries } from '../../../packages/shared/taxonomy-search.js'
 import {
   Screen, Card, Section, Button, Thumb, Chips, Segmented, Sheet, Input, Select, Toggle, Badge, Rating, Banner, EmptyState,
   PriceBreakdown, KV, fmt, cx, Pill, SearchBar, IconBtn, StatusBadge, Stars, ListRow, Group, Meta, SOFT, GRAD, Carousel, Avatar,
@@ -127,11 +128,14 @@ export function CustomerHome() {
 /* ================= CATEGORIES ================= */
 export function Categories() {
   const nav = useNav()
+  const [query, setQuery] = useState('')
   const total = INDUSTRIES.reduce((sum, i) => sum + i.cats, 0)
+  const list = searchIndustries(INDUSTRIES, query)
   return (
     <Screen title="All industries and categories" subtitle={`${INDUSTRIES.length} industries · ${total.toLocaleString('en-IN')} sample categories`}>
+      <SearchBar value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search any industry, product or service" />
       <Banner tone="blue" title="All 30 industries are live to browse">Subcategory names and category counts are representative examples. Listing and RFQ workflows remain configured for the existing 10 industry groups; supply-building focuses on the 5 priority groups.</Banner>
-      {INDUSTRIES.map((i) => {
+      {list.map(({ industry: i, matchedSubcategories }) => {
         const configured = CATS.some((c) => c.id === i.cat)
         return (
         <Card key={i.id} onClick={configured ? () => nav.go('c_category', { id: i.cat }) : undefined}>
@@ -144,12 +148,14 @@ export function Categories() {
             <Badge tone="green">Live</Badge>
             {configured && <ChevronRight size={18} className="text-ink-300" />}
           </div>
+          {matchedSubcategories.length > 0 && <p className="mb-2 mt-3 text-xs font-semibold text-brand-700">Matched: {matchedSubcategories.join(', ')}</p>}
           <p className="mb-2 mt-3 text-xs font-semibold text-ink-500">Example subcategories</p>
           <div className="flex flex-wrap gap-1.5">{i.subs.map((s) => <Pill key={s}>{s}</Pill>)}</div>
           {!configured && <p className="mt-3 text-xs text-ink-500">Browseable now; listing and RFQ workflows are not configured for this industry yet.</p>}
         </Card>
         )
       })}
+      {!list.length && query.trim() && <EmptyState icon={Search} title="No category matches" body="Can’t find yours? Suggest it — admins review suggestions and add attributes." action={<Button size="sm" onClick={() => nav.go('c_cat_suggest', { name: query.trim() })}>Suggest “{query.trim()}”</Button>} />}
     </Screen>
   )
 }

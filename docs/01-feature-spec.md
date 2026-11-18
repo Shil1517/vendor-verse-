@@ -54,7 +54,7 @@ Read order: [README](README.md) · this file · [02-phase-scope.md](02-phase-sco
 
 | ID | Feature | Phase | Description and rules | PRS ref |
 |---|---|---|---|---|
-| F-TAX-01 | Browse industries, categories, subcategories | P1 | Reads the live taxonomy. All 30 industry nodes and their documented example subcategories are shown directly in the browse view without expanding an industry; actual categories without eligible listings in the market are hidden unless admin marks "always show". | §6, GM-04, D-017 |
+| F-TAX-01 | Browse industries, categories, subcategories | P1 | Reads the live taxonomy. All 30 industry nodes and their documented example subcategories are shown directly in the browse view without expanding an industry; actual categories without eligible listings in the market are hidden unless admin marks "always show". Browse search matches industry and subcategory names, curated aliases, normalized input and small spelling errors; results identify the matching subcategory within its industry. | §6, GM-04, D-017 |
 | F-TAX-02 | Admin taxonomy builder | P1 | Create, edit, reorder, merge, retire categories without a release. Lifecycle Draft, Active, Restricted, Retired. Retired categories keep history. Super Admin only. | GM-11, GM-16, GM-18 |
 | F-TAX-03 | Per-category configuration | P1 | Attribute schema, validation, booking modes, availability model, response deadline, cancellation policy, RFQ schema, verification rules, country availability, contract eligibility, and service-RFQ fulfillment type (`rfqFulfillmentType`: booking, work_order, or contract). Versioned; existing deals keep their snapshot. Goods RFQs create purchase orders. | §6.2, GM-12 |
 | F-TAX-04 | Vendor suggests a category | P1 | Proposal enters an admin queue; vendor lists under the nearest approved category meanwhile; never auto-published. | GM-14, SC-046 |
@@ -295,6 +295,7 @@ Every PRS chapter maps to at least one feature, or to a documented non-goal.
 
 | Date & time (YYYY-MM-DD HH:MM, local) | Updated by | Change | Reason |
 |---|---|---|---|
+| 2026-11-18 11:16 | Amit | Modified: F-TAX-01 browse search | Define consistent alias-aware, normalized and typo-tolerant taxonomy search for web and mobile. |
 | 2026-11-13 12:44 | Amit | Modified: F-TAX-03 and F-RFQ-04 fulfillment mapping | Record the chosen category-config mapping and the goods-RFQ purchase-order rule without changing phase scope. |
 | 2026-11-13 11:16 | Amit | Modified: F-DSC-02 universal search scope | D-025 defines the public and caller-authorized private resource types and their visibility rules. |
 | 2026-11-12 13:45 | Sahil Soni | Modified: F-BIZ-05 description | Buying moved fully into Customer mode on web and mobile (D-022). |
