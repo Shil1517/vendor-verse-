@@ -6,6 +6,7 @@ import { useApp } from '../store.jsx'
 import { useNav } from '../nav.jsx'
 import { CATS, cat, MY_LOC } from '../data.jsx'
 import { lookupPin, GEO, country, LAUNCH_LABEL, CUR, INDUSTRIES, LAUNCH_CATS, ROADMAP, ARCH, PHASES } from '../globaldata.jsx'
+import { searchIndustries } from '../../../packages/shared/taxonomy-search.js'
 import {
   Screen, Card, Section, Button, Thumb, Chips, Segmented, Sheet, Input, Select, Badge, Banner, EmptyState, cx, Pill, ListRow, Group, PhaseTag, PhaseBanner, StatusBadge, HBar,
 } from '../ui.jsx'
@@ -93,7 +94,7 @@ export function Categories() {
   const nav = useNav()
   const { catRequests } = useApp()
   const [q, setQ] = useState('')
-  const list = INDUSTRIES.filter((i) => !q || (i.name + ' ' + i.subs.join(' ')).toLowerCase().includes(q.toLowerCase()))
+  const list = searchIndustries(INDUSTRIES, q)
   const total = INDUSTRIES.reduce((s, i) => s + i.cats, 0)
   const approved = catRequests.filter((c) => c.status === 'approved')
   return (
@@ -102,10 +103,11 @@ export function Categories() {
       <Banner tone="blue" title="All 30 industries are live to browse">Subcategory names and category counts are representative examples. Listing and RFQ workflows remain configured for the existing 10 industry groups; supply-building focuses on {LAUNCH_CATS.length} priority groups.</Banner>
       {approved.length > 0 && <Section title="Newly added by the community">{approved.map((c) => <Card key={c.id} className="!p-3.5"><p className="flex items-center gap-2 text-sm font-bold"><Sparkles size={15} className="text-amber-500" />{c.name}</p><p className="text-xs text-ink-500">in {c.parent} · {c.votes} requests</p></Card>)}</Section>}
       <div className="space-y-2.5">
-        {list.map((i) => (
+        {list.map(({ industry: i, matchedSubcategories }) => (
           <Card key={i.id} className="!p-3.5">
             <div className="flex items-center gap-3"><Thumb tone={i.tone} icon={i.icon} size={46} round="rounded-xl" /><div className="min-w-0 flex-1"><p className="text-sm font-bold leading-snug">{i.name}</p><p className="text-xs text-ink-500">{i.cats} sample categories · {i.subs.length} examples</p></div><Badge tone="green">Live</Badge></div>
             <div className="mt-3 border-t border-ink-100 pt-3">
+              {matchedSubcategories.length > 0 && <p className="mb-2 text-xs font-semibold text-brand-700">Matched: {matchedSubcategories.join(', ')}</p>}
               <p className="mb-2 text-xs font-semibold text-ink-500">Example subcategories</p>
               <div className="flex flex-wrap gap-1.5">{i.subs.map((s) => <Pill key={s}>{s}</Pill>)}</div>
               {i.cat ? <Button size="sm" className="mt-3" icon={ArrowRight} onClick={() => nav.go('c_category', { id: i.cat })}>See vendors</Button> : <p className="mt-3 text-xs text-ink-500">Browseable now; listing and RFQ workflows are not configured for this industry yet.</p>}
