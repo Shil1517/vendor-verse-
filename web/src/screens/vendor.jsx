@@ -1010,7 +1010,7 @@ export function VendorRegister({ params = {} }) {
   const { me, setMe, vendors, setVendors, notify, toast, stamp } = useApp()
   const existing = me.role === 'vendor' ? vendors.find((v) => v.id === me.vendorId) : null
   const [step, setStep] = useState(0)
-  const [f, setF] = useState({ name: params.name || me.biz || existing?.name || '', owner: me.name || '', vendorType: params.vendorType || existing?.vendorType || 'service_provider', cat: params.cat || 'elec', gstin: '', pan: '', email: '', years: '2020', areas: ['Jaipur'], branches: ['Main outlet â€” Jaipur'], certifications: '' })
+  const [f, setF] = useState({ country: params.country || 'IN', name: params.name || me.biz || existing?.name || '', owner: me.name || '', vendorType: params.vendorType || existing?.vendorType || 'service_provider', cat: params.cat || 'elec', gstin: '', pan: '', email: '', years: '2020', areas: ['Jaipur'], branches: ['Main outlet â€” Jaipur'], moq: '', certifications: '' })
   // D-023: one or more vendor roles; the first is the primary role the backend stores as business type
   const [roles, setRoles] = useState(params.businessType ? [params.businessType, ...(params.roleCodes || [])] : [existing?.businessType || (f.vendorType === 'manufacturer_supplier' ? 'MANUFACTURER' : 'SERVICE_PROVIDER')])
   const goodsRole = roles.some((r) => VENDOR_ROLES[r]?.offer === 'products')
@@ -1030,9 +1030,9 @@ export function VendorRegister({ params = {} }) {
     const e = {}
     if (step === 0) {
       if (f.name.trim().length < 3) e.name = 'Enter your business name'
-      if (!/^\d{2}[A-Z]{5}\d{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/.test(f.gstin.toUpperCase())) e.gstin = 'Enter a valid 15-character GSTIN (e.g. 08ABCPS1234F1Z5)'
-      if (!/^[A-Z]{5}\d{4}[A-Z]$/.test(f.pan.toUpperCase())) e.pan = 'Enter a valid PAN (e.g. ABCPS1234F)'
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(f.email)) e.email = 'Enter a valid business email'
+      if (f.gstin.trim() && !/^\d{2}[A-Z]{5}\d{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/.test(f.gstin.toUpperCase())) e.gstin = 'Enter a valid 15-character GSTIN (e.g. 08ABCPS1234F1Z5)'
+      if (f.pan.trim() && !/^[A-Z]{5}\d{4}[A-Z]$/.test(f.pan.toUpperCase())) e.pan = 'Enter a valid PAN (e.g. ABCPS1234F)'
+      if (f.email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(f.email)) e.email = 'Enter a valid business email'
       if (!roles.length) e.roles = 'Choose at least one vendor role'
     }
     if (step === 1) { if (!f.areas.length) e.areas = 'Select at least one service area'; if (!f.branches.length) e.branches = 'Add at least one branch / outlet' }
@@ -1047,7 +1047,7 @@ export function VendorRegister({ params = {} }) {
     let vendorId = 'v-new'
     if (authService.isRemote && !created.current) {
       setBusy(true)
-      const result = await authService.createVendor({ registrationCountry: params.country || 'IN', businessType: roles[0], roleCodes: roles.slice(1), legalName: f.name.trim() })
+      const result = await authService.createVendor({ registrationCountry: f.country, businessType: roles[0], roleCodes: roles.slice(1), legalName: f.name.trim() })
       setBusy(false)
       if (!result.ok) return toast(result.message, 'warn')
       if (!result.vendor?.id) return toast('Vendor was created without an ID; reload and contact support before continuing.', 'warn')
@@ -1055,7 +1055,7 @@ export function VendorRegister({ params = {} }) {
       created.current = true
       await authService.switchMode?.('VENDOR') // remember vendor mode so the next sign-in opens the vendor workspace
     }
-    const rec = { id: vendorId, name: f.name, owner: f.owner, vendorType, businessType: roles[0], roles: roles.map((code) => ({ code, status: 'pending' })), cat: f.cat, city: f.areas[0], areas: f.areas, branches: f.branches.length, rating: 0, reviews: 0, status: authService.isRemote ? 'pending' : 'submitted', tone: cat(f.cat).tone, since: +f.years, gstin: f.gstin.toUpperCase(), phone: me.phone || (authService.isRemote ? '' : '+91 98290 00099'), email: f.email, plan: 'Starter', certifications: f.certifications, docs: authService.isRemote ? [] : docList.map((d) => ({ name: d, status: 'pending' })), history: authService.isRemote ? [] : [{ s: 'submitted', at: stamp(), by: f.owner }] }
+    const rec = { id: vendorId, name: f.name, owner: f.owner, vendorType, businessType: roles[0], roles: roles.map((code) => ({ code, status: 'pending' })), cat: f.cat, country: f.country, city: f.areas[0], areas: f.areas, branches: f.branches.length, moq: f.moq, rating: 0, reviews: 0, status: authService.isRemote ? 'pending' : 'submitted', tone: cat(f.cat).tone, since: +f.years, gstin: f.gstin.toUpperCase(), phone: me.phone || (authService.isRemote ? '' : '+91 98290 00099'), email: f.email, plan: 'Starter', certifications: f.certifications, docs: authService.isRemote ? [] : docList.map((d) => ({ name: d, status: 'pending' })), history: authService.isRemote ? [] : [{ s: 'submitted', at: stamp(), by: f.owner }] }
     setVendors((vs) => [rec, ...vs.filter((x) => x.id !== vendorId && x.id !== 'v-new')])
     const fromCustomer = me.role === 'customer'
     setMe({ ...me, role: fromCustomer ? 'vendor' : me.role, loggedIn: true, guest: false, vendorId, vendorName: f.name, customerName: fromCustomer ? me.name : me.customerName, hasVendorAccount: true, buyerMode: false })
@@ -1068,26 +1068,29 @@ export function VendorRegister({ params = {} }) {
       <Stepper steps={['Business', 'Locations', 'Documents', 'Review']} current={step} />
       {step === 0 && (
         <div className="space-y-4">
+          <Select label="Business country" value={f.country} onChange={set('country')} options={[{ value: 'IN', label: 'India' }]} hint="More countries will be added as markets open." />
           <Input label="Business name" required value={f.name} onChange={set('name')} error={errs.name} />
           <Input label="Owner / authorised person" value={f.owner} onChange={set('owner')} />
           <div><p className="mb-2 text-[13px] font-semibold text-ink-700">Your vendor roles</p><Chips multi value={roles} onChange={(v) => { setRoles(v); setDocs({}); setErrs({ ...errs, roles: '' }) }} options={Object.entries(VENDOR_ROLES).map(([id, r]) => ({ id, label: r.label }))} />{errs.roles && <p className="mt-1 text-xs font-medium text-red-600">{errs.roles}</p>}<p className="mt-1.5 text-xs text-ink-500">Pick every role that applies. A role is shown publicly only after it is verified, and you submit only the documents your roles require.</p></div>
           <Select label="Primary category" value={f.cat} onChange={set('cat')} options={CATS.map((c) => ({ value: c.id, label: c.name }))} />
-          <Input label="GSTIN" required placeholder="08ABCPS1234F1Z5" maxLength={15} value={f.gstin} onChange={(e) => set('gstin')(e.target.value.toUpperCase())} error={errs.gstin} />
-          <Input label="PAN" required placeholder="ABCPS1234F" maxLength={10} value={f.pan} onChange={(e) => set('pan')(e.target.value.toUpperCase())} error={errs.pan} />
-          <Input label="Business email" required type="email" value={f.email} onChange={set('email')} error={errs.email} />
+          {goodsRole && <Input label="Minimum order quantity (optional)" value={f.moq} onChange={set('moq')} placeholder="e.g. 100 units" hint="Shown to buyers on relevant product listings." />}
+          <Input label="GSTIN (optional)" placeholder="08ABCPS1234F1Z5" maxLength={15} value={f.gstin} onChange={(e) => set('gstin')(e.target.value.toUpperCase())} error={errs.gstin} />
+          <Input label="PAN (optional)" placeholder="ABCPS1234F" maxLength={10} value={f.pan} onChange={(e) => set('pan')(e.target.value.toUpperCase())} error={errs.pan} />
+          <Input label="Business email (optional)" type="email" value={f.email} onChange={set('email')} error={errs.email} />
           <Input label={goodsRole ? 'Product certifications / standards' : 'Service licences / certifications'} value={f.certifications} onChange={set('certifications')} placeholder={goodsRole ? 'e.g. ISO, BIS, export certificates' : 'e.g. trade licence, safety certification'} />
           <Select label="Operating since" value={f.years} onChange={set('years')} options={Array.from({ length: 15 }, (_, i) => String(2026 - i))} />
         </div>
       )}
       {step === 1 && (
         <div className="space-y-4">
-          <div><p className="mb-2 text-[13px] font-semibold text-ink-700">Service areas</p><Chips scroll={false} multi value={f.areas} onChange={set('areas')} options={['Jaipur', 'Delhi NCR', 'Ajmer', 'Sikar', 'Jodhpur', 'Kota']} />{errs.areas && <p className="mt-1.5 text-xs font-medium text-red-600">{errs.areas}</p>}</div>
+          <div><p className="mb-2 text-[13px] font-semibold text-ink-700">{goodsRole ? 'Delivery regions' : 'Service areas'}</p><Chips scroll={false} multi value={f.areas} onChange={set('areas')} options={['Jaipur', 'Delhi NCR', 'Ajmer', 'Sikar', 'Jodhpur', 'Kota']} />{errs.areas && <p className="mt-1.5 text-xs font-medium text-red-600">{errs.areas}</p>}<p className="mt-1.5 text-xs text-ink-500">{goodsRole ? 'Where you can deliver or distribute.' : 'Cities and radius you serve.'}</p></div>
           <div>
             <p className="mb-2 text-[13px] font-semibold text-ink-700">Branches / outlets</p>
             <div className="space-y-2">{f.branches.map((b) => <div key={b} className="flex items-center gap-3 rounded-xl bg-white p-3 ring-1 ring-inset ring-ink-200"><MapPin size={17} className="text-brand-600" /><span className="flex-1 text-sm font-medium">{b}</span><button aria-label="Remove" onClick={() => setF({ ...f, branches: f.branches.filter((x) => x !== b) })}><X size={17} className="text-ink-400" /></button></div>)}</div>
             <div className="mt-2 flex gap-2"><input value={br} onChange={(e) => setBr(e.target.value)} placeholder="Add branch address" className="h-11 flex-1 rounded-xl bg-white px-3.5 text-sm outline-none ring-1 ring-inset ring-ink-200 focus:ring-2 focus:ring-brand-500" /><Button variant="soft" onClick={() => { if (br.trim()) { setF({ ...f, branches: [...f.branches, br.trim()] }); setBr('') } }}>Add</Button></div>
             {errs.branches && <p className="mt-1.5 text-xs font-medium text-red-600">{errs.branches}</p>}
           </div>
+          {!goodsRole && <Banner tone="blue">Bookings need an availability calendar. You can set it after verification.</Banner>}
         </div>
       )}
       {step === 2 && (
@@ -1101,7 +1104,7 @@ export function VendorRegister({ params = {} }) {
       )}
       {step === 3 && (
         <div className="space-y-4">
-          <Card><KV rows={ [['Business', f.name], ['Vendor roles', roles.map((r) => VENDOR_ROLES[r]?.label || r).join(', ')], ['Category', cat(f.cat).name], ['GSTIN', f.gstin.toUpperCase()], ['PAN', f.pan.toUpperCase()], ['Coverage', f.areas.join(', ')], ['Branches', f.branches.length], ['Certifications', f.certifications || 'To be reviewed'], ['Documents', authService.isRemote ? 'Upload from verification after profile creation' : `${Object.values(docs).filter(Boolean).length}/4 uploaded`]]} /></Card>
+          <Card><KV rows={ [['Country', f.country === 'IN' ? 'India' : f.country], ['Business', f.name], ['Vendor roles', roles.map((r) => VENDOR_ROLES[r]?.label || r).join(', ')], ['Category', cat(f.cat).name], ...(goodsRole ? [['Minimum order quantity', f.moq || 'To be decided']] : []), ['GSTIN', f.gstin.toUpperCase() || 'Not provided'], ['PAN', f.pan.toUpperCase() || 'Not provided'], ['Business email', f.email || 'Not provided'], ['Coverage', f.areas.join(', ')], ['Branches', f.branches.length], ['Certifications', f.certifications || 'To be reviewed'], ['Documents', authService.isRemote ? 'Upload from verification after profile creation' : `${Object.values(docs).filter(Boolean).length}/${docList.length} uploaded`]]} /></Card>
           <Banner tone="amber" title="What happens next">Super Admin reviews your application and will approve, reject with a reason, or request more information. You will not be shown as Verified until approved.</Banner>
           <div><Checkbox checked={consent} onChange={(v) => { setConsent(v); setErrs({}) }}>I confirm the details are accurate and consent to VendorVerse verifying my documents.</Checkbox>{errs.consent && <p className="mt-1 text-xs font-medium text-red-600">{errs.consent}</p>}</div>
         </div>

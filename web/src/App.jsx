@@ -108,7 +108,7 @@ function ScreenHost({ onMenu }) {
   const FORM_IDS = ['c_book_new', 'c_book_instant', 'c_book_series', 'c_book_modify', 'c_booking_done', 'c_rfq_new', 'c_rfq_edit', 'c_rfq_none', 'c_rfq_goods', 'c_order_new', 'c_order_exc', 'c_review', 'c_review_no', 'c_report', 'c_profile_edit', 'c_settings', 'c_notif_prefs', 'c_delete', 'c_export', 'c_sessions', 'c_contact_share', 'c_location', 'c_location_wait', 'c_cat_suggest', 'c_contract_new', 'c_company_order', 'acct_state', 'ui_states', 'v_register']
   const formRoute = FORM_IDS.includes(nav.id) || (!customerRoute && !workspaceRoute && !agentWorkspaceRoute && !adminWorkspaceRoute && !['auth'].includes(reg.role) && !['v_explore', 'vb_explore', 'c_explore_suppliers', 'messages', 'chat', 'ad_vendors', 'ad_listings', 'ad_cases', 'ad_agents', 'ad_categories', 'ad_audit', 'ad_customers', 'ad_analytics', 'ad_coupons'].includes(nav.id))
   return (
-    <div key={nav.depth + nav.id} className={cx('h-full min-w-0', formRoute && 'vv-form-route', nav.dir === 'push' ? 'animate-slide-in' : 'animate-fade-in', customerRoute && 'vv-customer-route', customerPortalRoute && 'vv-customer-portal', ['c_explore', 'v_explore'].includes(nav.id) && 'vv-explore-route', nav.id === 'v_dash' && 'vv-vendor-dashboard-route', workspaceRoute && 'vv-vendor-workspace-route', businessWorkspaceRoute && 'vv-business-workspace-route', agentWorkspaceRoute && 'vv-agent-route', adminWorkspaceRoute && 'vv-admin-route', ['v_profile', 'v_reviews', 'v_verify', 'v_perf'].includes(nav.id) && 'vv-vendor-detail-route', vendorMessagesRoute && 'vv-vendor-message-route')}>
+    <div key={nav.depth + nav.id} className={cx('h-full min-w-0', formRoute && 'vv-form-route', nav.id === 'v_register' && 'vv-vendor-register-route', nav.dir === 'push' ? 'animate-slide-in' : 'animate-fade-in', customerRoute && 'vv-customer-route', customerPortalRoute && 'vv-customer-portal', ['c_explore', 'v_explore'].includes(nav.id) && 'vv-explore-route', nav.id === 'v_dash' && 'vv-vendor-dashboard-route', workspaceRoute && 'vv-vendor-workspace-route', businessWorkspaceRoute && 'vv-business-workspace-route', agentWorkspaceRoute && 'vv-agent-route', adminWorkspaceRoute && 'vv-admin-route', ['v_profile', 'v_reviews', 'v_verify', 'v_perf'].includes(nav.id) && 'vv-vendor-detail-route', vendorMessagesRoute && 'vv-vendor-message-route')}>
       {workspaceRoute ? <VendorWorkspace variant={businessWorkspaceRoute ? 'business' : 'vendor'} header={businessWorkspaceRoute ? ({ onWorkspaceToggle, mobile, mobileOpen, collapsed }) => <WebHeader onMenu={onMenu} hideTabs workspaceHeader blueBrand workspaceToggle={onWorkspaceToggle} workspaceMobile={mobile} workspaceMobileOpen={mobileOpen} workspaceCollapsed={collapsed} /> : undefined}><C params={nav.params || {}} /></VendorWorkspace> : <C params={nav.params || {}} />}
     </div>
   )
@@ -221,7 +221,7 @@ function SpecPanel() {
   )
 }
 
-function WebHeader({ onMenu, hideTabs, workspaceHeader = false, workspaceTheme = false, blueBrand = false, workspaceToggle, workspaceMobile = false, workspaceMobileOpen = false, workspaceCollapsed = false }) {
+function WebHeader({ onMenu, hideTabs, workspaceHeader = false, workspaceTheme = false, blueBrand = false, workspaceToggle, workspaceMobile = false, workspaceMobileOpen = false, workspaceCollapsed = false, marketplaceCategories = true, marketplaceAnnouncement = true }) {
   const nav = useNav()
   const { lang, setLang, locale, setLocale, me, setMe, t } = useApp()
   const [locationOpen, setLocationOpen] = useState(false)
@@ -238,7 +238,7 @@ function WebHeader({ onMenu, hideTabs, workspaceHeader = false, workspaceTheme =
   const changeCurrency = (currency) => changeCountry(({ INR: 'India', AED: 'United Arab Emirates', GBP: 'United Kingdom' })[currency])
   return (
     <header className={cx('sticky top-0 z-40 shrink-0 border-b border-ink-200 bg-white/95 shadow-[0_2px_10px_rgba(20,40,75,.04)] backdrop-blur', workspaceHeader && 'vv-workspace-global-header', mockMarketplaceHeader && 'vv-mock-global-header')}>
-      {mockMarketplaceHeader && <div className="vv-mock-announcement">Discover and work with verified vendors worldwide.</div>}
+      {mockMarketplaceHeader && marketplaceAnnouncement && <div className="vv-mock-announcement">Discover and work with verified vendors worldwide.</div>}
       <div className="mx-auto flex h-[72px] max-w-[1600px] items-center gap-3 px-4 sm:px-7 lg:px-10">
         {mockMarketplaceHeader ? <>
           <button onClick={() => nav.reset('c_home')} className="vv-mock-brand" aria-label="VendorVerse home"><span className="vv-mock-wordmark">VENDOR<span>VERSE</span></span><span className="vv-mock-brand-tagline">Global Marketplace · products · services · quotes</span></button>
@@ -246,9 +246,8 @@ function WebHeader({ onMenu, hideTabs, workspaceHeader = false, workspaceTheme =
           <div className="vv-mock-header-controls">
             <label className="vv-mock-header-select vv-mock-location"><MapPin size={16}/><select aria-label="Location" value={localeCountry} onChange={(e) => changeCountry(e.target.value)}>{Object.keys(countryLabel).map((country) => <option key={country} value={country}>{countryLabel[country]}</option>)}</select></label>
             <select className="vv-mock-header-select" aria-label="Language" value={headerLanguage} onChange={(e) => { const value = e.target.value; setHeaderLanguage(value); if (value !== 'ar') setLang(value); document.documentElement.dir = value === 'ar' ? 'rtl' : 'ltr' }}><option value="en">English</option><option value="hi">हिन्दी</option><option value="ar">العربية</option></select>
-            <select className="vv-mock-header-select" aria-label="Currency" value={locale.currency || 'INR'} onChange={(e) => changeCurrency(e.target.value)}><option value="INR">INR</option><option value="AED">AED</option><option value="GBP">GBP</option></select>
-            <button className="vv-mock-header-link" onClick={() => nav.go('v_register')}>Become a vendor</button>
-            {!me.loggedIn ? <><button className="vv-mock-header-link" onClick={() => setAuthDialog('signin')}>Sign in</button><button className="vv-mock-header-primary" onClick={() => setAuthDialog('signup')}>Sign up</button></> : <button className="vv-mock-header-link" onClick={() => nav.go('c_profile')}>My account</button>}
+            <button onClick={() => nav.go('notifications')} className="vv-mock-header-notifications" aria-label="Notifications" title="Notifications"><Bell size={19} /></button>
+            {!me.loggedIn ? <button className="vv-mock-header-primary" onClick={() => setAuthDialog('signup')}>Get started</button> : <button className="vv-mock-header-link" onClick={() => nav.go('c_profile')}>My account</button>}
           </div>
         </> : <>
           <button onClick={() => nav.reset(HOME[me.role || 'customer'])} className="flex shrink-0 items-center gap-2.5 rounded-xl text-left" aria-label="VendorVerse home"><Logo size={42} blue={blueBrand} /><span className="hidden lg:block"><span className="block text-[18px] font-black leading-tight tracking-tight text-ink-900">VendorVerse</span><span className="block text-[11px] font-medium text-ink-500">Global Marketplace · products · services · quotes</span></span></button>
@@ -267,7 +266,7 @@ function WebHeader({ onMenu, hideTabs, workspaceHeader = false, workspaceTheme =
         </div>
         </>}
       </div>
-      {mockMarketplaceHeader && <nav className="vv-mock-category-nav" aria-label="Categories">{['New vendors', 'Home services', 'Construction', 'Events', 'Professional services', 'IT and digital', 'Wholesale and industrial', 'Manufacturing and supply', 'Logistics'].map((category, index) => <button key={category} className={index === 0 ? 'is-featured' : ''} onClick={() => index === 0 ? nav.go('c_explore', { mode: 'vendors' }) : nav.go('c_explore', { q: category })}>{category}</button>)}</nav>}
+      {mockMarketplaceHeader && marketplaceCategories && <nav className="vv-mock-category-nav" aria-label="Categories">{['New vendors', 'Home services', 'Construction', 'Events', 'Professional services', 'IT and digital', 'Wholesale and industrial', 'Manufacturing and supply', 'Logistics'].map((category, index) => <button key={category} className={index === 0 ? 'is-featured' : ''} onClick={() => index === 0 ? nav.go('c_explore', { mode: 'vendors' }) : nav.go('c_explore', { q: category })}>{category}</button>)}</nav>}
       <div className="sr-only" aria-live="polite">{screen.title}</div>
       {authDialog && <MarketplaceAuthDialog mode={authDialog} onClose={() => setAuthDialog(null)} onChangeMode={setAuthDialog} />}
     </header>
@@ -393,7 +392,7 @@ function Shell() {
       {showAgentSidebar && <AgentSidebar collapsed={agentSidebarCollapsed} onToggle={() => setAgentSidebarCollapsed((value) => !value)} onNavigate={(id) => nav.reset(id)} onLogout={agentLogout} me={me} t={t} activeId={nav.id} />}
       {showAdminSidebar && <AdminSidebar collapsed={adminSidebarCollapsed} onToggle={() => setAdminSidebarCollapsed((value) => !value)} onNavigate={jump} onLogout={adminLogout} me={me} t={t} activeId={nav.id} />}
       <div className={cx('flex min-h-0 min-w-0 flex-1 flex-col', showAgentSidebar && 'vv-agent-main', showAdminSidebar && 'vv-admin-main')}>
-        {!showVendorWorkspace && !customerPortalRoute && <WebHeader onMenu={() => setDrawer(true)} hideTabs={showAgentSidebar || showAdminSidebar} blueBrand={showAgentSidebar} workspaceTheme={showAgentSidebar} />}
+        {!showVendorWorkspace && (!customerPortalRoute || ['c_profile', 'c_profile_edit', 'c_dash', 'c_activity', 'c_saved', 'c_orders'].includes(nav.id)) && <WebHeader onMenu={() => setDrawer(true)} hideTabs={showAgentSidebar || showAdminSidebar} blueBrand={showAgentSidebar} workspaceTheme={showAgentSidebar} marketplaceCategories={!['c_profile', 'c_profile_edit', 'c_dash', 'c_activity', 'c_saved', 'c_orders', 'v_register'].includes(nav.id)} marketplaceAnnouncement={!['c_profile', 'c_profile_edit', 'c_dash', 'c_activity', 'c_saved', 'c_orders', 'v_register'].includes(nav.id)} />}
         <main className={cx('relative flex min-h-0 flex-1 flex-col bg-white', showAgentSidebar && 'vv-agent-main-content')}>
           <Phone frame={false} scale={1} web={desktop} onMenu={() => setDrawer(true)} />
         </main>

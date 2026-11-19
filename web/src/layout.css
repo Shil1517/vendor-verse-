@@ -29,6 +29,8 @@
 .vv-mock-header-spacer { flex:1; }
 .vv-mock-header-controls { display:flex; align-items:center; gap:8px; white-space:nowrap; }
 .vv-mock-header-select { min-height:42px; padding:0 10px; border:0; border-radius:10px; outline:none; background:#fff; color:#0e1b2c; font:600 14px "DM Sans",system-ui,sans-serif; }
+.vv-mock-header-notifications { display:grid; width:40px; height:40px; place-items:center; border:0; border-radius:10px; background:transparent; color:#0e1b2c; cursor:pointer; }
+.vv-mock-header-notifications:hover { background:#f7f4ee; color:#8a6420; }
 .vv-mock-header-select:focus-visible,.vv-mock-header-link:focus-visible,.vv-mock-header-primary:focus-visible { outline:2px solid #8a6420; outline-offset:2px; }
 .vv-mock-location { display:flex; align-items:center; gap:5px; color:#0e1b2c; }
 .vv-mock-location select { max-width:135px; border:0; outline:0; background:transparent; color:#0e1b2c; font:600 14px "DM Sans",system-ui,sans-serif; }

@@ -208,7 +208,10 @@ export function Otp({ params, embedded = false, onComplete }) {
       } else if (role === 'vendor') {
         setMe({ role: 'vendor', loggedIn: true, guest: false, vendorId: 'v-new', name: name || 'New Vendor', biz, phone: contact, isNew: true })
         toast('Account created. Tell us what kind of vendor you are.')
-        finish('v_register_type', { biz })
+        // All vendor entry points use the canonical four-step registration
+        // wizard. The older type-specific screens remain available only as
+        // legacy previews and are no longer part of signup onboarding.
+        finish('v_register', { biz })
       } else {
         setMe({ role: 'customer', loggedIn: true, guest: false, vendorId: 'v-me', name: name || ME.customer, phone: contact })
         toast('Welcome to VendorVerse!')

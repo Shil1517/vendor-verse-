@@ -7,6 +7,71 @@
 }
 .vv-customer-route.vv-customer-portal { background: #f5f5f4; }
 .vv-customer-portal .vv-screen-scroll { background: #f5f5f4 !important; }
+.vv-customer-portal .vv-screen-layout > header { background: #fff; border-color: #e4ddd0; }
+.vv-customer-portal .vv-screen-layout > header h1 { color: #0e1b2c; font-family: "Bricolage Grotesque", "Figtree", sans-serif; letter-spacing: -.025em; }
+.vv-customer-portal .vv-screen-scroll > div:not(.vv-profile-page):not(.vv-profile-edit-page) { width: min(100% - 48px, 1120px); padding-top: 30px; padding-bottom: 48px; color: #0e1b2c; font-family: "Figtree", "DM Sans", "Segoe UI", system-ui, sans-serif; }
+.vv-customer-portal .vv-screen-scroll .text-brand-700,.vv-customer-portal .vv-screen-scroll .text-brand-800 { color: #8a6420; }
+.vv-customer-portal .vv-screen-scroll .bg-brand-600 { background-color: #0e1b2c; }
+.vv-customer-portal .vv-screen-scroll .bg-brand-50 { background-color: #f7f4ee; }
+.vv-customer-portal .vv-screen-scroll .ring-brand-500,.vv-customer-portal .vv-screen-scroll .ring-brand-600 { --tw-ring-color: #cbb486; }
+
+/* Customer account: carry the marketplace's warm editorial style into the
+   signed-in experience, while keeping all controls and routes unchanged. */
+.vv-profile-screen-header { display: none; }
+.vv-customer-portal .vv-screen-scroll > .vv-profile-page { width: min(100% - 48px, 1120px); padding: 46px 0 54px; }
+.vv-profile-page,.vv-profile-edit-page { color: #0e1b2c; font-family: "Figtree", "DM Sans", "Segoe UI", system-ui, sans-serif; }
+.vv-vendor-register-route { color: #0e1b2c; font-family: "Figtree", "DM Sans", "Segoe UI", system-ui, sans-serif; }
+.vv-vendor-register-route .vv-screen-scroll { background: #f5f7f6; }
+.vv-vendor-register-route .vv-screen-scroll > div { width: min(100% - 48px, 880px) !important; padding-top: 18px !important; padding-bottom: 34px !important; }
+.vv-vendor-register-route .vv-screen-layout > header { background: #fff; border-color: #e4ddd0; }
+.vv-vendor-register-route .vv-screen-layout > header h1 { font-family: "Bricolage Grotesque", "Figtree", sans-serif; letter-spacing: -.02em; }
+.vv-vendor-register-route .space-y-4 { gap: 12px !important; }
+.vv-vendor-register-route .space-y-3 { gap: 9px !important; }
+.vv-vendor-register-route input,.vv-vendor-register-route select { height: 42px !important; }
+.vv-vendor-register-route textarea { min-height: 54px; }
+.vv-vendor-register-route .vv-screen-scroll > div > .space-y-4 > div > p,
+.vv-vendor-register-route .vv-screen-scroll > div > .space-y-4 > div > div > p { margin-bottom: 6px; }
+.vv-vendor-register-route .vv-screen-layout > .shrink-0.border-t { padding-top: 9px; padding-bottom: 9px; }
+/* Registration uses the marketplace's ink/gold palette rather than the
+   product-wide green action colour. */
+.vv-vendor-register-route .bg-brand-600 { background-color: #0e1b2c !important; }
+.vv-vendor-register-route .hover\:bg-brand-700:hover { background-color: #8a6420 !important; }
+.vv-vendor-register-route .text-brand-700,.vv-vendor-register-route .text-brand-800 { color: #0e1b2c !important; }
+.vv-vendor-register-route .bg-brand-50 { background-color: #f7f4ee !important; }
+.vv-vendor-register-route .ring-brand-500,.vv-vendor-register-route .ring-brand-600 { --tw-ring-color: #8a6420 !important; }
+.vv-vendor-register-route .border-brand-200,.vv-vendor-register-route .border-brand-300 { border-color: #d9c79e !important; }
+.vv-profile-hero { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 14px 18px; border: 1px solid #e4ddd0; border-radius: 18px; background: linear-gradient(115deg, #fff 0%, #fbf8f2 100%); box-shadow: 0 12px 32px rgba(14, 27, 44, .06); }
+.vv-profile-eyebrow { margin: 0 0 5px; color: #8a6420; font-size: 10px; font-weight: 800; letter-spacing: .14em; }
+.vv-profile-identity { display: flex; align-items: center; gap: 11px; }
+.vv-profile-identity h1,.vv-profile-section-heading h2,.vv-profile-vendor-callout h2 { margin: 0; font-family: "Bricolage Grotesque", "Figtree", "Segoe UI", sans-serif; font-weight: 700; letter-spacing: -.035em; }
+.vv-profile-identity h1 { font-size: clamp(21px, 2.2vw, 26px); line-height: 1.05; }
+.vv-profile-identity p { margin: 3px 0 0; color: #737b86; font-size: 14px; }
+.vv-profile-section { margin-top: 42px; }
+.vv-profile-section-heading { display: flex; align-items: end; justify-content: space-between; gap: 16px; margin-bottom: 15px; }
+.vv-profile-section-heading h2 { font-size: 25px; }
+.vv-profile-section-heading button { display: inline-flex; align-items: center; gap: 2px; padding: 6px 0; border: 0; background: none; color: #8a6420; font-size: 13px; font-weight: 700; }
+.vv-profile-section-heading button:hover { color: #0e1b2c; }
+.vv-profile-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.vv-profile-action { display: flex; min-height: 86px; align-items: center; gap: 14px; padding: 15px 18px; border: 1px solid #e8e2d8; border-radius: 18px; background: #fff; color: #0e1b2c; text-align: left; transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease; }
+.vv-profile-action:hover { transform: translateY(-2px); border-color: #cbb486; box-shadow: 0 12px 25px rgba(14, 27, 44, .08); }
+.vv-profile-action > span:nth-child(2) { min-width: 0; flex: 1; }
+.vv-profile-action b,.vv-profile-action small { display: block; }
+.vv-profile-action b { font-family: "Bricolage Grotesque", "Figtree", "Segoe UI", sans-serif; font-size: 15px; font-weight: 700; letter-spacing: -.015em; }
+.vv-profile-action small { margin-top: 4px; color: #737b86; font-size: 12px; font-weight: 500; }
+.vv-profile-action > svg { color: #adbaa9; }
+.vv-profile-action-icon { display: grid; width: 42px; height: 42px; flex: none; place-items: center; border-radius: 13px; }
+.vv-profile-action-icon.is-rose { background: #fff0f2; color: #df3857; }.vv-profile-action-icon.is-violet { background: #f3efff; color: #7443d5; }.vv-profile-action-icon.is-gold { background: #fcf7e9; color: #a87410; }.vv-profile-action-icon.is-sky { background: #edf7fd; color: #2576a5; }
+.vv-profile-columns { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; }
+.vv-profile-card-section { min-width: 0; }.vv-profile-card-section .vv-profile-section-heading { margin-bottom: 12px; }.vv-profile-card-section .vv-profile-section-heading h2 { font-size: 22px; }
+.vv-profile-card-section > div:last-child { border: 1px solid #e8e2d8; border-radius: 18px; overflow: hidden; box-shadow: 0 5px 18px rgba(14, 27, 44, .035); }
+.vv-profile-vendor-callout { display: flex; align-items: center; justify-content: space-between; gap: 26px; margin-top: 42px; padding: 28px 30px; border-radius: 22px; background: #0e1b2c; color: #fff; overflow: hidden; position: relative; }
+.vv-profile-vendor-callout::after { content: ""; position: absolute; right: -65px; top: -95px; width: 250px; height: 250px; border: 38px solid #8a6420; border-radius: 50%; opacity: .55; }
+.vv-profile-vendor-callout > * { position: relative; z-index: 1; }.vv-profile-vendor-callout .vv-profile-eyebrow { color: #e2c17d; }.vv-profile-vendor-callout h2 { font-size: 26px; }.vv-profile-vendor-callout p:not(.vv-profile-eyebrow) { max-width: 620px; margin: 7px 0 0; color: #dae0e6; font-size: 14px; }.vv-profile-vendor-callout > button { background: #fff; color: #0e1b2c; }.vv-profile-vendor-callout > button:hover { background: #efeae0; }
+.vv-profile-footer-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 18px; margin-top: 34px; }.vv-profile-footer-actions button { padding: 6px 0; border: 0; background: none; color: #737b86; font-size: 12px; font-weight: 600; }.vv-profile-footer-actions button:hover { color: #0e1b2c; }.vv-profile-footer-actions .is-danger { color: #ae3844; }.vv-profile-logout { display: inline-flex; align-items: center; gap: 6px; color: #0e1b2c !important; }.vv-profile-version { margin: 14px 0 0; color: #99a0a8; font-size: 11px; text-align: center; }
+.vv-customer-portal .vv-screen-scroll > .vv-profile-edit-page { width: min(100% - 48px, 880px); padding: 15px 0 28px; }
+.vv-profile-edit-intro { display: flex; align-items: center; gap: 10px; padding: 0 2px 9px; border-bottom: 1px solid #e4ddd0; }.vv-profile-edit-intro h1,.vv-profile-edit-section-heading h2 { margin: 0; font-family: "Bricolage Grotesque", "Figtree", "Segoe UI", sans-serif; font-weight: 700; letter-spacing: -.035em; color: #0e1b2c; }.vv-profile-edit-intro h1 { font-size: 22px; }.vv-profile-edit-intro p:not(.vv-profile-eyebrow) { max-width: 500px; margin: 1px 0 0; color: #737b86; font-size: 11px; }
+.vv-profile-edit-form { margin-top: 12px; padding: 15px 20px 17px; border: 1px solid #e4ddd0; border-radius: 18px; background: #fff; box-shadow: 0 12px 28px rgba(14, 27, 44, .045); }.vv-profile-edit-section-heading h2 { font-size: 19px; }.vv-profile-edit-section-heading.is-location { margin-top: 15px; padding-top: 14px; border-top: 1px solid #eee9e1; }.vv-profile-edit-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 14px; margin-top: 9px; }.vv-profile-edit-grid > :last-child:nth-child(odd) { grid-column: 1 / -1; }.vv-profile-edit-grid input,.vv-profile-edit-grid select { height: 38px !important; }.vv-profile-edit-grid textarea { min-height: 48px !important; padding-top: 6px; padding-bottom: 6px; }.vv-profile-edit-error { margin: 8px 0 0; border-radius: 10px; background: #fff1f2; padding: 6px 9px; color: #b42335; font-size: 12px; font-weight: 600; }.vv-profile-edit-save { display: flex; width: min(100%, 832px); margin-inline: auto; justify-content: flex-end; }.vv-profile-edit-save button { min-width: 170px; background: #0e1b2c; }.vv-profile-edit-save button:hover { background: #8a6420; }
+@media (max-width: 700px) { .vv-customer-portal .vv-screen-scroll > .vv-profile-page,.vv-customer-portal .vv-screen-scroll > .vv-profile-edit-page { width: 100%; padding: 25px 16px 35px; }.vv-profile-hero { align-items: flex-start; padding: 22px; }.vv-profile-identity { align-items: flex-start; gap: 13px; }.vv-profile-identity h1 { font-size: 25px; }.vv-profile-hero .vv-button { padding-inline: 10px; }.vv-profile-actions,.vv-profile-columns,.vv-profile-edit-grid { grid-template-columns: 1fr; }.vv-profile-section { margin-top: 31px; }.vv-profile-section-heading h2 { font-size: 22px; }.vv-profile-vendor-callout { align-items: flex-start; flex-direction: column; padding: 24px; }.vv-profile-vendor-callout h2 { font-size: 24px; }.vv-profile-vendor-callout::after { right: -116px; top: -112px; }.vv-profile-footer-actions { justify-content: flex-start; gap: 5px 15px; }.vv-profile-edit-intro { align-items: flex-start; gap: 14px; padding-bottom: 23px; }.vv-profile-edit-intro h1 { font-size: 27px; }.vv-profile-edit-form { margin-top: 23px; padding: 22px 18px 26px; }.vv-profile-edit-section-heading h2 { font-size: 21px; }.vv-profile-edit-save { justify-content: stretch; }.vv-profile-edit-save button { width: 100%; } }
 
 .vv-customer-route > .relative.flex.h-full.flex-col { min-width: 0; }
 .vv-customer-route .vv-screen-layout > header {

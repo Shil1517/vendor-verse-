@@ -37,7 +37,7 @@ export function MarketplaceAuthDialog({ mode, onClose, onChangeMode }) {
     const valid = loginMethod === 'email' ? isEmail(loginContact) : isPhone(phone)
     if (!valid) { setError(loginMethod === 'email' ? 'Enter a valid email address.' : 'Enter a valid 10-digit mobile number.'); return }
     const contact = loginMethod === 'email' ? loginContact.trim() : `${countryCode} ${phone}`
-    setOtpParams({ contact, role: 'customer', method: loginMethod })
+    setOtpParams({ contact, role: form.role, method: loginMethod })
   }
   const submitSignup = (event) => {
     event.preventDefault()
@@ -58,16 +58,17 @@ export function MarketplaceAuthDialog({ mode, onClose, onChangeMode }) {
     </div> : <div className="vv-market-auth-card">
       <button className="vv-market-auth-close" type="button" aria-label="Close" onClick={onClose}><X size={19}/></button>
       <div className="vv-market-auth-wordmark">VENDOR<span>VERSE</span></div>
-      <h2 id="vv-market-auth-title">{mode === 'signin' ? 'Welcome back' : 'Find and work with trusted vendors'}</h2>
+      <h2 id="vv-market-auth-title">{mode === 'signin' ? 'Welcome back' : 'Get started with VendorVerse'}</h2>
 
       {mode === 'signin' ? <form onSubmit={submitLogin}>
+        <div className="vv-market-auth-roles" role="group" aria-label="Account type"><button type="button" aria-pressed={form.role === 'customer'} className={form.role === 'customer' ? 'is-active' : ''} onClick={() => setForm((value) => ({ ...value, role: 'customer' }))}>Customer</button><button type="button" aria-pressed={form.role === 'vendor'} className={form.role === 'vendor' ? 'is-active' : ''} onClick={() => setForm((value) => ({ ...value, role: 'vendor' }))}>Vendor</button></div>
         <div className="vv-market-auth-switch" role="group" aria-label="Sign in method"><button type="button" className={loginMethod === 'email' ? 'is-active' : ''} onClick={() => { setLoginMethod('email'); setLoginContact(''); setError('') }}>Email</button><button type="button" className={loginMethod === 'phone' ? 'is-active' : ''} onClick={() => { setLoginMethod('phone'); setLoginContact(''); setError('') }}>Phone</button></div>
         {loginMethod === 'email' ? <label className="vv-market-auth-field"><b>Email</b><input type="email" autoComplete="email" autoFocus value={loginContact} onChange={(event) => { setLoginContact(event.target.value); setError('') }} placeholder="you@company.com" /></label> : <label className="vv-market-auth-field"><b>Mobile phone</b><span className="vv-market-auth-phone"><select aria-label="Country calling code" value={countryCode} onChange={(event) => setCountryCode(event.target.value)}>{CALLING_CODES.map(([code, country]) => <option key={code} value={code}>{country} {code}</option>)}</select><input inputMode="numeric" autoComplete="tel-national" maxLength={10} autoFocus value={loginContact} onChange={(event) => { setLoginContact(normalizePhone(event.target.value)); setError('') }} placeholder="98290 00001" /></span></label>}
         {error && <p className="vv-market-auth-error" role="alert">{error}</p>}
         <button className="vv-market-auth-submit" type="submit">Continue with OTP</button>
         <button className="vv-market-auth-google" type="button" onClick={() => toast('Google sign-in is not configured yet. Continue with an email or phone OTP.')}><GoogleMark/>Sign in with Google</button>
         <p className="vv-market-auth-note">We’ll send a one-time code to verify your account.</p>
-        <div className="vv-market-auth-links"><span>New to VendorVerse? <button type="button" onClick={() => onChangeMode('signup')}>Sign up</button></span><span>Are you a vendor? <button type="button" onClick={() => { setForm((value) => ({ ...value, role: 'vendor' })); onChangeMode('signup') }}>Sign up to sell</button></span></div>
+        <div className="vv-market-auth-links"><span>New to VendorVerse? <button type="button" onClick={() => onChangeMode('signup')}>Get started</button></span></div>
       </form> : <form onSubmit={submitSignup}>
         <div className="vv-market-auth-roles"><button type="button" aria-pressed={form.role === 'customer'} className={form.role === 'customer' ? 'is-active' : ''} onClick={() => setForm((value) => ({ ...value, role: 'customer' }))}>Customer</button><button type="button" aria-pressed={form.role === 'vendor'} className={form.role === 'vendor' ? 'is-active' : ''} onClick={() => setForm((value) => ({ ...value, role: 'vendor' }))}>Vendor</button></div>
         <label className="vv-market-auth-field"><b>Full name</b><input autoComplete="name" autoFocus value={form.name} onChange={update('name')} placeholder="Your name" /></label>
@@ -76,10 +77,10 @@ export function MarketplaceAuthDialog({ mode, onClose, onChangeMode }) {
         <label className="vv-market-auth-field"><b>Mobile phone</b><span className="vv-market-auth-phone"><select aria-label="Country calling code" value={countryCode} onChange={(event) => setCountryCode(event.target.value)}>{CALLING_CODES.map(([code, country]) => <option key={code} value={code}>{country} {code}</option>)}</select><input inputMode="numeric" autoComplete="tel-national" maxLength={10} value={form.phone} onChange={(event) => setForm((current) => ({ ...current, phone: normalizePhone(event.target.value) }))} placeholder="98290 00001" /></span></label>
         <label className="vv-market-auth-consent"><input type="checkbox" checked={form.agree} onChange={update('agree')}/><span>By proceeding, you agree to our <b>Terms</b> and <b>Privacy Policy</b>.</span></label>
         {error && <p className="vv-market-auth-error" role="alert">{error}</p>}
-        <button className="vv-market-auth-submit" type="submit">Sign up for free</button>
+        <button className="vv-market-auth-submit" type="submit">Create {form.role} account</button>
         <button className="vv-market-auth-google" type="button" onClick={() => toast('Google sign-up is not configured yet. Continue with an email or phone OTP.')}><GoogleMark/>Sign up with Google</button>
         <p className="vv-market-auth-note">We’ll verify your phone number with a one-time code.</p>
-        <div className="vv-market-auth-links"><span>Are you a vendor? <button type="button" onClick={() => setForm((value) => ({ ...value, role: 'vendor' }))}>Sign up to sell</button></span><span>Already have an account? <button type="button" onClick={() => onChangeMode('signin')}>Sign in</button></span></div>
+        <div className="vv-market-auth-links"><span>Have an account? <button type="button" onClick={() => onChangeMode('signin')}>Sign in</button></span></div>
       </form>}
     </div>}
   </dialog>
