@@ -10,6 +10,7 @@ import { pathForScreen, screenForLocation } from './screen-routes.js'
 import { Logo } from './screens/auth.jsx'
 import { VendorWorkspace } from './screens/vendor.jsx'
 import { ThemeToggle } from './components/ThemeToggle.jsx'
+import { MarketplaceAuthDialog } from './components/MarketplaceAuthDialog.jsx'
 import { FRS, NFR, MVP, PHASE2, ACCEPTANCE, DECISIONS, ROLE_TABLE } from './specs.js'
 import { cx } from './ui.jsx'
 import { ThemeProvider } from './hooks/useTheme.jsx'
@@ -224,12 +225,31 @@ function WebHeader({ onMenu, hideTabs, workspaceHeader = false, workspaceTheme =
   const { lang, setLang, locale, setLocale, me, setMe, t } = useApp()
   const [locationOpen, setLocationOpen] = useState(false)
   const [locationQuery, setLocationQuery] = useState('')
+  const [headerLanguage, setHeaderLanguage] = useState(lang)
+  const [authDialog, setAuthDialog] = useState(null)
   const screen = SCREENS[nav.id] || SCREENS.welcome
   const tabs = TABS[me.role || 'customer'] || TABS.customer
   const activeTab = nav.stack.slice().reverse().map((entry) => tabs.find((tab) => tab.id === entry.id)).find(Boolean)?.id || nav.id
+  const mockMarketplaceHeader = !workspaceHeader && !workspaceTheme && !blueBrand && (me.role === 'customer' || (!me.loggedIn && ['c_home', 'c_categories', 'c_category', 'c_explore', 'c_listing', 'c_vendor'].includes(nav.id)))
+  const countryLabel = { India: 'India', 'United Arab Emirates': 'UAE', 'United Kingdom': 'UK' }
+  const localeCountry = ['India', 'United Arab Emirates', 'United Kingdom'].includes(locale.countryName) ? locale.countryName : 'India'
+  const changeCountry = (countryName) => setLocale({ ...locale, ...COUNTRY_SETTINGS[countryName], ...LOCATION_PRESETS[countryName], countryName })
+  const changeCurrency = (currency) => changeCountry(({ INR: 'India', AED: 'United Arab Emirates', GBP: 'United Kingdom' })[currency])
   return (
-    <header className={cx('sticky top-0 z-40 shrink-0 border-b border-ink-200 bg-white/95 shadow-[0_2px_10px_rgba(20,40,75,.04)] backdrop-blur', workspaceHeader && 'vv-workspace-global-header')}>
+    <header className={cx('sticky top-0 z-40 shrink-0 border-b border-ink-200 bg-white/95 shadow-[0_2px_10px_rgba(20,40,75,.04)] backdrop-blur', workspaceHeader && 'vv-workspace-global-header', mockMarketplaceHeader && 'vv-mock-global-header')}>
+      {mockMarketplaceHeader && <div className="vv-mock-announcement">Discover and work with verified vendors worldwide.</div>}
       <div className="mx-auto flex h-[72px] max-w-[1600px] items-center gap-3 px-4 sm:px-7 lg:px-10">
+        {mockMarketplaceHeader ? <>
+          <button onClick={() => nav.reset('c_home')} className="vv-mock-brand" aria-label="VendorVerse home"><span className="vv-mock-wordmark">VENDOR<span>VERSE</span></span><span className="vv-mock-brand-tagline">Global Marketplace · products · services · quotes</span></button>
+          <div className="vv-mock-header-spacer" />
+          <div className="vv-mock-header-controls">
+            <label className="vv-mock-header-select vv-mock-location"><MapPin size={16}/><select aria-label="Location" value={localeCountry} onChange={(e) => changeCountry(e.target.value)}>{Object.keys(countryLabel).map((country) => <option key={country} value={country}>{countryLabel[country]}</option>)}</select></label>
+            <select className="vv-mock-header-select" aria-label="Language" value={headerLanguage} onChange={(e) => { const value = e.target.value; setHeaderLanguage(value); if (value !== 'ar') setLang(value); document.documentElement.dir = value === 'ar' ? 'rtl' : 'ltr' }}><option value="en">English</option><option value="hi">हिन्दी</option><option value="ar">العربية</option></select>
+            <select className="vv-mock-header-select" aria-label="Currency" value={locale.currency || 'INR'} onChange={(e) => changeCurrency(e.target.value)}><option value="INR">INR</option><option value="AED">AED</option><option value="GBP">GBP</option></select>
+            <button className="vv-mock-header-link" onClick={() => nav.go('v_register')}>Become a vendor</button>
+            {!me.loggedIn ? <><button className="vv-mock-header-link" onClick={() => setAuthDialog('signin')}>Sign in</button><button className="vv-mock-header-primary" onClick={() => setAuthDialog('signup')}>Sign up</button></> : <button className="vv-mock-header-link" onClick={() => nav.go('c_profile')}>My account</button>}
+          </div>
+        </> : <>
           <button onClick={() => nav.reset(HOME[me.role || 'customer'])} className="flex shrink-0 items-center gap-2.5 rounded-xl text-left" aria-label="VendorVerse home"><Logo size={42} blue={blueBrand} /><span className="hidden lg:block"><span className="block text-[18px] font-black leading-tight tracking-tight text-ink-900">VendorVerse</span><span className="block text-[11px] font-medium text-ink-500">Global Marketplace · products · services · quotes</span></span></button>
         <nav className={cx("no-scrollbar ml-3 hidden min-w-0 flex-1 items-center justify-center gap-1 overflow-x-auto", hideTabs ? "" : "md:flex")} style={hideTabs ? { display: "none" } : undefined} aria-label="Main navigation">
           {tabs.map((tab) => { const on = activeTab === tab.id; return <button key={tab.id} onClick={() => nav.reset(tab.id)} aria-current={on ? 'page' : undefined} className={cx('flex h-10 shrink-0 items-center gap-1.5 rounded-xl px-2.5 text-[13px] font-bold transition', on ? 'bg-brand-50 text-brand-800' : 'text-ink-600 hover:bg-ink-50 hover:text-ink-900')}><tab.icon size={17} />{t(tab.k)}</button> })}
@@ -244,8 +264,11 @@ function WebHeader({ onMenu, hideTabs, workspaceHeader = false, workspaceTheme =
           {(workspaceHeader || workspaceTheme) && <ThemeToggle className="vv-workspace-theme-toggle" />}
           {!me.loggedIn && <button onClick={() => nav.go('login')} className="h-10 rounded-xl bg-brand-600 px-4 text-sm font-bold text-white shadow-sm hover:bg-brand-700">Sign in</button>}
         </div>
+        </>}
       </div>
+      {mockMarketplaceHeader && <nav className="vv-mock-category-nav" aria-label="Categories">{['New vendors', 'Home services', 'Construction', 'Events', 'Professional services', 'IT and digital', 'Wholesale and industrial', 'Manufacturing and supply', 'Logistics'].map((category, index) => <button key={category} className={index === 0 ? 'is-featured' : ''} onClick={() => index === 0 ? nav.go('c_explore', { mode: 'vendors' }) : nav.go('c_explore', { q: category })}>{category}</button>)}</nav>}
       <div className="sr-only" aria-live="polite">{screen.title}</div>
+      {authDialog && <MarketplaceAuthDialog mode={authDialog} onClose={() => setAuthDialog(null)} onChangeMode={setAuthDialog} />}
     </header>
   )
 }
