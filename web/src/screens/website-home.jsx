@@ -83,7 +83,15 @@ function HomeCardGrid({ children }) {
   return <div className="vv-home-card-grid">{children}</div>
 }
 
-const HOME_CATEGORIES = ['Home services', 'Construction', 'Events', 'Professional services', 'IT and digital', 'Wholesale and industrial', 'Manufacturing and supply', 'Logistics']
+const HOME_CATEGORIES = [
+  { name: 'Plumbing', image: 'plumbing.jpg', search: 'Plumbing', categoryName: 'Home services' },
+  { name: 'Electrical & AC repair', image: 'electrical-ac-repair.jpg', search: 'Electrical AC repair', categoryName: 'Home services' },
+  { name: 'Home cleaning', image: 'home-cleaning.jpg', search: 'Home cleaning', categoryName: 'Home services' },
+  { name: 'Carpentry', image: 'carpentry.jpg', search: 'Carpentry', categoryName: 'Home services' },
+  { name: 'Event catering', image: 'event-catering.jpg', search: 'Event catering', categoryName: 'Events' },
+  { name: 'Hardware & building materials', image: 'hardware-building-materials.jpg', search: 'Hardware building materials', categoryName: 'Construction' },
+  { name: 'Paints & finishing', image: 'paints-finishing.jpg', search: 'Paints finishing', categoryName: 'Construction' },
+]
 const HOME_PALETTES = [
   ['#EDE6D6','#0E1B2C','#A67C2E'], ['#E3E8E4','#1F5E4D','#D9C08A'], ['#F0E4D8','#8C5A3C','#14243A'], ['#E4E6EC','#2B3F63','#E5D2A5'],
   ['#F3EAD0','#A67C2E','#0E1B2C'], ['#DFE6E8','#34566A','#EAD9B8'], ['#EADCD6','#7A2E3A','#F6EEDF'], ['#E4E8DA','#4F6B3A','#2A2218'],
@@ -122,12 +130,7 @@ const formatMinorPrice = (price) => {
 }
 
 function HomeHeroIllustration() {
-  const productColors = ['#0E1B2C','#A67C2E','#1F5E4D','#7A2E3A','#2B3F63','#D9B66A']
-  return <svg className="vv-storefront-illustration" viewBox="0 0 640 520" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
-    <rect width="640" height="520" fill="#D8CCB6"/>
-    {[0,1,2].map((i) => { const x=60+i*190; return <g key={i}><path d={`M${x} 440V180a80 80 0 0 1 160 0V440z`} fill="#1F5E4D"/><path d={`M${x+14} 440V180a66 66 0 0 1 132 0V440z`} fill="#F3E3BE"/>{[0,1,2].map((row) => { const y=250+row*68; return <g key={row}><rect x={x+14} y={y+22} width="132" height="6" fill="#8A6420"/>{[0,1,2].map((col) => { const kind=(i*5+row*3+col)%3, cx=x+36+col*44, color=productColors[(i+row*2+col)%6]; return kind===0?<circle key={col} cx={cx} cy={y+8} r="14" fill={color}/>:kind===1?<rect key={col} x={cx-12} y={y-8} width="24" height="30" rx="3" fill={color}/>:<path key={col} d={`M${cx-12} ${y+22}V${y+4}a12 12 0 0 1 24 0v18z`} fill={color}/> })}</g> })}</g> })}
-    <rect y="440" width="640" height="80" fill="#0E1B2C"/><rect y="436" width="640" height="6" fill="#A67C2E"/>
-  </svg>
+  return <img className="vv-storefront-illustration" src="/hero-marketplace.jpg" alt="Illustrated marketplace with shops, products, vendors and customers" />
 }
 
 function HomeVendorArt({ index }) {
@@ -208,9 +211,9 @@ export function WebsiteHome() {
     const result = await authService.joinCityWaitlist(indore.id)
     toast(result.ok ? 'You joined the Indore waitlist.' : (result.message || 'Could not join the waitlist.'))
   }
-  const categories = HOME_CATEGORIES.map((name) => {
-    const match = isRemote ? homeData.categories.find((category) => category.name?.trim().toLowerCase() === name.toLowerCase()) : null
-    return match || { name }
+  const categories = HOME_CATEGORIES.map((item) => {
+    const match = isRemote ? homeData.categories.find((category) => category.name?.trim().toLowerCase() === item.categoryName.toLowerCase()) : null
+    return { ...item, ...(match || {}) }
   })
   const vendorCards = isRemote ? [...new Map(homeData.listings.map((listing) => [listing.vendor.id, { id: listing.vendor.id, name: listing.vendor.name, category: listing.categoryName, location: locale?.city ? `${locale.city}, ${locale.countryName || locale.country}` : (locale?.countryName || locale?.country), coverage: listing.matchedOn.find((match) => match.startsWith('coverage:'))?.slice(9) || 'Available in this market', price: listing.price?.state === 'on_request' ? 'Price on request' : listing.price?.state === 'not_provided' ? 'Price not provided' : 'Offers public listings', reviews: 'Public vendor', level: 0 }])).values()].slice(0, 3) : [0,1,3].map((index) => ({ ...HOME_VENDOR_SAMPLES[index], sampleIndex: index }))
   const productCards = isRemote ? homeData.listings.slice(0, 12).map((listing) => ({ id: listing.id, title: listing.title, category: listing.categoryName, vendor: listing.vendor, price: listing.price, icon: listing.listingType === 'service' ? Wrench : Package })) : HOME_PRODUCTS
@@ -229,7 +232,7 @@ export function WebsiteHome() {
     </section>
     <main className="vv-mock-content">
       <section className="vv-mock-intro"><div><h2>Every industry. Every vendor type. One marketplace.</h2><p>Customers pay vendors directly. Badges show what was verified, never what was paid for, and missing information is always shown honestly.</p><button className="vv-mock-primary" onClick={()=>nav.go('c_rfq_new')}>Post a request</button></div><div className="vv-mock-modes">{[['Instant','Fixed price, reliable availability.'],['Scheduled','Pick a date. The vendor accepts.'],['RFQ','Compare structured quotations.'],['Contract','Versioned terms, both parties accept.']].map(([title,body])=><article key={title}><h3>{title}</h3><p>{body}</p></article>)}</div></section>
-      <section className="vv-mock-category-section"><div className="vv-mock-section-heading vv-mock-category-heading"><h2>Explore categories</h2><div><button aria-label="Previous categories" disabled={categoryEdges.start} onClick={()=>slide(categoryRail,-1,setCategoryEdges)}><ChevronLeft/></button><button aria-label="Next categories" disabled={categoryEdges.end} onClick={()=>slide(categoryRail,1,setCategoryEdges)}><ChevronRight/></button></div></div><div className="vv-mock-category-rail" ref={categoryRail} onScroll={()=>updateEdges(categoryRail,setCategoryEdges)}>{categories.map((category,index)=><button className="vv-mock-category" key={category.id || category.name} onClick={()=>nav.go('c_explore',category.id?{categoryId:category.id}:{q:category.name})}><span className="vv-mock-category-art"><HomeCategoryArt index={index}/></span><b>{category.name}</b></button>)}</div></section>
+      <section className="vv-mock-category-section"><div className="vv-mock-section-heading vv-mock-category-heading"><h2>Explore categories</h2><div><button aria-label="Previous categories" disabled={categoryEdges.start} onClick={()=>slide(categoryRail,-1,setCategoryEdges)}><ChevronLeft/></button><button aria-label="Next categories" disabled={categoryEdges.end} onClick={()=>slide(categoryRail,1,setCategoryEdges)}><ChevronRight/></button></div></div><div className="vv-mock-category-rail" ref={categoryRail} onScroll={()=>updateEdges(categoryRail,setCategoryEdges)}>{categories.map((category)=><button className="vv-mock-category" key={category.image} onClick={()=>nav.go('c_explore',category.id?{categoryId:category.id}:{q:category.search})}><span className="vv-mock-category-art"><img src={`/category-images/${category.image}`} alt="" loading="lazy" /></span><b>{category.name}</b></button>)}</div></section>
       <section><div className="vv-mock-section-heading"><div><h2>{isRemote?'Vendors in this market':'New vendors'}</h2><p>{isRemote?'Vendors with public listings available to browse':'Recently published and verified'}</p></div><button className="vv-mock-text-button" onClick={()=>nav.go('c_explore',{mode:'vendors'})}>See all <ArrowRight size={17}/></button></div><div className="vv-mock-vendors">{vendorCards.map((vendor,index)=>{const sampleIndex=vendor.sampleIndex ?? index; const isSaved=isRemote?remoteFavorites.includes(vendor.id):savedVendors.includes(sampleIndex);return <article className="vv-mock-vendor-card" key={vendor.id || vendor.name}>
         <button className="vv-mock-vendor-image" onClick={()=>isRemote?nav.go('c_vendor',{id:vendor.id}):setDetail({type:'vendor',item:vendor,index:sampleIndex})} aria-label={`Open ${vendor.name}`}><HomeVendorArt index={index}/><span className={`vv-mock-tag ${vendor.sponsored?'is-sponsored':''}`}>{vendor.sponsored?'Sponsored':isRemote?'Public vendor':'New'}</span></button>
         <button className="vv-mock-heart" aria-label={`${isSaved?'Unsave':'Save'} ${vendor.name}`} aria-pressed={isSaved} onClick={()=>toggleVendorSaved(vendor,sampleIndex)}><Heart size={19} fill={isSaved?'currentColor':'none'}/></button>

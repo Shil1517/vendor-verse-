@@ -507,8 +507,8 @@ export function Profile() {
         <Card className="!p-4">
           <div className="flex items-center gap-3.5">
             <Avatar name={me.name || ME_NAME} size={60} />
-            <div className="min-w-0 flex-1"><p className="text-lg font-extrabold">{me.name || ME_NAME}</p><p className="text-sm text-ink-500">{me.phone || (authService.isRemote ? '' : '+91 98290 00001')}</p><Badge tone="teal" className="mt-1.5">Customer</Badge></div>
-            <Button size="sm" variant="soft" onClick={() => nav.go('c_profile_edit')}>Edit</Button>
+            <div className="min-w-0 flex-1"><p className="text-lg font-extrabold">{me.name || ME_NAME}</p><p className="text-sm text-ink-500">{me.phone || (authService.isRemote ? '' : '+91 98290 00001')}</p><Badge tone="gray" className="mt-1.5">Customer</Badge></div>
+            <Button size="sm" variant="secondary" onClick={() => nav.go('c_profile_edit')}>Edit</Button>
           </div>
         </Card>
         <Group>
