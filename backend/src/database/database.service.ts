@@ -1,12 +1,16 @@
-import { Injectable, OnModuleDestroy } from "@nestjs/common";
+import { Injectable, Logger, OnModuleDestroy } from "@nestjs/common";
 import { Pool, PoolClient, QueryResult, QueryResultRow } from "pg";
 
 @Injectable()
 export class DatabaseService implements OnModuleDestroy {
   private readonly pool: Pool;
+  private readonly logger = new Logger(DatabaseService.name);
 
   constructor(connectionString: string, ssl = false) {
     this.pool = new Pool({ connectionString, ssl });
+    this.pool.on("error", (error: Error) => {
+      this.logger.error(`Idle PostgreSQL connection failed: ${error.message}`, error.stack);
+    });
   }
 
   query<Row extends QueryResultRow = QueryResultRow>(

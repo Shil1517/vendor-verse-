@@ -230,7 +230,7 @@ export function createApiAuthService({ baseUrl, fetchImpl = (...args) => globalT
     const r = await call('/auth/otp/request', { body: { channel: isEmail(c) ? 'email' : 'phone', identifier } })
     if (r.status === 202 && r.data?.challengeId) {
       challenges.set(identifier, r.data.challengeId)
-      return { ok: true, mock: false }
+      return { ok: true, mock: false, ...(r.data.devCode ? { devCode: r.data.devCode } : {}) }
     }
     if (r.status === 429) return fail(AUTH_ERRORS.RATE_LIMITED)
     if (r.status === 400) return fail(AUTH_ERRORS.INVALID_CONTACT)

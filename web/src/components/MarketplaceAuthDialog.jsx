@@ -3,6 +3,7 @@ import { X } from 'lucide-react'
 import { useNav } from '../nav.jsx'
 import { useApp } from '../store.jsx'
 import { isEmail, isPhone, normalizePhone } from '../services/authService.js'
+import { Otp } from '../screens/auth.jsx'
 
 const CALLING_CODES = [
   ['+91', 'India'], ['+971', 'UAE'], ['+44', 'UK'], ['+1', 'USA'], ['+81', 'Japan'], ['+46', 'Sweden'],
@@ -17,6 +18,7 @@ export function MarketplaceAuthDialog({ mode, onClose, onChangeMode }) {
   const [loginContact, setLoginContact] = useState('')
   const [form, setForm] = useState({ name: '', phone: '', email: '', biz: '', role: 'customer', agree: false })
   const [error, setError] = useState('')
+  const [otpParams, setOtpParams] = useState(null)
 
   useEffect(() => {
     const dialog = dialogRef.current
@@ -35,8 +37,7 @@ export function MarketplaceAuthDialog({ mode, onClose, onChangeMode }) {
     const valid = loginMethod === 'email' ? isEmail(loginContact) : isPhone(phone)
     if (!valid) { setError(loginMethod === 'email' ? 'Enter a valid email address.' : 'Enter a valid 10-digit mobile number.'); return }
     const contact = loginMethod === 'email' ? loginContact.trim() : `${countryCode} ${phone}`
-    onClose()
-    nav.go('otp', { contact, role: 'customer', method: loginMethod })
+    setOtpParams({ contact, role: 'customer', method: loginMethod })
   }
   const submitSignup = (event) => {
     event.preventDefault()
@@ -46,12 +47,15 @@ export function MarketplaceAuthDialog({ mode, onClose, onChangeMode }) {
     if (!isEmail(form.email)) { setError('Enter a valid email address.'); return }
     if (form.role === 'vendor' && form.biz.trim().length < 3) { setError('Enter your business name.'); return }
     if (!form.agree) { setError('Please accept the Terms and Privacy Policy.'); return }
-    onClose()
-    nav.go('otp', { contact: `${countryCode} ${phone}`, role: form.role, mode: 'register', name: form.name.trim(), email: form.email.trim(), biz: form.biz.trim() })
+    setOtpParams({ contact: `${countryCode} ${phone}`, role: form.role, mode: 'register', name: form.name.trim(), email: form.email.trim(), biz: form.biz.trim() })
   }
 
-  return <dialog ref={dialogRef} className="vv-market-auth-dialog" aria-labelledby="vv-market-auth-title" onCancel={(event) => { event.preventDefault(); onClose() }} onClick={(event) => { if (event.target === event.currentTarget) onClose() }}>
-    <div className="vv-market-auth-card">
+  return <dialog ref={dialogRef} className={`vv-market-auth-dialog${otpParams ? ' vv-market-auth-dialog-otp' : ''}`} aria-labelledby="vv-market-auth-title" onCancel={(event) => { event.preventDefault(); onClose() }} onClick={(event) => { if (event.target === event.currentTarget) onClose() }}>
+    {otpParams ? <div className="vv-market-auth-otp-shell">
+      <button className="vv-market-auth-close" type="button" aria-label="Close" onClick={onClose}><X size={19}/></button>
+      <div className="vv-market-auth-wordmark">VENDOR<span>VERSE</span></div>
+      <Otp params={otpParams} embedded onComplete={(screenId, params) => { onClose(); nav.reset(screenId, params) }} />
+    </div> : <div className="vv-market-auth-card">
       <button className="vv-market-auth-close" type="button" aria-label="Close" onClick={onClose}><X size={19}/></button>
       <div className="vv-market-auth-wordmark">VENDOR<span>VERSE</span></div>
       <h2 id="vv-market-auth-title">{mode === 'signin' ? 'Welcome back' : 'Find and work with trusted vendors'}</h2>
@@ -77,7 +81,7 @@ export function MarketplaceAuthDialog({ mode, onClose, onChangeMode }) {
         <p className="vv-market-auth-note">We’ll verify your phone number with a one-time code.</p>
         <div className="vv-market-auth-links"><span>Are you a vendor? <button type="button" onClick={() => setForm((value) => ({ ...value, role: 'vendor' }))}>Sign up to sell</button></span><span>Already have an account? <button type="button" onClick={() => onChangeMode('signin')}>Sign in</button></span></div>
       </form>}
-    </div>
+    </div>}
   </dialog>
 }
 

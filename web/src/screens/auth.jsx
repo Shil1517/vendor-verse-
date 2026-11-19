@@ -147,11 +147,12 @@ const accountPhone = (profile, contact) => {
   return /^\+91\d{10}$/.test(String(raw).replace(/\s/g, '')) ? `+91 ${String(raw).replace(/\s/g, '').slice(3, 8)} ${String(raw).replace(/\s/g, '').slice(8)}` : raw || ''
 }
 
-export function Otp({ params }) {
+export function Otp({ params, embedded = false, onComplete }) {
   const { contact = '+91 98290 00001', role = 'customer', mode, name, email, biz, next, nextParams } = params
   const nav = useNav()
   const { setMe, toast } = useApp()
   const signIn = useSignIn()
+  const finish = (screenId, screenParams = {}) => embedded ? onComplete?.(screenId, screenParams) : nav.reset(screenId, screenParams)
   const [code, setCode] = useState('')
   const [err, setErr] = useState('')
   const [devCode, setDevCode] = useState('')
@@ -203,15 +204,15 @@ export function Otp({ params }) {
       if (role === 'business') {
         setMe({ role: 'business', loggedIn: true, guest: false, vendorId: 'v-me', name: name || 'Company owner', businessName: biz, bizId: 'biz-me', businessWorkspace: true, phone: contact })
         toast('Account created. Confirm your eligibility to open a Business account.')
-        nav.reset('b_eligibility')
+        finish('b_eligibility')
       } else if (role === 'vendor') {
         setMe({ role: 'vendor', loggedIn: true, guest: false, vendorId: 'v-new', name: name || 'New Vendor', biz, phone: contact, isNew: true })
         toast('Account created. Tell us what kind of vendor you are.')
-        nav.reset('v_register_type', { biz })
+        finish('v_register_type', { biz })
       } else {
         setMe({ role: 'customer', loggedIn: true, guest: false, vendorId: 'v-me', name: name || ME.customer, phone: contact })
         toast('Welcome to VendorVerse!')
-        nav.reset('c_home')
+        finish('c_home')
       }
       return
     }
@@ -220,28 +221,35 @@ export function Otp({ params }) {
     const needsName = authService.isRemote && accountRole === 'customer' && !profile?.displayName
     const extra = { ...(r.account ? { userId: r.account.userId, hasVendorAccount: !!r.account.availableModes?.includes('VENDOR') } : {}), ...(accountPhone(profile, contact) ? { phone: accountPhone(profile, contact) } : {}), ...(profile?.displayName ? { name: profile.displayName } : authService.isRemote ? { name: 'Customer' } : {}) }
     if (needsName) {
-      signIn(accountRole, extra, 'c_profile_edit', { firstRun: true })
+      if (embedded) {
+        setMe({ role: accountRole, loggedIn: true, guest: false, vendorId: 'v-me', name: ME[accountRole], ...extra })
+        finish('c_profile_edit', { firstRun: true })
+      } else signIn(accountRole, extra, 'c_profile_edit', { firstRun: true })
       toast('Welcome! Add your name to finish your profile.')
       return
     }
-    signIn(accountRole, extra, same ? next || HOME[role] : HOME[accountRole], same ? nextParams || {} : {})
+    const destination = same ? next || HOME[role] : HOME[accountRole]
+    const destinationParams = same ? nextParams || {} : {}
+    if (embedded) {
+      setMe({ role: accountRole, loggedIn: true, guest: false, vendorId: 'v-me', name: ME[accountRole], ...extra })
+      finish(destination, destinationParams)
+    } else signIn(accountRole, extra, destination, destinationParams)
     toast(same ? 'Signed in successfully' : `Signed in to your ${accountRole} account`)
   }
-  return (
-    <Screen title="Verify OTP" pad={false} bg="bg-white">
-      <div className="vv-otp-stage">
+  const content = (
+      <div className={embedded ? 'vv-otp-embedded-stage' : 'vv-otp-stage'}>
         <div className="vv-otp-card">
-          <div className="vv-otp-heading">
+          {!embedded && <div className="vv-otp-heading">
             <div className="grid size-14 place-items-center rounded-2xl bg-brand-50 text-brand-700"><ShieldCheck size={28} /></div>
             <div className="vv-otp-scene" aria-hidden="true">
               <div className="vv-otp-orbit vv-otp-orbit-one" /><div className="vv-otp-orbit vv-otp-orbit-two" />
               <div className="vv-otp-mini-cube"><span>V</span><span>+</span><span>✓</span></div>
               <span className="vv-otp-float vv-otp-float-one">Verified</span><span className="vv-otp-float vv-otp-float-two">Secure</span>
             </div>
-          </div>
+          </div>}
           <div className="vv-otp-copy">
             <p className="vv-login-eyebrow">SECURE ACCOUNT ACCESS</p>
-            <h2 className="text-2xl font-extrabold tracking-tight">Enter the code</h2>
+            <h2 id={embedded ? 'vv-market-auth-title' : undefined} className="text-2xl font-extrabold tracking-tight">Enter the code</h2>
             <p className="mt-1 text-sm text-ink-500">
               {sending ? 'Sending your code…' : <>We sent a 6-digit code to <b className="text-ink-800">{contact}</b></>}
             </p>
@@ -262,8 +270,8 @@ export function Otp({ params }) {
           </p>
         </div>
       </div>
-    </Screen>
   )
+  return embedded ? content : <Screen title="Verify OTP" pad={false} bg="bg-white">{content}</Screen>
 }
 
 export function Register() {
