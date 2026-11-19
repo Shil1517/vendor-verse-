@@ -19,3 +19,81 @@
 /* side-by-side fields share the row evenly instead of shrinking to their content */
 .vv-form-route .flex > label.block { flex: 1 1 0; min-width: 0; }
 .vv-form-route .flex.gap-3 > .flex-1 { min-width: 0; }
+.vv-mock-global-header { position:sticky; background:#fff; border-color:#e4ddd0; box-shadow:none; color:#0e1b2c; }
+.vv-mock-announcement { min-height:36px; padding:7px 16px; background:#efeae0; color:#0e1b2c; text-align:center; font-size:13px; }
+.vv-mock-global-header > div.mx-auto { max-width:1400px; height:70px; gap:18px; padding:10px 32px; }
+.vv-mock-brand { display:flex; flex:none; flex-direction:column; align-items:flex-start; gap:2px; padding:0; border:0; border-radius:0; background:none; color:#0e1b2c; text-align:left; }
+.vv-mock-wordmark { color:#0e1b2c; font:500 18px/1.1 "Playfair Display",Georgia,serif; letter-spacing:.28em; white-space:nowrap; }
+.vv-mock-wordmark span { color:#8a6420; }
+.vv-mock-brand-tagline { color:#5b5f6b; font-size:11px; font-weight:500; white-space:nowrap; }
+.vv-mock-header-spacer { flex:1; }
+.vv-mock-header-controls { display:flex; align-items:center; gap:8px; white-space:nowrap; }
+.vv-mock-header-select { min-height:42px; padding:0 10px; border:0; border-radius:10px; outline:none; background:#fff; color:#0e1b2c; font:600 14px "DM Sans",system-ui,sans-serif; }
+.vv-mock-header-select:focus-visible,.vv-mock-header-link:focus-visible,.vv-mock-header-primary:focus-visible { outline:2px solid #8a6420; outline-offset:2px; }
+.vv-mock-location { display:flex; align-items:center; gap:5px; color:#0e1b2c; }
+.vv-mock-location select { max-width:135px; border:0; outline:0; background:transparent; color:#0e1b2c; font:600 14px "DM Sans",system-ui,sans-serif; }
+.vv-mock-header-link { min-height:40px; padding:0 10px; border:0; border-radius:8px; background:none; color:#0e1b2c; font-size:14px; font-weight:600; }
+.vv-mock-header-link:hover { background:#f5f3ee; }
+.vv-mock-header-primary { min-height:40px; padding:0 19px; border:1px solid #0e1b2c; border-radius:999px; background:#0e1b2c; color:#fff; font-size:14px; font-weight:700; }
+.vv-mock-header-primary:hover { border-color:#8a6420; background:#8a6420; }
+.vv-mock-category-nav { display:flex; justify-content:center; gap:4px; min-height:44px; padding:0 20px; overflow-x:auto; border-top:1px solid #f0ece5; scrollbar-width:none; }
+.vv-mock-category-nav::-webkit-scrollbar { display:none; }
+.vv-mock-category-nav button { flex:none; min-height:42px; padding:0 11px; border:0; border-bottom:2px solid transparent; border-radius:0; background:none; color:#5b5f6b; font-size:13px; white-space:nowrap; }
+.vv-mock-category-nav button:hover { border-bottom-color:#0e1b2c; color:#0e1b2c; }
+.vv-mock-category-nav button.is-featured { color:#8a6420; font-weight:700; }
+.vv-market-auth-dialog { position:fixed; inset:0; margin:auto; width:min(460px,calc(100% - 32px)); max-width:460px; max-height:calc(100dvh - 32px); padding:0; overflow:auto; border:0; border-radius:20px; background:#fff; color:#0e1b2c; box-shadow:0 24px 70px #0e1b2c40; }
+.vv-market-auth-dialog::backdrop { background:rgba(14,27,44,.58); }
+.vv-market-auth-card { position:relative; padding:34px 38px 24px; }
+.vv-market-auth-close { position:absolute; top:11px; right:11px; display:grid; width:40px; min-height:40px; place-items:center; padding:0; border:0; border-radius:50%; background:none; color:#0e1b2c; }
+.vv-market-auth-close:hover { background:#efeae0; }
+.vv-market-auth-wordmark { margin-bottom:9px; color:#0e1b2c; font:500 17px/1.3 "Playfair Display",Georgia,serif; letter-spacing:.32em; }
+.vv-market-auth-wordmark span { color:#8a6420; }
+.vv-market-auth-card h2 { margin:0 28px 19px 0; color:#0e1b2c; font:500 26px/1.2 "Playfair Display",Georgia,serif; letter-spacing:-.02em; }
+.vv-market-auth-card form { display:grid; gap:12px; }
+.vv-market-auth-switch,.vv-market-auth-roles { display:flex; gap:6px; padding:4px; border-radius:999px; background:#efeae0; }
+.vv-market-auth-switch button,.vv-market-auth-roles button { flex:1; min-height:38px; padding:0 12px; border:0; border-radius:999px; background:none; color:#5b5f6b; font-weight:600; }
+.vv-market-auth-switch button.is-active,.vv-market-auth-roles button.is-active { background:#0e1b2c; color:#fff; }
+.vv-market-auth-field { display:grid; gap:6px; color:#0e1b2c; font-size:13px; }
+.vv-market-auth-field>b { font-size:12px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; color:#5b5f6b; }
+.vv-market-auth-field>input,.vv-market-auth-phone { min-height:46px; border:1px solid #e4ddd0; border-radius:12px; background:#fff; }
+.vv-market-auth-field>input { padding:0 13px; outline:0; }
+.vv-market-auth-field>input:focus,.vv-market-auth-phone:focus-within { border-color:#8a6420; box-shadow:0 0 0 2px #8a642022; }
+.vv-market-auth-phone { display:flex; overflow:hidden; }
+.vv-market-auth-phone select { flex:0 0 105px; padding:0 8px; border:0; border-right:1px solid #e4ddd0; background:#efeae0; color:#0e1b2c; font:500 13px "DM Sans",system-ui,sans-serif; }
+.vv-market-auth-phone input { min-width:0; flex:1; padding:0 12px; border:0; outline:0; background:transparent; }
+.vv-market-auth-consent { display:flex; align-items:flex-start; gap:8px; color:#5b5f6b; font-size:12px; line-height:1.5; }
+.vv-market-auth-consent input { width:16px; height:16px; flex:none; margin:2px 0 0; accent-color:#0e1b2c; }
+.vv-market-auth-consent b { color:#8a6420; text-decoration:underline; }
+.vv-market-auth-submit { width:100%; min-height:44px; padding:0 18px; border:1px solid #0e1b2c; border-radius:999px; background:#0e1b2c; color:#fff; font-weight:600; }
+.vv-market-auth-submit:hover { border-color:#8a6420; background:#8a6420; }
+.vv-market-auth-google { display:flex; width:100%; min-height:44px; align-items:center; justify-content:center; gap:10px; padding:0 14px; border:1px solid #e4ddd0; border-radius:999px; background:#fff; color:#0e1b2c; font-weight:500; }
+.vv-market-auth-google:hover { background:#f7f4ee; }
+.vv-market-auth-note { margin:-5px 0 0; color:#5b5f6b; font-size:12px; text-align:center; }
+.vv-market-auth-error { margin:-4px 0 0; color:#9b2c2c; font-size:12px; }
+.vv-market-auth-links { display:grid; gap:5px; margin-top:3px; padding-top:12px; border-top:1px solid #e4ddd0; color:#5b5f6b; font-size:12px; }
+.vv-market-auth-links button { min-height:0; padding:0; border:0; background:none; color:#8a6420; font-weight:700; text-decoration:underline; }
+@media(max-width:520px) { .vv-market-auth-card { padding:32px 22px 20px; }.vv-market-auth-card h2 { font-size:24px; } }
+@media(max-width:900px) {
+  .vv-mock-global-header > div.mx-auto { gap:10px; padding-inline:16px; }
+  .vv-mock-header-controls { gap:2px; }
+  .vv-mock-header-select { padding-inline:6px; font-size:12px; }
+  .vv-mock-header-link { padding-inline:7px; font-size:12px; }
+  .vv-mock-wordmark { font-size:17px; }
+  .vv-mock-brand-tagline { font-size:9px; }
+}
+@media(max-width:640px) {
+  .vv-mock-announcement { min-height:32px; padding:6px 10px; font-size:11px; }
+  .vv-mock-global-header > div.mx-auto { height:auto; min-height:64px; flex-wrap:wrap; gap:3px 8px; padding:8px 12px; }
+  .vv-mock-brand { gap:2px; }
+  .vv-mock-wordmark { font-size:16px; }
+  .vv-mock-brand-tagline { font-size:9px; }
+  .vv-mock-header-spacer { flex:1; }
+  .vv-mock-header-controls { flex:1 0 100%; justify-content:space-between; gap:2px; }
+  .vv-mock-header-select { min-height:34px; padding-inline:4px; font-size:11px; }
+  .vv-mock-location { gap:2px; }
+  .vv-mock-location select { max-width:80px; font-size:11px; }
+  .vv-mock-header-link { min-height:34px; padding-inline:5px; font-size:11px; }
+  .vv-mock-header-primary { min-height:34px; padding-inline:12px; font-size:11px; }
+  .vv-mock-category-nav { justify-content:flex-start; min-height:40px; padding-inline:8px; }
+  .vv-mock-category-nav button { min-height:38px; padding-inline:9px; font-size:12px; }
+}
