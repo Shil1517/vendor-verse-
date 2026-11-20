@@ -181,7 +181,7 @@ const VX_CSS = `@import url('https://fonts.googleapis.com/css2?family=Plus+Jakar
 .vx-analytics-line { display:block; width:100%; height:220px; margin-top:12px; }
 .vx-analytics-grid { stroke:rgba(19,118,98,.15); stroke-width:1; stroke-dasharray:5 6; }
 .vx-analytics-area { fill:url(#vxAnalyticsFill); }
-.vx-analytics-curve { fill:none; stroke:#12b48f; stroke-width:3.5; stroke-linecap:round; stroke-linejoin:round; stroke-dasharray:1000; stroke-dashoffset:1000; animation:vx-line-draw 1.6s ease forwards; }
+.vx-analytics-curve { fill:none; stroke:#12b48f; stroke-width:3.5; stroke-linecap:round; stroke-linejoin:round; stroke-dasharray:1000; stroke-dashoffset:0; }
 .vx-chart-point .vx-point-hit { fill:transparent; }
 .vx-chart-point .vx-point-dot { fill:#fff; stroke:#12b48f; stroke-width:3; filter:drop-shadow(0 8px 16px rgba(18,180,143,.18)); }
 .vx-analytics-line text { fill:var(--muted); font-size:10px; font-weight:700; }
@@ -723,14 +723,15 @@ function VendorSidebar({ active, vendor, collapsed, onNavigate }) {
 
 /* Customer workspace: the same shell as the vendor one, with the customer's own pages in the sidebar (web). */
 export const CUSTOMER_NAV = [
-  ['Overview', [[LayoutDashboard, 'Dashboard', 'c_dash'], [ClipboardList, 'Activity', 'c_activity']]],
-  ['Marketplace', [[Home, 'Marketplace home', 'c_home'], [Compass, 'Explore', 'c_explore'], [Heart, 'Saved & compare', 'c_saved'], [Package, 'Purchase orders', 'c_orders']]],
-  ['Communication & trust', [[MessageCircle, 'Messages', 'messages'], [Star, 'My reviews', 'c_reviews'], [ShieldAlert, 'Cases', 'c_cases']]],
-  ['Account & preferences', [[UserRound, 'My account', 'c_profile'], [Settings, 'Settings & privacy', 'c_settings']]],
+  ['Overview', [[LayoutDashboard, 'Dashboard', 'c_dash']]],
+  ['Deals & orders', [[Heart, 'Saved & compare', 'c_saved'], [ClipboardList, 'Quote requests', 'c_activity'], [Package, 'Purchase orders', 'c_orders'], [FileText, 'Contracts', 'c_contract']]],
+  ['Support & trust', [[Star, 'Rate a vendor', 'c_review'], [ShieldAlert, 'Cases', 'c_cases']]],
+  ['Account', [[Settings, 'Account settings', 'c_settings']]],
 ]
-/** Detail and edit pages keep their parent highlighted in the sidebar. */
-const CUSTOMER_PARENT = { c_profile_edit: 'c_profile', c_case: 'c_cases', chat: 'messages' }
-export const CUSTOMER_WORKSPACE_IDS = [...CUSTOMER_NAV.flatMap(([, items]) => items.map(([, , id]) => id)), ...Object.keys(CUSTOMER_PARENT)].filter((id) => !['c_home', 'c_explore'].includes(id))
+/** Pages that stay inside the customer workspace but have no sidebar entry of their own highlight their parent. */
+const CUSTOMER_PARENT = { c_profile: 'c_settings', c_profile_edit: 'c_settings', c_reviews: 'c_review', c_case: 'c_cases' }
+/** Every customer page that renders inside the workspace shell (sidebar entries, their children, and pages reached from the dashboard). */
+export const CUSTOMER_WORKSPACE_IDS = [...CUSTOMER_NAV.flatMap(([, items]) => items.map(([, , id]) => id)), ...Object.keys(CUSTOMER_PARENT), 'messages', 'chat']
 
 function CustomerSidebar({ active, collapsed, onNavigate }) {
   const nav = useNav()

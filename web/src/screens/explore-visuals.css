@@ -45,10 +45,10 @@
   bottom: 0;
   height: 2px;
   background: linear-gradient(90deg, transparent, var(--explore-teal) 30%, var(--explore-teal-deep) 70%, transparent);
-  transform: scaleX(0);
+  transform: scaleX(1);
   transform-origin: left center;
   opacity: .55;
-  animation: vv-explore-line-draw .9s .1s var(--explore-ease) forwards;
+  animation: none;
   pointer-events: none;
 }
 
@@ -267,7 +267,7 @@
   overflow: hidden;
   overflow-wrap: anywhere;
   transition: transform .28s var(--explore-ease), box-shadow .28s ease, background .22s ease;
-  animation: vv-explore-card-in .5s var(--explore-ease) both;
+  animation: none;
   animation-delay: calc(var(--explore-i, 0) * 45ms + 120ms);
 }
 .vv-explore-route .vv-explore-card-grid > * > .h-28,
