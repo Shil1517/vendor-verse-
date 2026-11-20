@@ -18,6 +18,7 @@ import {
 import { ListingCard, VendorRow, VerifiedBadge, useGate, useStartChat } from './shared.jsx'
 import { useSignIn } from './auth.jsx'
 import { authService } from '../services/authService.js'
+import { openAuthDialog } from '../components/MarketplaceAuthDialog.jsx'
 
 const ME_NAME = 'Aarav Mehta'
 const dateAfterISO = (days = 1) => { const d = new Date(); d.setDate(d.getDate() + days); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}` }
@@ -31,7 +32,7 @@ function GuestWall({ title }) {
   const nav = useNav()
   return (
     <Screen title={title} back={false}>
-      <EmptyState icon={Lock} title="Log in to continue" body="Browsing is open to everyone. Sign in to order, book, request quotes and message vendors." action={<div className="flex gap-2"><Button onClick={() => nav.go('login')}>Log in</Button><Button variant="secondary" onClick={() => nav.go('register')}>Create account</Button></div>} />
+      <EmptyState icon={Lock} title="Log in to continue" body="Browsing is open to everyone. Sign in to order, book, request quotes and message vendors." action={<div className="flex gap-2"><Button onClick={() => openAuthDialog('signin')}>Log in</Button><Button variant="secondary" onClick={() => openAuthDialog('signup')}>Create account</Button></div>} />
     </Screen>
   )
 }

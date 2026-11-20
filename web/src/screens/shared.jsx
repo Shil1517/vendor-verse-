@@ -4,6 +4,7 @@ import { useNav } from '../nav.jsx'
 import { remoteInbox, useUnreadCount } from '../useInbox.js'
 import { Thumb, Rating, Badge, StatusBadge, IconBtn, Card, Avatar, cx, fmt, Pill } from '../ui.jsx'
 import { cat } from '../data.jsx'
+import { openAuthDialog } from '../components/MarketplaceAuthDialog.jsx'
 
 export const vendorKind = (v) => v?.supplierType === 'business' || ['v-me', 'v-global-2'].includes(v?.id) ? 'Supplier' : cat(v?.cat).type === 'service' ? 'Service provider' : 'Vendor'
 
@@ -13,7 +14,7 @@ export function useGate() {
   return (reason = 'Please log in to continue') => {
     if (me.loggedIn) return true
     toast(reason, 'warn')
-    nav.go('login')
+    openAuthDialog('signin')
     return false
   }
 }
@@ -23,7 +24,7 @@ export function useStartChat() {
   const { threads, setThreads, vendors, listings, me, toast } = useApp()
   const nav = useNav()
   return (vendorId, listingId) => {
-    if (!me.loggedIn) { toast('Log in to message the vendor', 'warn'); nav.go('login'); return }
+    if (!me.loggedIn) { toast('Log in to message the vendor', 'warn'); openAuthDialog('signin'); return }
     const v = vendors.find((x) => x.id === vendorId)
     const l = listingId && listings.find((x) => x.id === listingId)
     const ex = threads.customer.find((t) => t.vendorId === vendorId)

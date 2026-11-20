@@ -5,6 +5,7 @@ import { useNav } from '../nav.jsx'
 import { CATS, cat } from '../data.jsx'
 import { authService } from '../services/authService.js'
 import { Avatar, Button, Card, Thumb, cx, fmt, GRAD } from '../ui.jsx'
+import { openAuthDialog } from '../components/MarketplaceAuthDialog.jsx'
 import './website-home.css'
 
 const vendorCover = (v) => v.cover || ({ elec: 'https://images.unsplash.com/photo-1621905252507-b35492cc74b4?auto=format&fit=crop&w=900&q=80', build: 'https://images.unsplash.com/photo-1504307651254-35680f356dfd?auto=format&fit=crop&w=900&q=80', office: 'https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=900&q=80', clean: 'https://images.unsplash.com/photo-1581578731548-c64695cc6952?auto=format&fit=crop&w=900&q=80' }[v.cat] || 'https://images.unsplash.com/photo-1497366811353-6870744d04b2?auto=format&fit=crop&w=900&q=80')
@@ -191,7 +192,7 @@ export function WebsiteHome() {
   const suggestions = suggestField==='q' ? HOME_SEARCHES.filter((item)=>!query||item.toLowerCase().includes(query.toLowerCase())).map((item)=>[item,'']) : HOME_PLACES.filter(([item])=>!where||item.toLowerCase().includes(where.toLowerCase())||where.toLowerCase()==='bhopal, india')
   const toggleVendorSaved = async (vendor, index) => {
     if (!isRemote) { const isSaved=savedVendors.includes(index); setSavedVendors((items)=>isSaved?items.filter((item)=>item!==index):[...items,index]); toast(isSaved?'Removed from favorites.':'Saved. The vendor is not notified.'); return }
-    if (!me.loggedIn) { nav.go('login'); return }
+    if (!me.loggedIn) { openAuthDialog('signin'); return }
     const isSaved = remoteFavorites.includes(vendor.id)
     const result = isSaved ? await authService.removeFavorite(vendor.id) : await authService.addFavorite(vendor.id)
     if (!result.ok) { toast(result.message || 'Could not update favorites.'); return }
@@ -203,7 +204,7 @@ export function WebsiteHome() {
   }
   const joinWaitlist = async () => {
     if (!isRemote) { toast('You are on the Indore waitlist.'); return }
-    if (!me.loggedIn) { toast('Sign in to join the waitlist.'); nav.go('login'); return }
+    if (!me.loggedIn) { toast('Sign in to join the waitlist.'); openAuthDialog('signin'); return }
     const cities = await authService.listCities('IN')
     const indore = cities.ok && cities.cities.find((city) => city.name.toLowerCase() === 'indore')
     if (!indore) { toast('Indore is not available in the market directory yet.'); return }

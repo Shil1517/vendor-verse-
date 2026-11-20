@@ -70,9 +70,17 @@
 .vv-market-auth-wordmark span { color:#8a6420; }
 .vv-market-auth-card h2 { margin:0 28px 19px 0; color:#0e1b2c; font:500 26px/1.2 "Playfair Display",Georgia,serif; letter-spacing:-.02em; }
 .vv-market-auth-card form { display:grid; gap:12px; }
-.vv-market-auth-switch,.vv-market-auth-roles { display:flex; gap:6px; padding:4px; border-radius:999px; background:#efeae0; }
-.vv-market-auth-switch button,.vv-market-auth-roles button { flex:1; min-height:38px; padding:0 12px; border:0; border-radius:999px; background:none; color:#5b5f6b; font-weight:600; }
-.vv-market-auth-switch button.is-active,.vv-market-auth-roles button.is-active { background:#0e1b2c; color:#fff; }
+.vv-market-auth-roles { display:flex; gap:4px; padding:4px; border-radius:999px; background:#efeae0; }
+.vv-market-auth-roles button { flex:1; min-height:38px; padding:0 12px; border:0; border-radius:999px; background:none; color:#5b5f6b; font-weight:600; transition:background .15s,color .15s; }
+.vv-market-auth-roles button:hover:not(.is-active) { color:#0e1b2c; }
+.vv-market-auth-roles button.is-active { background:#0e1b2c; color:#fff; }
+.vv-market-auth-switch { display:flex; gap:22px; border-bottom:1px solid #e4ddd0; }
+.vv-market-auth-switch button { min-height:38px; margin-bottom:-1px; padding:0 2px; border:0; border-bottom:2px solid transparent; background:none; color:#737b86; font-weight:600; transition:color .15s,border-color .15s; }
+.vv-market-auth-switch button:hover:not(.is-active) { color:#0e1b2c; }
+.vv-market-auth-switch button.is-active { border-bottom-color:#8a6420; color:#0e1b2c; }
+.vv-market-auth-or { display:flex; align-items:center; gap:12px; color:#737b86; font-size:12px; }
+.vv-market-auth-or::before,.vv-market-auth-or::after { content:""; flex:1; height:1px; background:#e4ddd0; }
+.vv-market-auth-field>input::placeholder,.vv-market-auth-phone input::placeholder { color:#9aa0a8; }
 .vv-market-auth-field { display:grid; gap:6px; color:#0e1b2c; font-size:13px; }
 .vv-market-auth-field>b { font-size:12px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; color:#5b5f6b; }
 .vv-market-auth-field>input,.vv-market-auth-phone { min-height:46px; border:1px solid #e4ddd0; border-radius:12px; background:#fff; }

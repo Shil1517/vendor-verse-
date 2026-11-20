@@ -292,18 +292,28 @@ export function RemoteBookNew({ params = {} }) {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const key = useRef(newKey()) // one key per user action: a double tap or retry makes one booking (F-BKG-08)
+  const scrollRef = useRef(null)
 
   if (listing.loading) return <Screen title="Request a booking"><Loading /></Screen>
   if (listing.error) return <Screen title="Request a booking"><ErrorBox message={listing.error} onRetry={listing.reload} /></Screen>
   const l = listing.data.listing
 
+  // The Send button lives in a fixed footer, so an error shown only inside the scrolled form can be off-screen
+  // and the tap looks like it did nothing. Show it at the top of the form and as a toast.
+  const fail = (message) => { setError(message); toast(message, 'warn'); scrollRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }) }
+  const onStart = (value) => {
+    setStart(value)
+    // Default the end to one hour later so a customer only has to pick a start; they can still change it.
+    if (value && (!end || new Date(end) <= new Date(value))) setEnd(toLocalInput(new Date(new Date(value).getTime() + 3600000)))
+  }
+
   const submit = async () => {
     setError('')
-    if (!start || !end) return setError('Choose a start and end time.')
+    if (!start || !end) return fail('Choose a start and end time.')
     const s = new Date(start)
     const e = new Date(end)
-    if (!(e > s)) return setError('The end time must be after the start.')
-    if (s <= new Date()) return setError('Choose a time in the future.')
+    if (!(e > s)) return fail('The end time must be after the start.')
+    if (s <= new Date()) return fail('Choose a time in the future.')
     const week = 7 * 86400000
     const body = {
       listingId: l.id,
@@ -319,7 +329,7 @@ export function RemoteBookNew({ params = {} }) {
     setBusy(false)
     if (!r.ok) {
       if (r.status === 409) key.current = newKey() // a different attempt may now be valid
-      return setError(r.status === 409 ? 'That slot was just taken. Choose another time.' : r.message || 'Could not create the booking.')
+      return fail(r.status === 409 ? 'That slot was just taken. Choose another time.' : r.message || 'Could not create the booking.')
     }
     toast(r.bookings[0].state === 'confirmed' ? 'Booking confirmed' : 'Request sent to the vendor')
     nav.replace('c_booking', { id: r.bookings[0].id })
@@ -327,16 +337,16 @@ export function RemoteBookNew({ params = {} }) {
 
   return (
     <Screen title={mode === 'instant' ? 'Instant booking' : 'Request a booking'} subtitle={l.title} footer={<Button full disabled={busy} onClick={submit}>{busy ? 'Sending…' : mode === 'instant' ? 'Confirm booking' : 'Send request'}</Button>}>
+      <div ref={scrollRef}>{error && <Banner tone="red" title="Cannot book">{error}</Banner>}</div>
       {l.instantBooking && <Segmented value={mode} onChange={setMode} options={[{ id: 'scheduled', label: 'Request' }, { id: 'instant', label: 'Instant' }]} />}
       <Card><KV rows={[['Vendor', l.vendor.name], ['Price', priceLabel(l.price)]]} /></Card>
-      <Input label="Start" type="datetime-local" min={toLocalInput(new Date())} value={start} onChange={(e) => setStart(e.target.value)} required />
+      <Input label="Start" type="datetime-local" min={toLocalInput(new Date())} value={start} onChange={(e) => onStart(e.target.value)} required />
       <Input label="End" type="datetime-local" min={start || toLocalInput(new Date())} value={end} onChange={(e) => setEnd(e.target.value)} required hint={`Times are in your device's time zone (${deviceZone()}).`} />
       {mode === 'scheduled' && <Select2 label="Repeat" value={repeat} onChange={setRepeat} />}
       <Input label="Notes for the vendor" textarea rows={3} value={notes} onChange={(e) => setNotes(e.target.value)} hint="Address, access details, anything the vendor needs." />
       {mode === 'instant'
         ? <Banner tone="teal" title="Confirmed straight away">The slot is reserved for you the moment you confirm. If someone else takes it first, you will be told and can choose another time.</Banner>
         : <Banner tone="blue" title="The vendor must accept">Your request is sent only to this vendor. The terms you see now are saved with the booking and stay in force until the vendor accepts any change.</Banner>}
-      {error && <Banner tone="red" title="Cannot book">{error}</Banner>}
     </Screen>
   )
 }
@@ -455,14 +465,15 @@ export function RemoteBookingDetail({ params = {} }) {
 /* ================= LISTS: customer activity and vendor inbox (F-BKG-09, F-BKG-10) ================= */
 const FILTERS = [{ id: 'all', label: 'All' }, { id: 'requested', label: 'Requested' }, { id: 'confirmed', label: 'Confirmed' }, { id: 'in_progress', label: 'In progress' }, { id: 'completed_awaiting', label: 'To confirm' }, { id: 'closed', label: 'Closed' }, { id: 'cancelled', label: 'Cancelled' }]
 
-export function BookingList({ title, back, load, empty, detail, inline = false, children }) {
+/** Filter chips plus booking cards for an already-loaded list (shared by BookingList and the customer Activity tabs). */
+export function BookingRows({ state, empty, detail }) {
   const nav = useNav()
   const [filter, setFilter] = useState('all')
-  const { loading, error, data, reload } = useLoad(load, [load])
-  const rows = (data?.bookings || []).filter((b) => filter === 'all' || b.state === filter)
+  const { loading, error, data, reload } = state
+  const all = data?.bookings || []
+  const rows = all.filter((b) => filter === 'all' || b.state === filter)
   return (
-    <Screen title={title} back={back} pad={false}>
-      {children}
+    <>
       <div className="bg-white px-4 py-3"><Chips value={filter} onChange={setFilter} options={FILTERS} /></div>
       <div className="space-y-3 p-4">
         {loading && !data && <Loading />}
@@ -478,6 +489,16 @@ export function BookingList({ title, back, load, empty, detail, inline = false, 
           </Card>
         ))}
       </div>
+    </>
+  )
+}
+
+export function BookingList({ title, back, load, empty, detail, children }) {
+  const state = useLoad(load, [load])
+  return (
+    <Screen title={title} back={back} pad={false}>
+      {children}
+      <BookingRows state={state} empty={empty} detail={detail} />
     </Screen>
   )
 }
