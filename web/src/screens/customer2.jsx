@@ -12,7 +12,7 @@ import { remoteInbox, useInbox } from '../useInbox.js'
 import { GEO, findCity } from '../geo.js'
 import { cat, CATS, calcPrice, listing as findListing, SLOTS } from '../data.jsx'
 import {
-  Screen, Card, Section, Button, Thumb, Chips, Segmented, Sheet, Dialog, Input, Select, Toggle, Badge, Rating, Banner, EmptyState, SearchBar,
+  Screen, Card, Section, Button, Thumb, Chips, Segmented, Sheet, Dialog, Input, Select, CategorySelect, Toggle, Badge, Rating, Banner, EmptyState, SearchBar,
   PriceBreakdown, KV, fmt, cx, Pill, IconBtn, StatusBadge, Stars, ListRow, Group, Timeline, Avatar, SOFT, Meta, DemoPhonePePayment,
 } from '../ui.jsx'
 import { ListingCard, VendorRow, VerifiedBadge, useGate, useStartChat } from './shared.jsx'
@@ -49,19 +49,20 @@ export function RfqNew({ params = {} }) {
   const nav = useNav()
   const { me, vendor, vendors, rfqs, setRfqs, notify, toast, locale } = useApp()
   const targetVendor = params.vendorId ? vendor(params.vendorId) : null
-  const [f, setF] = useState({ cat: params.cat || 'home', title: params.title ? `Bulk quote: ${params.title}` : '', qty: '', budget: '', timeline: '', deadline: dateAfterISO(7), city: locale.city || 'Jaipur', answers: {} })
+  const [f, setF] = useState({ cat: params.cat || '', kind: 'service', title: params.title ? `Bulk quote: ${params.title}` : '', scope: '', quantity: '', budget: '', timeline: '', deadline: dateAfterISO(7), city: locale.city || 'Jaipur', answers: {} })
   const [gx, setGx] = useState({ dest: locale.countryName || 'India', inco: '', target: '', samples: false })
   const [files, setFiles] = useState([])
   const [errs, setErrs] = useState({})
   const c = cat(f.cat)
-  const qs = (c.rfq || []).filter((k) => !['Budget range', 'Quantity', 'Delivery location'].includes(k))
+  const qs = f.cat ? (c.rfq || []).filter((k) => !['Budget range', 'Quantity', 'Delivery location'].includes(k)) : []
   const set = (k) => (e) => { setF({ ...f, [k]: e?.target ? e.target.value : e }); setErrs({ ...errs, [k]: '' }) }
   const cities = [...new Set(GEO.find((g) => g.code === 'IN').states.flatMap((st) => st.cities.map((x) => x.n)))]
   const eligible = targetVendor ? [targetVendor] : vendors.filter((v) => v.status === 'approved' && v.cat === f.cat && (v.areas || []).some((a) => a === f.city || a === 'Remote' || a === 'India'))
   const submit = () => {
     const e = {}
+    if (!f.cat) e.cat = 'Choose a category'
     if (f.title.trim().length < 5) e.title = 'Add a short title (min 5 characters)'
-    if (!f.qty.trim()) e.qty = 'Enter quantity / scope'
+    if (!f.scope.trim()) e.scope = 'Describe the work or items'
     if (!f.timeline.trim()) e.timeline = 'Add a date or timeline'
     if (!f.budget.trim()) e.budget = 'Add a budget range'
     if (!f.deadline || f.deadline < new Date().toISOString().slice(0, 10)) e.deadline = 'Choose a current or future date'
@@ -72,18 +73,21 @@ export function RfqNew({ params = {} }) {
     const place = findCity(f.city)
     const [y, m, d] = f.deadline.split('-')
     const mon = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][+m - 1]
-    const specs = [...qs.map((k) => `${k}: ${f.answers[k]}`), `Timeline: ${f.timeline}`, ...(gx.target ? [`Target unit price: ${gx.target}`] : []), ...(gx.inco ? [`Incoterm: ${gx.inco}`] : []), ...(gx.dest !== 'India' ? [`Destination: ${gx.dest}`] : []), ...(gx.samples ? ['Samples needed first'] : [])]
+    const specs = [...qs.map((k) => `${k}: ${f.answers[k]}`), `Scope: ${f.scope}`, `Timeline: ${f.timeline}`, ...(gx.target ? [`Target unit price: ${gx.target}`] : []), ...(gx.inco ? [`Incoterm: ${gx.inco}`] : []), ...(gx.dest !== 'India' ? [`Destination: ${gx.dest}`] : []), ...(gx.samples ? ['Samples needed first'] : [])]
     const buyerName = me.role === 'vendor' ? (vendor(me.vendorId)?.name || me.name || 'Business buyer') : ME_NAME
-    setRfqs((r) => [{ id, mine: true, buyerType: me.role === 'vendor' ? 'vendor' : 'customer', buyerVendorId: me.role === 'vendor' ? me.vendorId : undefined, targetVendorId: params.vendorId || undefined, targetVendorName: targetVendor?.name, customer: buyerName, title: f.title, cat: f.cat, cats: [f.cat], categoryBudgets: {}, qty: f.qty, budget: f.budget, deadline: `${d} ${mon} ${y}`, location: `${f.city}${place ? `, ${place.state}, ${place.countryName}` : ''}`, country: place?.countryName || 'India', state: place?.state || '', city: f.city, pincode: locale.pincode || '', desc: specs.join('\n'), files, status: 'submitted', created: '19 Oct 2026', recipients: eligible.length, history: [{ s: 'submitted', at: 'Just now', note: `Sent to ${eligible.length} eligible vendor${eligible.length === 1 ? '' : 's'}` }], quotes: [], chat: [] }, ...r])
+    setRfqs((r) => [{ id, mine: true, buyerType: me.role === 'vendor' ? 'vendor' : 'customer', buyerVendorId: me.role === 'vendor' ? me.vendorId : undefined, targetVendorId: params.vendorId || undefined, targetVendorName: targetVendor?.name, customer: buyerName, title: f.title, cat: f.cat, kind: f.kind, cats: [f.cat], categoryBudgets: {}, qty: f.quantity, budget: f.budget, deadline: `${d} ${mon} ${y}`, location: `${f.city}${place ? `, ${place.state}, ${place.countryName}` : ''}`, country: place?.countryName || 'India', state: place?.state || '', city: f.city, pincode: locale.pincode || '', desc: specs.join('\n'), files, status: 'submitted', created: '19 Oct 2026', recipients: eligible.length, history: [{ s: 'submitted', at: 'Just now', note: `Sent to ${eligible.length} eligible vendor${eligible.length === 1 ? '' : 's'}` }], quotes: [], chat: [] }, ...r])
     notify('vendor', me.role === 'vendor' ? 'Vendor buyer RFQ published' : 'RFQ matches your category', `${id} · ${f.title}`, 'rfq')
     toast(`RFQ sent to ${eligible.length} eligible vendor${eligible.length === 1 ? '' : 's'}`)
     nav.replace('c_rfq', { id })
   }
   return (
-    <Screen title="Request quotation" subtitle={targetVendor ? `Direct to ${targetVendor.name}` : 'Structured request for eligible vendors'} footer={<Button full size="lg" onClick={submit}>Send RFQ</Button>}>
-      <Select label="Category" value={f.cat} onChange={(e) => setF({ ...f, cat: e.target.value, answers: {} })} options={CATS.map((x) => ({ value: x.id, label: x.name }))} />
-      <Input label="What do you need?" required placeholder="e.g. Complete rewiring for a 3,200 sq ft office" value={f.title} onChange={set('title')} error={errs.title} />
-      <Input label="Quantity / scope" required placeholder="e.g. 3,200 sq ft · 200 units" value={f.qty} onChange={set('qty')} error={errs.qty} />
+    <Screen title="Request quotation" subtitle={targetVendor ? `Direct to ${targetVendor.name}` : 'Structured request for eligible vendors'} headerClass="bg-[#fffdf8]" bg="bg-[#f4efe6]" footer={<Button className="!border !border-[#d8cdbb] !bg-[#e7dfd1] !text-[#0e1b2c] hover:!border-[#0e1b2c] hover:!bg-[#0e1b2c] hover:!text-white" full size="lg" icon={Send} onClick={submit}>Send RFQ</Button>}>
+      <CategorySelect label="Category" required value={f.cat} error={errs.cat} onChange={(e) => { setF({ ...f, cat: e.target.value, answers: {} }); setErrs({ ...errs, cat: '' }) }} options={[{ value: '', label: 'Choose a category' }, ...CATS.map((x) => ({ value: x.id, label: x.name }))]} />
+      <Segmented value={f.kind} onChange={(kind) => setF({ ...f, kind })} options={[{ id: 'service', label: 'Service' }, { id: 'goods', label: 'Goods' }]} />
+      <Input label="What do you need?" required placeholder="e.g. Repair kitchen pipe leak" value={f.title} onChange={set('title')} error={errs.title} />
+      <Input label="Scope" required textarea placeholder="Describe the work or the items" value={f.scope} onChange={set('scope')} error={errs.scope} />
+      <div className="flex gap-3"><Input label="Quantity" value={f.quantity} onChange={set('quantity')} /><Input label="Budget (optional)" value={f.budget} onChange={set('budget')} /></div>
+      <div className="flex gap-3"><Input label="Timeline (optional)" value={f.timeline} onChange={set('timeline')} /><Input label="Quotes needed by" required type="date" min={dateAfterISO(0)} value={f.deadline} onChange={set('deadline')} error={errs.deadline} /></div>
       {qs.length > 0 && <div>
         <p className="mb-2 text-[13px] font-semibold text-ink-700">{c.name}: specific questions</p>
         <div className="space-y-3">{qs.map((k) => <Input key={k} label={k} required value={f.answers[k] || ''} onChange={(e) => { setF({ ...f, answers: { ...f.answers, [k]: e.target.value } }); setErrs({ ...errs, ['a_' + k]: '' }) }} error={errs['a_' + k]} />)}</div>
@@ -189,6 +193,7 @@ export function BookingDetail({ params = {} }) {
     <Card><div className="flex items-start gap-3"><Thumb tone={l?.tone || 'teal'} icon={CalendarCheck} size={48} round="rounded-xl" /><div className="min-w-0 flex-1"><p className="font-bold">{l?.title || 'Service booking'}</p><p className="mt-1 text-sm text-ink-500">{v?.name || 'Vendor'} · {b.date} at {b.slot}</p></div></div><div className="mt-4"><KV rows={[["Booking status", b.status.replaceAll('_', ' ')], ['Journey', b.bookingType === 'instant' ? 'Instant service' : b.bookingType === 'recurring' ? `Recurring · ${b.recurrence}` : 'Scheduled service'], ['Address', b.address], ['Customer', b.customer], ['Indicative amount', fmt(b.total || 0)]]} /></div></Card>
     {b.notes && <Card><p className="text-xs font-bold uppercase tracking-wide text-ink-400">Service notes</p><p className="mt-1 text-sm text-ink-700">{b.notes}</p></Card>}
     {b.changeNote && <Banner tone="amber" title="Change requested">{b.changeNote}{b.proposedDate ? ` · ${b.proposedDate}, ${b.proposedSlot}` : ''}</Banner>}
+    {customer && b.status === 'completed' && <Card className="!border-0 !bg-amber-50 ring-1 ring-amber-200"><p className="text-sm font-bold text-amber-900">Vendor marked this booking complete</p><p className="mt-2 text-sm leading-relaxed text-amber-900/80">Confirm the work is complete or report a problem. If you do nothing, the booking closes automatically after 7 days.</p><div className="mt-3 flex flex-wrap gap-2"><Button onClick={() => nav.go('c_booking_done', { id: b.id })}>Confirm or report</Button><Button variant="secondary" onClick={() => nav.go('c_report', { bookingId: b.id, ref: b.id })}>Report a problem</Button></div></Card>}
     <Banner tone="blue" title="Payment is arranged directly">VendorVerse does not collect or settle payments for service bookings. Confirm the final price and terms with the other participant.</Banner>
     <Card><Timeline steps={(b.history || []).map((h) => ({ label: h.s.replaceAll('_', ' '), at: h.at, note: h.note, done: true }))} /></Card>
     <div className="flex flex-wrap gap-2">
@@ -199,7 +204,8 @@ export function BookingDetail({ params = {} }) {
       {!customer && b.status === 'change_requested' && <><Button onClick={acceptChange}>Accept new time</Button><Button variant="secondary" onClick={() => update('accepted', 'Vendor could not accept the requested change', { proposedDate: undefined, proposedSlot: undefined })}>Keep original time</Button></>}
       {!customer && b.status === 'accepted' && <Button onClick={() => update('in_progress', 'Vendor marked service in progress')}>Start service</Button>}
       {!customer && b.status === 'in_progress' && <Button onClick={() => update('completed', 'Vendor marked service complete')}>Mark complete</Button>}
-      {customer && b.status === 'completed' && <><Button onClick={() => update('closed', 'Customer confirmed completion')}>Confirm completion</Button><Button variant="secondary" onClick={() => { update('disputed', 'Customer opened a dispute'); nav.go('c_report', { bookingId: b.id }) }}>Report a problem</Button><Button variant="soft" onClick={() => nav.go('c_review', { vendorId: b.vendorId, bookingId: b.id })}>Leave a review</Button></>}
+      {customer && b.status === 'completed' && <Button full onClick={() => nav.go('c_booking_done', { id: b.id })}>Confirm completion or report a problem</Button>}
+      {customer && b.status === 'closed' && <Button variant="soft" onClick={() => nav.go('c_review', { vendorId: b.vendorId, bookingId: b.id })}>Leave a review</Button>}
       <Button variant="secondary" icon={MessageCircle} onClick={() => nav.go('messages')}>Messages</Button>
     </div>
   </Screen>

@@ -1,6 +1,6 @@
 import { Children, useEffect, useRef, useState } from 'react'
 import {
-  ArrowLeft, Check, ChevronRight, Star, X, Search, Info, AlertTriangle, CheckCircle2, XCircle, Clock, Smartphone, ShieldCheck,
+  ArrowLeft, Check, ChevronRight, ChevronDown, Star, X, Search, Info, AlertTriangle, CheckCircle2, XCircle, Clock, Smartphone, ShieldCheck,
   FileText, Upload, Inbox,
 } from 'lucide-react'
 import { useNav } from './nav.jsx'
@@ -331,6 +331,34 @@ export function Select({ label, hint, error, required, options, ...p }) {
       <select {...p} className={cx(fieldBase, 'h-12 appearance-none bg-[url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2716%27 height=%2716%27 fill=%27none%27 stroke=%27%238793ab%27 stroke-width=%272.2%27%3E%3Cpath d=%27m3 6 5 5 5-5%27/%3E%3C/svg%3E")] bg-[length:16px] bg-[right_14px_center] bg-no-repeat pr-10', error && '!ring-red-400')}>
         {options.map((o) => (typeof o === 'string' ? <option key={o} value={o}>{o}</option> : <option key={o.value} value={o.value}>{o.label}</option>))}
       </select>
+    </Field>
+  )
+}
+
+export function CategorySelect({ label, hint, error, required, options, value, onChange }) {
+  const [open, setOpen] = useState(false)
+  const selected = options.find((option) => (typeof option === 'string' ? option : option.value) === value)
+  const selectedLabel = selected ? (typeof selected === 'string' ? selected : selected.label) : (options[0]?.label || 'Choose a category')
+  const choose = (nextValue) => {
+    onChange({ target: { value: nextValue } })
+    setOpen(false)
+  }
+  return (
+    <Field label={label} hint={hint} error={error} required>
+      <div className="relative" onBlur={() => window.setTimeout(() => setOpen(false), 120)}>
+        <button type="button" aria-haspopup="listbox" aria-expanded={open} onClick={() => setOpen((state) => !state)} className={cx('group flex h-12 w-full items-center justify-between rounded-xl bg-white px-3.5 text-left text-sm text-ink-900 outline-none ring-1 ring-inset transition hover:bg-white', open ? 'ring-2 ring-[#0e1b2c]' : 'ring-[#e4ddd0] hover:ring-[#b9b2a5]', error && '!ring-red-400')}>
+          <span className={cx(!value && 'text-ink-400')}>{selectedLabel}</span>
+          <ChevronDown size={17} className={cx('text-[#8c9a98] transition-transform', open && 'rotate-180 text-[#0e1b2c]')} />
+        </button>
+        {open && <div role="listbox" className="absolute left-0 right-0 z-30 mt-2 max-h-64 overflow-y-auto rounded-xl border border-[#e4ddd0] bg-[#fffdf8] p-1.5 shadow-[0_16px_35px_-18px_rgba(15,43,53,.28)]">
+          {options.map((option) => {
+            const optionValue = typeof option === 'string' ? option : option.value
+            const optionLabel = typeof option === 'string' ? option : option.label
+            const active = optionValue === value
+            return <button key={optionValue} type="button" role="option" aria-selected={active} onClick={() => choose(optionValue)} className={cx('flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-left text-sm transition', active ? 'bg-[#efeae0] font-bold text-[#0e1b2c]' : 'text-ink-700 hover:bg-[#f7f4ee] hover:text-ink-900')}>{optionLabel}{active && <Check size={16} className="text-[#8a6420]" />}</button>
+          })}
+        </div>}
+      </div>
     </Field>
   )
 }

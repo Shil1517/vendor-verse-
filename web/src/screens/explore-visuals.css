@@ -37,6 +37,89 @@
   backdrop-filter: blur(18px);
   -webkit-backdrop-filter: blur(18px);
 }
+
+/* Keep the desktop filter rail compact so the listing column gets the space. */
+.vv-explore-route .vv-explore-filter > div {
+  border-radius: 24px;
+}
+.vv-explore-route .vv-explore-filter h2 {
+  font-size: 16px;
+}
+.vv-explore-route .vv-explore-filter p {
+  line-height: 1.35;
+}
+.vv-explore-route .vv-explore-filter label > span {
+  margin-bottom: 5px;
+  font-size: 12px;
+}
+.vv-explore-route .vv-explore-filter input,
+.vv-explore-route .vv-explore-filter select {
+  font-size: 13px;
+}
+.vv-explore-route .vv-explore-filter button {
+  font-size: 13px;
+}
+.vv-explore-route .vv-explore-filter .rounded-2xl {
+  padding: 16px;
+}
+
+/* Match the category navigation's desktop content span. */
+.vv-remote-explore {
+  width: min(calc(100% - 32px), 1600px);
+}
+.vv-remote-explore-grid {
+  grid-template-columns: minmax(0, 1fr);
+  padding-inline: 8px;
+}
+.vv-remote-explore-grid > * {
+  min-width: 0;
+}
+.vv-result-card-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+}
+.vv-result-card-image {
+  margin: 16px 16px 0;
+  aspect-ratio: 16 / 9;
+}
+.vv-result-card-image img {
+  object-position: center;
+}
+.vv-result-card-body {
+  padding: 18px;
+}
+@media (min-width: 1024px) {
+  .vv-remote-explore {
+    width: min(calc(100% - 40px), 1600px);
+  }
+  .vv-remote-explore-grid {
+    grid-template-columns: minmax(320px, 360px) minmax(0, 1fr);
+    gap: 24px;
+    padding-inline: 16px;
+  }
+  .vv-explore-filter-body {
+    padding: 22px;
+  }
+  .vv-explore-listings {
+    padding-inline: 4px;
+  }
+  .vv-result-card-layout {
+    grid-template-columns: clamp(190px, 15vw, 210px) minmax(0, 1fr);
+  }
+  .vv-result-card-image {
+    align-self: stretch;
+    min-height: 176px;
+    margin: 16px 0 16px 16px;
+    aspect-ratio: auto;
+  }
+  .vv-result-card-body {
+    padding: 20px 24px;
+  }
+}
+.vv-loading-state { display:flex; min-height:360px; align-items:center; justify-content:center; gap:10px; color:var(--explore-ink-soft); font-size:14px; }
+.vv-loading-spinner { width:18px; height:18px; border:2px solid rgba(8,126,121,.18); border-top-color:var(--explore-teal); border-radius:50%; animation:vv-loading-spin .8s linear infinite; }
+@keyframes vv-loading-spin { to { transform:rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .vv-loading-spinner { animation:none; } }
 .vv-explore-route .vv-explore-tools::after {
   content: "";
   position: absolute;

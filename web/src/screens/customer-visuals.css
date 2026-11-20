@@ -6,6 +6,83 @@
   background: #f4f8f9;
 }
 .vv-customer-route.vv-customer-portal { background: #f5f5f4; }
+.vv-customer-route .vv-vendor-workspace.vx-shell {
+  --mint: #8a6420;
+  --sky: #b98f3e;
+  --grad: linear-gradient(135deg, #8a6420, #b98f3e);
+  --shellbg: #fbfaf7;
+}
+.vv-customer-route .vv-vendor-workspace.vx-shell,
+.vv-customer-route .vv-vendor-workspace.vx-shell input,
+.vv-customer-route .vv-vendor-workspace.vx-shell select,
+.vv-customer-route .vv-vendor-workspace.vx-shell textarea,
+.vv-customer-route .vv-vendor-workspace.vx-shell button { font-family: "Figtree", "DM Sans", "Segoe UI", system-ui, sans-serif; }
+.vv-customer-route .vv-vendor-workspace.vx-shell h1,
+.vv-customer-route .vv-vendor-workspace.vx-shell h2,
+.vv-customer-route .vv-vendor-workspace.vx-shell h3,
+.vv-customer-route .vv-vendor-workspace.vx-shell h4 { font-family: "Bricolage Grotesque", "Figtree", "Segoe UI", system-ui, sans-serif; }
+.vv-customer-route .vv-vendor-workspace.vx-shell .vx-fa-icon { width: 17px; text-align: center; font-size: 15px; }
+.vv-customer-route .vv-vendor-workspace.vx-shell .vx-logo,
+.vv-customer-route .vv-vendor-workspace.vx-shell .vx-av { background: linear-gradient(135deg, #8a6420, #b98f3e) !important; }
+.vv-customer-route .vv-vendor-workspace.vx-shell .vx-nav-item > svg,
+.vv-customer-route .vv-vendor-workspace.vx-shell .vx-ico,
+.vv-customer-route .vv-vendor-workspace.vx-shell .vx-toggle { color: #8a6420 !important; }
+.vv-customer-route .vv-vendor-workspace.vx-shell .vx-nav-item.is-active,
+.vv-customer-route .vv-vendor-workspace.vx-shell .vx-nav-item.is-active:hover { background: #f3ead6 !important; color: #6f5018 !important; }
+.vv-customer-route .vv-vendor-workspace.vx-shell .vx-nav-item.is-active > svg { color: #8a6420 !important; }
+.vv-customer-route .vv-vendor-workspace.vx-shell .vx-search:focus-within { border-color: #8a6420 !important; box-shadow: 0 0 0 2px rgba(138, 100, 32, .14) !important; }
+.vv-customer-route .vv-vendor-workspace.vx-shell .vx-search {
+  border-radius: 14px !important;
+  border-color: #e5dccb !important;
+  background: #fffdf9 !important;
+  box-shadow: 0 5px 16px rgba(74, 54, 24, .06);
+}
+.vv-customer-route .vv-notif-anchor { position: relative; }
+.vv-customer-route .vv-notif-dropdown {
+  position: absolute;
+  top: calc(100% + 12px);
+  right: -12px;
+  z-index: 80;
+  width: min(370px, calc(100vw - 32px));
+  overflow: hidden;
+  border: 1px solid #e5dccb;
+  border-radius: 16px;
+  background: #fffdf9;
+  box-shadow: 0 18px 42px rgba(54, 39, 15, .16);
+}
+.vv-customer-route .vv-notif-dropdown-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 15px 16px 12px; border-bottom: 1px solid #eee7da; }
+.vv-customer-route .vv-notif-dropdown-head p { margin: 0; color: #2a2116; font: 700 16px/1.2 "Bricolage Grotesque", "Figtree", sans-serif; }
+.vv-customer-route .vv-notif-dropdown-head span { display: block; margin-top: 3px; color: #8b7b65; font-size: 11px; }
+.vv-customer-route .vv-notif-dropdown-head button,
+.vv-customer-route .vv-notif-footer { border: 0; background: none; color: #8a6420; font-size: 12px; font-weight: 700; }
+.vv-customer-route .vv-notif-list { max-height: 330px; overflow-y: auto; padding: 5px; }
+.vv-customer-route .vv-notif-row { display: flex; width: 100%; gap: 10px; padding: 11px; border: 0; border-radius: 11px; background: #f7f0e2; color: #2a2116; text-align: left; }
+.vv-customer-route .vv-notif-row + .vv-notif-row { margin-top: 3px; }
+.vv-customer-route .vv-notif-row.is-read { background: transparent; }
+.vv-customer-route .vv-notif-row:hover { background: #f1e5cd; }
+.vv-customer-route .vv-notif-dot { width: 7px; height: 7px; flex: none; margin-top: 5px; border-radius: 999px; background: #8a6420; }
+.vv-customer-route .vv-notif-row.is-read .vv-notif-dot { background: #d8cdbb; }
+.vv-customer-route .vv-notif-row b,
+.vv-customer-route .vv-notif-row small,
+.vv-customer-route .vv-notif-row em { display: block; }
+.vv-customer-route .vv-notif-row b { font-size: 12px; }
+.vv-customer-route .vv-notif-row small { margin-top: 2px; color: #6f6251; font-size: 11px; line-height: 1.35; }
+.vv-customer-route .vv-notif-row em { margin-top: 4px; color: #a3927b; font-size: 10px; font-style: normal; }
+.vv-customer-route .vv-notif-empty { margin: 0; padding: 28px 16px; color: #8b7b65; font-size: 12px; text-align: center; }
+.vv-customer-route .vv-notif-footer { width: 100%; padding: 12px 16px; border-top: 1px solid #eee7da; text-align: center; }
+.vv-customer-route .text-brand-500,
+.vv-customer-route .text-brand-600,
+.vv-customer-route .text-brand-700,
+.vv-customer-route .text-brand-800 { color: #8a6420 !important; }
+.vv-customer-route .bg-brand-50 { background-color: #f7f4ee !important; }
+.vv-customer-route .bg-brand-100 { background-color: #efeae0 !important; }
+.vv-customer-route .bg-brand-500,
+.vv-customer-route .bg-brand-600,
+.vv-customer-route .bg-brand-700 { background-color: #8a6420 !important; }
+.vv-customer-route .border-brand-200,
+.vv-customer-route .border-brand-300,
+.vv-customer-route .ring-brand-500,
+.vv-customer-route .ring-brand-600 { border-color: #cbb486 !important; --tw-ring-color: #cbb486 !important; }
 .vv-customer-portal .vv-screen-scroll { background: #f5f5f4 !important; }
 .vv-customer-portal .vv-screen-layout > header { background: #fff; border-color: #e4ddd0; }
 .vv-customer-portal .vv-screen-layout > header h1 { color: #0e1b2c; font-family: "Bricolage Grotesque", "Figtree", sans-serif; letter-spacing: -.025em; }

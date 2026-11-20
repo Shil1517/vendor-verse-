@@ -24,28 +24,21 @@ function getStoredTheme() {
 }
 
 export function ThemeProvider({ children }) {
-  const [theme, setTheme] = useState(() => {
-    const stored = getStoredTheme()
-    // The colour presets are no longer selectable, so a saved preset falls back to light or dark.
-    if (stored) return stored === 'dark' || stored === 'midnight' ? 'dark' : 'light'
-    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-      return 'dark'
-    }
-    return 'light'
-  })
+  // Dark mode is temporarily disabled while the workspace surfaces are being
+  // brought onto one coherent design system. Always reset older saved dark
+  // preferences so they cannot partially recolour the app.
+  const [theme, setTheme] = useState('light')
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme)
     try {
-      window.localStorage.setItem('vv-theme', theme)
+      window.localStorage.setItem('vv-theme', 'light')
     } catch (error) {
       console.warn('Theme preference could not be saved to local storage.', error)
     }
   }, [theme])
 
-  const toggleTheme = () => {
-    setTheme(prev => prev === 'light' ? 'dark' : 'light')
-  }
+  const toggleTheme = () => setTheme('light')
 
   return (
     <ThemeContext.Provider value={{ theme, setTheme, toggleTheme }}>
