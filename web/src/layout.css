@@ -29,6 +29,8 @@
 .vv-mock-header-spacer { flex:1; }
 .vv-mock-header-controls { display:flex; align-items:center; gap:8px; white-space:nowrap; }
 .vv-mock-header-select { min-height:42px; padding:0 10px; border:0; border-radius:10px; outline:none; background:#fff; color:#0e1b2c; font:600 14px "DM Sans",system-ui,sans-serif; }
+.vv-mock-header-notifications { display:grid; width:40px; height:40px; place-items:center; border:0; border-radius:10px; background:transparent; color:#0e1b2c; cursor:pointer; }
+.vv-mock-header-notifications:hover { background:#f7f4ee; color:#8a6420; }
 .vv-mock-header-select:focus-visible,.vv-mock-header-link:focus-visible,.vv-mock-header-primary:focus-visible { outline:2px solid #8a6420; outline-offset:2px; }
 .vv-mock-location { display:flex; align-items:center; gap:5px; color:#0e1b2c; }
 .vv-mock-location select { max-width:135px; border:0; outline:0; background:transparent; color:#0e1b2c; font:600 14px "DM Sans",system-ui,sans-serif; }
@@ -42,6 +44,23 @@
 .vv-mock-category-nav button:hover { border-bottom-color:#0e1b2c; color:#0e1b2c; }
 .vv-mock-category-nav button.is-featured { color:#8a6420; font-weight:700; }
 .vv-market-auth-dialog { position:fixed; inset:0; margin:auto; width:min(460px,calc(100% - 32px)); max-width:460px; max-height:calc(100dvh - 32px); padding:0; overflow:auto; border:0; border-radius:20px; background:#fff; color:#0e1b2c; box-shadow:0 24px 70px #0e1b2c40; }
+.vv-market-auth-dialog-otp { width:min(460px,calc(100% - 32px)); max-width:460px; border-radius:20px; }
+.vv-market-auth-dialog-otp .vv-market-auth-close { z-index:2; }
+.vv-market-auth-otp-shell { position:relative; padding:34px 38px 26px; }
+.vv-otp-embedded-stage { display:block; min-height:0; padding:0; background:none; animation:none; }
+.vv-otp-embedded-stage .vv-otp-card { width:100%; max-width:none; gap:14px; padding:0; border:0; border-radius:0; background:transparent; box-shadow:none; animation:none; }
+.vv-otp-embedded-stage .vv-otp-scene { display:none; }
+.vv-otp-embedded-stage .vv-otp-copy { display:grid; gap:5px; }
+.vv-otp-embedded-stage .vv-login-eyebrow { margin:0; color:#8a6420; font-size:11px; font-weight:700; letter-spacing:.1em; }
+.vv-otp-embedded-stage .vv-otp-copy h2 { margin:0; color:#0e1b2c; font:500 29px/1.2 "Playfair Display",Georgia,serif; letter-spacing:-.02em; }
+.vv-otp-embedded-stage .vv-otp-copy>p:last-child { margin:0; color:#737b86; font-size:14px; }
+.vv-otp-embedded-stage .vv-otp-copy>p:last-child b { color:#0e1b2c; }
+.vv-otp-embedded-stage .vv-otp-entry>div>div { height:52px; border:1px solid #e4ddd0; border-radius:12px; color:#0e1b2c; background:#fff; box-shadow:none; font-size:21px; }
+.vv-otp-embedded-stage .vv-otp-entry>div>div.ring-2 { border:2px solid #8a6420; }
+.vv-market-auth-dialog-otp .vv-otp-card>button { min-height:48px; border:1px solid #0e1b2c; border-radius:999px; background:#0e1b2c; color:#fff; box-shadow:none; font-weight:700; }
+.vv-market-auth-dialog-otp .vv-otp-card>button:hover { border-color:#8a6420; background:#8a6420; }
+.vv-market-auth-dialog-otp .vv-otp-card>p:last-child { margin:0; color:#737b86; font-size:13px; }
+.vv-market-auth-dialog-otp .vv-otp-card>p:last-child button { color:#8a6420; font-weight:700; }
 .vv-market-auth-dialog::backdrop { background:rgba(14,27,44,.58); }
 .vv-market-auth-card { position:relative; padding:34px 38px 24px; }
 .vv-market-auth-close { position:absolute; top:11px; right:11px; display:grid; width:40px; min-height:40px; place-items:center; padding:0; border:0; border-radius:50%; background:none; color:#0e1b2c; }
@@ -73,6 +92,7 @@
 .vv-market-auth-links { display:grid; gap:5px; margin-top:3px; padding-top:12px; border-top:1px solid #e4ddd0; color:#5b5f6b; font-size:12px; }
 .vv-market-auth-links button { min-height:0; padding:0; border:0; background:none; color:#8a6420; font-weight:700; text-decoration:underline; }
 @media(max-width:520px) { .vv-market-auth-card { padding:32px 22px 20px; }.vv-market-auth-card h2 { font-size:24px; } }
+@media(max-width:520px) { .vv-market-auth-otp-shell { padding:32px 22px 22px; }.vv-otp-embedded-stage .vv-otp-card { gap:13px; }.vv-otp-embedded-stage .vv-otp-entry>div>div { height:46px; font-size:18px; } }
 @media(max-width:900px) {
   .vv-mock-global-header > div.mx-auto { gap:10px; padding-inline:16px; }
   .vv-mock-header-controls { gap:2px; }

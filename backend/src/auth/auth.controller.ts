@@ -39,6 +39,7 @@ export class AuthController {
       example: {
         challengeId: "a7a03a7d-5616-4d24-a8a3-bdc360da3372",
         expiresAt: "2026-11-05T04:00:00.000Z",
+        devCode: "123456",
       },
     },
   })

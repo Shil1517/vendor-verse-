@@ -382,7 +382,7 @@ export function Saved({ params = {} }) {
     <Screen title="Saved & compare">
       <Segmented value={tab} onChange={setTab} options={[{ id: 'saved', label: 'Saved', count: sl.length + sv.length }, { id: 'compare', label: 'Compare', count: cl.length }]} />
       {tab === 'saved' && (
-        <div className="space-y-2.5">
+        <div className="vv-saved-grid">
           {sv.map((v) => <VendorRow key={v.id} v={v} />)}
           {sl.map((l) => <ListingCard key={l.id} l={l} />)}
           {!sl.length && !sv.length && <EmptyState icon={Heart} title="Nothing saved yet" body="Tap the heart on any vendor or listing to keep it here." action={<Button size="sm" onClick={() => nav.go('c_explore')}>Explore</Button>} />}
@@ -502,38 +502,38 @@ export function Profile() {
   const { me, setMe, t, lang, setLang, saved, orders, toast } = useApp()
   if (!me.loggedIn) return <GuestWall title={t('profile')} />
   return (
-    <Screen title={t('profile')} back={false} pad={false}>
-      <div className="space-y-4 p-4">
-        <Card className="!p-4">
-          <div className="flex items-center gap-3.5">
-            <Avatar name={me.name || ME_NAME} size={60} />
-            <div className="min-w-0 flex-1"><p className="text-lg font-extrabold">{me.name || ME_NAME}</p><p className="text-sm text-ink-500">{me.phone || (authService.isRemote ? '' : '+91 98290 00001')}</p><Badge tone="teal" className="mt-1.5">Customer</Badge></div>
-            <Button size="sm" variant="soft" onClick={() => nav.go('c_profile_edit')}>Edit</Button>
+    <Screen title={t('profile')} back={false} pad={false} headerClass="vv-profile-screen-header">
+      <div className="vv-profile-page">
+        <section className="vv-profile-hero">
+          <div className="vv-profile-hero-copy">
+            <p className="vv-profile-eyebrow">MY ACCOUNT</p>
+            <div className="vv-profile-identity">
+              <Avatar name={me.name || ME_NAME} size={40} />
+              <div className="min-w-0"><h1>{me.name || ME_NAME}</h1><p>{me.phone || (authService.isRemote ? 'Customer account' : '+91 98290 00001')}</p><Badge tone="teal" className="mt-2">Customer</Badge></div>
+            </div>
           </div>
-        </Card>
-        <Group>
-          <ListRow icon={Heart} tone="rose" title="Saved & compare" subtitle={`${saved.length} saved items`} onClick={() => nav.go('c_saved')} />
-          <ListRow icon={FileText} tone="violet" title="My quote requests" subtitle="RFQs and quotations" onClick={() => nav.go('c_activity')} />
-          <ListRow icon={Star} tone="amber" title="Rate a vendor" subtitle="After you have talked to them" onClick={() => nav.go('c_review')} />
-          <ListRow icon={ShieldAlert} tone="violet" title="Cases" subtitle="Report and track problems" onClick={() => nav.go('c_cases')} />
-          <ListRow icon={FileText} tone="violet" title="Dashboard" onClick={() => nav.go('c_dash')} />
-          <ListRow icon={FileText} tone="violet" title="Purchase orders" onClick={() => nav.go('c_orders')} />
-          <ListRow icon={FileText} tone="violet" title="Contracts" onClick={() => nav.go('c_contract')} />
-          <ListRow icon={FileText} tone="violet" title="Companies (Phase 2)" subtitle="Buy directly from verified companies" onClick={() => nav.go('c_companies')} />
-          <ListRow icon={Star} tone="amber" title="My reviews" onClick={() => nav.go('c_reviews')} last />
-        </Group>
-        {me.hasVendorAccount && <Card onClick={() => nav.go('vb_home')} className="!p-4"><div className="flex items-center gap-3"><Thumb tone="violet" icon={Store} size={46} round="rounded-xl" /><div className="min-w-0 flex-1"><p className="text-sm font-bold">Buy from other vendors</p><p className="mt-0.5 text-xs text-ink-500">Find suppliers, send bulk RFQs and track purchases</p></div><ChevronRight size={17} className="text-ink-300" /></div></Card>}
-        {me.hasVendorAccount ? <Card onClick={() => { setMe({ ...me, role: 'vendor', name: me.vendorName || me.name, buyerMode: false }); nav.reset('v_dash') }} className="!p-4"><div className="flex items-center gap-3"><Thumb tone="teal" icon={Store} size={46} round="rounded-xl" /><div className="min-w-0 flex-1"><p className="text-sm font-bold">Open vendor workspace</p><p className="mt-0.5 text-xs text-ink-500">Manage {me.vendorName || 'your business'} and supplier work</p></div><ChevronRight size={17} className="text-ink-300" /></div></Card> : <Card onClick={() => nav.go('v_register')} className="!border-brand-200 !bg-brand-50/60 !p-4"><div className="flex items-center gap-3"><Thumb tone="teal" icon={Store} size={46} round="rounded-xl" /><div className="min-w-0 flex-1"><p className="text-sm font-bold text-brand-900">Become a vendor</p><p className="mt-0.5 text-xs text-brand-800/75">Create a business account and start selling products or services</p></div><ChevronRight size={17} className="text-brand-500" /></div></Card>}
-        <Group>
-          <ListRow icon={Globe} tone="sky" title={t('language')} subtitle={lang === 'en' ? 'English' : 'हिन्दी'} onClick={() => { setLang(lang === 'en' ? 'hi' : 'en'); toast(lang === 'en' ? 'भाषा हिन्दी में बदली गई' : 'Language set to English') }} />
-          <ListRow icon={Bell} tone="orange" title="Notifications" subtitle="Alerts & channels" onClick={() => nav.go('c_notif_prefs')} />
-          <ListRow icon={Lock} tone="slate" title="Privacy, security & sessions" subtitle="Data export, delete account" onClick={() => nav.go('c_sessions')} />
-          <ListRow icon={Lock} tone="slate" title="Your data & account deletion" onClick={() => nav.go('c_export')} />
-          <ListRow icon={Lock} tone="slate" title="Account status" onClick={() => nav.go('acct_state')} />
-          <ListRow icon={Lock} tone="red" title="Delete account" onClick={() => nav.go('c_delete')} last />
-        </Group>
-        <Button full variant="dangerSoft" icon={LogOut} onClick={() => { setMe({ role: 'customer', loggedIn: false, guest: true, vendorId: 'v-me', name: 'Guest' }); nav.reset('c_home') }}>{t('logout')}</Button>
-        <p className="text-center text-xs text-ink-400">VendorVerse v1.0 · ADRSTECHNO PRIVATE LIMITED</p>
+          <Button size="sm" variant="secondary" onClick={() => nav.go('c_profile_edit')}>Edit profile</Button>
+        </section>
+
+        <section className="vv-profile-section">
+          <div className="vv-profile-section-heading"><div><p className="vv-profile-eyebrow">YOUR MARKETPLACE</p><h2>Everything you’re working on</h2></div><button onClick={() => nav.go('c_dash')}>View dashboard <ChevronRight size={15} /></button></div>
+          <div className="vv-profile-actions">
+            <button className="vv-profile-action" onClick={() => nav.go('c_saved')}><span className="vv-profile-action-icon is-rose"><Heart size={20} /></span><span><b>Saved &amp; compare</b><small>{saved.length} saved item{saved.length === 1 ? '' : 's'}</small></span><ChevronRight size={18} /></button>
+            <button className="vv-profile-action" onClick={() => nav.go('c_activity')}><span className="vv-profile-action-icon is-violet"><FileText size={20} /></span><span><b>Quote requests</b><small>RFQs and quotations</small></span><ChevronRight size={18} /></button>
+            <button className="vv-profile-action" onClick={() => nav.go('c_orders')}><span className="vv-profile-action-icon is-gold"><Package size={20} /></span><span><b>Purchase orders</b><small>{orders.length} order{orders.length === 1 ? '' : 's'} to track</small></span><ChevronRight size={18} /></button>
+            <button className="vv-profile-action" onClick={() => nav.go('c_contract')}><span className="vv-profile-action-icon is-sky"><FileText size={20} /></span><span><b>Contracts</b><small>Terms and agreements</small></span><ChevronRight size={18} /></button>
+          </div>
+        </section>
+
+        <div className="vv-profile-columns">
+          <section className="vv-profile-section vv-profile-card-section"><div className="vv-profile-section-heading"><div><p className="vv-profile-eyebrow">SUPPORT &amp; TRUST</p><h2>Need a hand?</h2></div></div><Group><ListRow icon={Star} tone="amber" title="Rate a vendor" subtitle="Share your experience" onClick={() => nav.go('c_review')} /><ListRow icon={ShieldAlert} tone="violet" title="Cases" subtitle="Report and track problems" onClick={() => nav.go('c_cases')} /><ListRow icon={Star} tone="amber" title="My reviews" subtitle="Your submitted feedback" onClick={() => nav.go('c_reviews')} last /></Group></section>
+          <section className="vv-profile-section vv-profile-card-section"><div className="vv-profile-section-heading"><div><p className="vv-profile-eyebrow">PREFERENCES</p><h2>Account settings</h2></div></div><Group><ListRow icon={Globe} tone="sky" title={t('language')} subtitle={lang === 'en' ? 'English' : 'हिन्दी'} onClick={() => { setLang(lang === 'en' ? 'hi' : 'en'); toast(lang === 'en' ? 'भाषा हिन्दी में बदली गई' : 'Language set to English') }} /><ListRow icon={Bell} tone="orange" title="Notifications" subtitle="Alerts and channels" onClick={() => nav.go('c_notif_prefs')} /><ListRow icon={Lock} tone="slate" title="Privacy & security" subtitle="Sessions, data and account controls" onClick={() => nav.go('c_sessions')} last /></Group></section>
+        </div>
+
+        {me.hasVendorAccount ? <section className="vv-profile-vendor-callout"><div><p className="vv-profile-eyebrow">SELL ON VENDORVERSE</p><h2>Switch to your vendor workspace</h2><p>Manage {me.vendorName || 'your business'}, listings and supplier work.</p></div><Button onClick={() => { setMe({ ...me, role: 'vendor', name: me.vendorName || me.name, buyerMode: false }); nav.reset('v_dash') }}>Open workspace</Button></section> : <section className="vv-profile-vendor-callout"><div><p className="vv-profile-eyebrow">SELL ON VENDORVERSE</p><h2>Ready to sell?</h2><p>Create your vendor profile and start offering products or services.</p></div><Button onClick={() => nav.go('v_register')}>Become a vendor</Button></section>}
+
+        <div className="vv-profile-footer-actions"><button onClick={() => nav.go('c_export')}>Your data</button><button onClick={() => nav.go('acct_state')}>Account status</button><button className="is-danger" onClick={() => nav.go('c_delete')}>Delete account</button><button className="vv-profile-logout" onClick={() => { setMe({ role: 'customer', loggedIn: false, guest: true, vendorId: 'v-me', name: 'Guest' }); nav.reset('c_home') }}><LogOut size={16} />{t('logout')}</button></div>
+        <p className="vv-profile-version">VendorVerse v1.0 · ADRSTECHNO PRIVATE LIMITED</p>
       </div>
     </Screen>
   )
@@ -590,14 +590,27 @@ export function ProfileEdit({ params = {} }) {
     if (params.firstRun) nav.reset('c_home'); else nav.back()
   }
   return (
-    <Screen title="Edit profile" footer={<Button full size="lg" disabled={loading || saving} onClick={save}>{saving ? 'Saving…' : 'Save changes'}</Button>}>
-      <div className="flex justify-center py-2"><div className="relative"><Avatar name={f.name || 'A'} size={84} /><span className="absolute -bottom-1 -right-1 grid size-8 place-items-center rounded-full bg-brand-600 text-white ring-4 ring-ink-50"><ImagePlus size={15} /></span></div></div>
-      {errs.form && <p role="alert" className="text-center text-sm font-medium text-red-600">{errs.form}</p>}
-      <Input label="Full name" required value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} error={errs.name} />
-      <Input label="Mobile number" value={phone} readOnly hint="Verified · contact support to change" />
-      <Input label="Email" type="email" value={f.email} onChange={(e) => setF({ ...f, email: e.target.value })} error={errs.email} hint={remote && f.email ? (emailOk ? 'Verified' : 'Not verified yet — email verification is coming soon') : undefined} />
-      <Select label="City" value={f.city} onChange={(e) => setF({ ...f, city: e.target.value })} options={['Jaipur', 'Delhi NCR', 'Ajmer', 'Sikar']} />
-      <Input label="Default address" textarea rows={2} value={f.address} onChange={(e) => setF({ ...f, address: e.target.value })} />
+    <Screen title="Edit profile" pad={false} headerClass="vv-profile-screen-header" footer={<div className="vv-profile-edit-save"><Button size="lg" disabled={loading || saving} onClick={save}>{saving ? 'Saving…' : 'Save changes'}</Button></div>}>
+      <div className="vv-profile-edit-page">
+        <section className="vv-profile-edit-intro">
+          <div className="relative"><Avatar name={f.name || 'A'} size={40} /><span className="absolute -bottom-1 -right-1 grid size-6 place-items-center rounded-full bg-brand-600 text-white ring-2 ring-[#faf8f3]"><ImagePlus size={12} /></span></div>
+          <div><p className="vv-profile-eyebrow">MY ACCOUNT</p><h1>Edit your profile</h1><p>Keep your details current so vendors can respond to you easily.</p></div>
+        </section>
+        <section className="vv-profile-edit-form">
+          <div className="vv-profile-edit-section-heading"><p className="vv-profile-eyebrow">PERSONAL DETAILS</p><h2>Your contact information</h2></div>
+          {errs.form && <p role="alert" className="vv-profile-edit-error">{errs.form}</p>}
+          <div className="vv-profile-edit-grid">
+            <Input label="Full name" required value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} error={errs.name} />
+            <Input label="Mobile number" value={phone} readOnly hint="Verified · contact support to change" />
+            <Input label="Email" type="email" value={f.email} onChange={(e) => setF({ ...f, email: e.target.value })} error={errs.email} hint={remote && f.email ? (emailOk ? 'Verified' : 'Not verified yet — email verification is coming soon') : undefined} />
+          </div>
+          <div className="vv-profile-edit-section-heading is-location"><p className="vv-profile-eyebrow">DEFAULT LOCATION</p><h2>Where should vendors serve you?</h2></div>
+          <div className="vv-profile-edit-grid">
+            <Select label="City" value={f.city} onChange={(e) => setF({ ...f, city: e.target.value })} options={['Jaipur', 'Delhi NCR', 'Ajmer', 'Sikar']} />
+            <Input label="Default address" textarea rows={2} value={f.address} onChange={(e) => setF({ ...f, address: e.target.value })} />
+          </div>
+        </section>
+      </div>
     </Screen>
   )
 }

@@ -60,7 +60,7 @@ export class AuthService {
 
   async requestOtp(
     request: OtpRequestDto,
-  ): Promise<{ challengeId: string; expiresAt: string }> {
+  ): Promise<{ challengeId: string; expiresAt: string; devCode?: string }> {
     const identifier = this.normalizeIdentifier(
       request.channel,
       request.identifier,
@@ -111,7 +111,11 @@ export class AuthService {
         expiresAt,
       ],
     );
-    return { challengeId, expiresAt: expiresAt.toISOString() };
+    const response = { challengeId, expiresAt: expiresAt.toISOString() };
+    return this.config.get("APP_ENV", { infer: true }) === "local" ||
+      this.config.get("APP_ENV", { infer: true }) === "test"
+      ? { ...response, devCode: code }
+      : response;
   }
 
   async verifyOtp(request: {
