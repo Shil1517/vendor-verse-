@@ -2,6 +2,7 @@ import {
   BadRequestException,
   Controller,
   Get,
+  Param,
   ParseUUIDPipe,
   Query,
 } from "@nestjs/common";
@@ -64,5 +65,19 @@ export class GeoController {
   @ApiQuery({ name: "cityId" })
   async localities(@Query("cityId", ParseUUIDPipe) cityId: string) {
     return { localities: await this.geo.listLocalities(cityId) };
+  }
+
+  @Get("pincodes/:pincode")
+  @ApiOperation({
+    summary: "Detect state, district and city from a pincode (F-GEO-01)",
+    description:
+      "India only. `supported` is true when the pincode maps to a city in our hierarchy; its launch status is on `city`. A pincode outside our cities is returned with `city: null`.",
+  })
+  @ApiQuery({ name: "countryCode", required: false, example: "IN" })
+  async pincode(
+    @Param("pincode") pincode: string,
+    @Query("countryCode") code?: string,
+  ) {
+    return this.geo.lookupPincode(code ? countryCode(code) : "IN", pincode);
   }
 }

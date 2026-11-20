@@ -19,6 +19,7 @@ import * as RD from './screens/remote-discovery.jsx'
 import * as RR from './screens/remote-rfq.jsx'
 import * as RT from './screens/remote-transactions.jsx'
 import * as RL from './screens/remote-listings.jsx'
+import * as RDB from './screens/remote-dashboard.jsx'
 import { authService } from './services/authService.js'
 
 /* With the real API (VITE_API_BASE_URL) these screens read and write through it; otherwise the seed-data screen is used. */
@@ -67,7 +68,7 @@ export const SCREENS = Object.fromEntries([
   R('c_settings', C2.CustomerSettings, 'customer', 'Settings, privacy & sessions', ['FR-01', 'FR-10']),
 
   // ---- vendor ----
-  R('v_dash', V.VendorDashboard, 'vendor', 'Dashboard', ['FR-03', 'FR-08', 'FR-10'], { tab: true, bar: 'ink' }),
+  R('v_dash', live(RDB.RemoteVendorDashboard, V.VendorDashboard), 'vendor', 'Dashboard', ['FR-03', 'FR-08', 'FR-10'], { tab: true, bar: 'ink' }),
   R('v_explore', VendorExplore, 'vendor', 'Supplier marketplace', ['FR-05', 'FR-08']),
   R('v_business_onboard', V.BusinessOnboarding, 'vendor', 'Business supplier onboarding', ['FR-03', 'FR-04']),
   R('v_register', V.VendorRegister, 'shared', 'Vendor account creation', ['FR-03']),
