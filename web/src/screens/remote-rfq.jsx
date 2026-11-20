@@ -77,7 +77,7 @@ function ActivityEmpty({ icon: Icon, title, body, action, onAction }) {
 /** Customer activity hub (F-BKG-10): bookings first, then RFQs, work orders and contracts, one tab each. */
 export function RemoteActivity() {
   const nav = useNav()
-  const [tab, setTab] = useState('bookings')
+  const [tab, setTab] = useState(() => nav.params?.tab || 'bookings')
   const load = useCallback(() => authService.listMyBookings(), [])
   const bookings = useLoad(load, [load])
   const rfqs = useLoad(() => authService.listMyRfqs(), [])

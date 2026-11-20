@@ -12,7 +12,6 @@ import { SCREENS, GROUPS } from './registry.jsx'
 import { pathForScreen, screenForLocation } from './screen-routes.js'
 import { Logo } from './screens/auth.jsx'
 import { VendorWorkspace, CUSTOMER_WORKSPACE_IDS } from './screens/vendor.jsx'
-import { ThemeToggle } from './components/ThemeToggle.jsx'
 import { MarketplaceAuthDialog, OPEN_AUTH_EVENT } from './components/MarketplaceAuthDialog.jsx'
 import { LocationDialog } from './components/LocationDialog.jsx'
 import { FRS, NFR, MVP, PHASE2, ACCEPTANCE, DECISIONS, ROLE_TABLE } from './specs.js'
@@ -342,7 +341,6 @@ function WebHeader({ onMenu, hideTabs, workspaceHeader = false, workspaceTheme =
           <button onClick={() => (authService.isRemote ? setLocationOpen(true) : nav.go('c_location'))} className="hidden max-w-[210px] truncate rounded-xl bg-ink-50 px-3 py-2 text-left text-xs font-bold text-ink-700 hover:bg-brand-50 sm:block" title={t('searchLocation')}><MapPin size={14} className="mr-1 inline text-brand-700" />{locale.city || 'Jaipur'}{locale.pincode ? ` ${locale.pincode}` : ''}, {locale.state || 'Rajasthan'}, {locale.countryName || 'India'}</button>
           <button onClick={() => setLang(lang === 'en' ? 'hi' : 'en')} className="hidden h-10 items-center gap-2 rounded-xl px-2.5 text-sm font-semibold text-ink-600 hover:bg-ink-50 sm:flex" aria-label="Switch language"><Globe size={17} /><span>{lang === 'en' ? 'EN' : 'हि'}</span></button>
           <button onClick={() => nav.go('notifications')} className="relative grid size-10 place-items-center rounded-xl text-ink-600 hover:bg-ink-50" aria-label="Notifications"><Bell size={19} /></button>
-          {(workspaceHeader || workspaceTheme) && <ThemeToggle className="vv-workspace-theme-toggle" />}
           {!me.loggedIn && <button onClick={() => nav.go('login')} className="h-10 rounded-xl bg-brand-600 px-4 text-sm font-bold text-white shadow-sm hover:bg-brand-700">Sign in</button>}
         </div>
         </>}

@@ -4,7 +4,7 @@ const PRODUCT_PATHS = {
   c_location_wait: '/locations/:city/waitlist', c_saved: '/account/saved', c_activity: '/account/requests',
   c_rfq_new: '/requests/new', c_rfq: '/requests/:id', c_rfq_edit: '/requests/:id/edit',
   c_book_new: '/bookings/new', c_booking: '/bookings/:id', c_orders: '/account/orders',
-  c_order: '/orders/:id', c_profile: '/account/profile', c_profile_edit: '/account/profile/edit',
+  c_order: '/orders/:id', c_contract: '/customer/contract/:id', c_profile: '/account/profile', c_profile_edit: '/account/profile/edit',
   c_settings: '/account/settings', c_sessions: '/account/sessions', c_delete: '/account/delete',
   c_export: '/account/data-export', c_notif_prefs: '/account/notifications/preferences',
   login: '/login', register: '/signup', welcome: '/welcome', otp: '/verify',

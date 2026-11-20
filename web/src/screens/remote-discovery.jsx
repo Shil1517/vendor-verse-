@@ -163,13 +163,13 @@ function ResultCard({ listing: l, sample = false, onClick }) {
 
   return (
     <Card onClick={onClick} className="group overflow-hidden p-0">
-      <div className="grid md:grid-cols-[1fr_3fr]">
-        <div className="relative m-4 min-h-48 overflow-hidden rounded-2xl bg-ink-100 md:m-5 md:mr-0 md:min-h-0">
+      <div className="vv-result-card-layout">
+        <div className="vv-result-card-image relative overflow-hidden rounded-2xl bg-ink-100">
           <img src={image} alt="" loading="lazy" className="absolute inset-0 size-full object-cover transition duration-300 group-hover:scale-105" />
           <div className="absolute inset-0 bg-gradient-to-t from-ink-900/35 to-transparent" />
           <span className="absolute bottom-3 left-3 rounded-full bg-white/90 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-ink-700 backdrop-blur-sm">{kind}</span>
         </div>
-        <div className="p-4 md:p-5">
+        <div className="vv-result-card-body p-4 md:p-5">
           <div className="min-w-0">
             <div className="flex flex-wrap items-start justify-between gap-2">
               <p className="min-w-0 text-base font-bold leading-snug text-ink-900 transition group-hover:text-brand-700 md:text-lg">{l.title}</p>
@@ -181,14 +181,14 @@ function ResultCard({ listing: l, sample = false, onClick }) {
               {location && <span className="inline-flex items-center gap-1"><MapPin size={12} />{location}</span>}
             </div>
           </div>
-        <div className="mt-4 flex flex-wrap items-end justify-between gap-3 rounded-2xl bg-ink-50/80 px-3.5 py-3 ring-1 ring-inset ring-ink-100">
+        <div className="mt-3 flex flex-wrap items-end justify-between gap-3 rounded-2xl bg-ink-50/80 px-3.5 py-2.5 ring-1 ring-inset ring-ink-100">
           <div>
             <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-ink-400">Starting range</p>
             <p className="mt-1 text-base font-extrabold tracking-tight text-ink-900 md:text-lg">{priceLabel(l.price)}</p>
           </div>
           <span className="rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-ink-600 ring-1 ring-ink-200">{kind}</span>
         </div>
-        {matched && <p className="mt-3 text-xs font-medium text-ink-500">{matched}</p>}
+        {matched && <p className="mt-2 text-xs font-medium text-ink-500">{matched}</p>}
         </div>
       </div>
     </Card>
@@ -262,9 +262,9 @@ export function RemoteExplore({ params = {} }) {
   const activeFilterCount = [type !== 'all', categoryId !== 'all', Boolean(min), Boolean(max), instantOnly].filter(Boolean).length
 
   return (
-    <Screen title="Explore" back={false} pad={false} headerless>
-      <div className="mx-auto w-full max-w-[1560px] space-y-5 px-3 pb-6 pt-3 md:pb-8 md:pt-4">
-      <div className="grid items-start gap-5 md:grid-cols-[minmax(320px,360px)_minmax(0,1fr)]">
+    <Screen title="Explore" back={false} pad={false} headerless scrollClass="vv-remote-explore-scroll">
+      <div className="vv-remote-explore mx-auto space-y-5 pb-6 pt-3 md:pb-8 md:pt-4">
+      <div className="vv-remote-explore-grid grid items-start gap-5">
       <aside className="vv-explore-filter md:sticky md:top-4">
       <div className="overflow-hidden rounded-3xl bg-white shadow-[0_18px_55px_-30px_rgba(15,23,42,0.45)] ring-1 ring-ink-100">
         <div className="flex items-center justify-between border-b border-ink-100 bg-gradient-to-br from-ink-50 via-white to-brand-50/40 px-5 py-4 md:px-6">
@@ -272,7 +272,7 @@ export function RemoteExplore({ params = {} }) {
           {activeFilterCount > 0 && <span className="rounded-full bg-brand-50 px-2.5 py-1 text-xs font-bold text-brand-700 ring-1 ring-brand-100">{activeFilterCount} active</span>}
         </div>
 
-        <div className="space-y-4 p-4 md:p-5">
+        <div className="vv-explore-filter-body space-y-4 p-4 md:p-5">
           <div>
             <div className="mb-2.5 flex items-center justify-between gap-3">
               <p className="text-xs font-bold uppercase tracking-[0.14em] text-ink-500">Browse by type</p>
@@ -308,7 +308,7 @@ export function RemoteExplore({ params = {} }) {
         </div>
       </div>
       </aside>
-      <div className="space-y-3.5">
+      <div className="vv-explore-listings space-y-3.5">
         <UniversalPanel q={q} country={country} cityId={cityId} signedIn={Boolean(app.me?.loggedIn)} onCategory={setCategoryId} />
         <p className="pt-1 text-[13px] font-bold uppercase tracking-wide text-ink-500">Products and services{(useSamples ? sampleItems.length : visibleItems.length) > 0 && ` (${useSamples ? sampleItems.length : visibleItems.length})`}</p>
         {!useSamples && state.error && <ErrorBox message={state.error} onRetry={() => search()} />}

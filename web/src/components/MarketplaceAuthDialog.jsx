@@ -54,7 +54,7 @@ export function MarketplaceAuthDialog({ mode, onClose, onChangeMode }) {
     setOtpParams({ contact: `${countryCode} ${phone}`, role: form.role, mode: 'register', name: form.name.trim(), email: form.email.trim(), biz: form.biz.trim() })
   }
 
-  return <dialog ref={dialogRef} className={`vv-market-auth-dialog${otpParams ? ' vv-market-auth-dialog-otp' : ''}`} aria-labelledby="vv-market-auth-title" onCancel={(event) => { event.preventDefault(); onClose() }} onClick={(event) => { if (event.target === event.currentTarget) onClose() }}>
+  return <dialog ref={dialogRef} className={`vv-market-auth-dialog${otpParams ? ' vv-market-auth-dialog-otp' : ''}${!otpParams ? ' vv-market-auth-compact' : ''}`} aria-labelledby="vv-market-auth-title" onCancel={(event) => { event.preventDefault(); onClose() }} onClick={(event) => { if (event.target === event.currentTarget) onClose() }}>
     {otpParams ? <div className="vv-market-auth-otp-shell">
       <button className="vv-market-auth-close" type="button" aria-label="Close" onClick={onClose}><X size={19}/></button>
       <div className="vv-market-auth-wordmark">VENDOR<span>VERSE</span></div>

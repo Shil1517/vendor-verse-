@@ -12,6 +12,11 @@
 .vv-form-route .vv-screen-layout > .shrink-0.border-t > * { max-width: 828px; margin-inline: auto; }
 .vv-form-route .vv-screen-layout > .shrink-0.border-t > .flex > button:not(:only-child) { flex: 1; }
 .vv-form-route .vv-screen-scroll { background: #f6f8f9; }
+.vv-explore-route .vv-screen-layout .vv-screen-scroll.vv-remote-explore-scroll > div {
+  width: 100% !important;
+  max-width: none !important;
+  padding: 0;
+}
 @media (max-width: 700px) {
   .vv-form-route .vv-screen-scroll > div { width: 100% !important; }
 }
@@ -44,6 +49,9 @@
 .vv-mock-category-nav { position:relative; display:flex; justify-content:center; gap:4px; min-height:44px; padding:0 20px; overflow:visible; border-top:1px solid #f0ece5; scrollbar-width:none; }
 .vv-mock-category-nav::-webkit-scrollbar { display:none; }
 .vv-category-nav-items { position:relative; display:flex; align-items:stretch; gap:4px; width:max-content; max-width:100%; }
+@media (min-width: 1700px) {
+  .vv-mock-category-nav .vv-category-nav-items { width: min(100%, 1600px); justify-content: space-between; }
+}
 .vv-mock-category-nav button { display:inline-flex; align-items:center; gap:6px; flex:none; min-height:42px; padding:0 11px; border:0; border-bottom:2px solid transparent; border-radius:0; background:none; color:#5b5f6b; font-size:13px; white-space:nowrap; }
 .vv-mock-category-nav button svg { color:#8a6420; opacity:.82; }
 .vv-mock-category-nav button:hover { border-bottom-color:#0e1b2c; color:#0e1b2c; }
@@ -138,6 +146,22 @@
 .vv-market-auth-error { margin:-4px 0 0; color:#9b2c2c; font-size:12px; }
 .vv-market-auth-links { display:grid; gap:5px; margin-top:3px; padding-top:12px; border-top:1px solid #e4ddd0; color:#5b5f6b; font-size:12px; }
 .vv-market-auth-links button { min-height:0; padding:0; border:0; background:none; color:#8a6420; font-weight:700; text-decoration:underline; }
+.vv-market-auth-compact { width:min(430px,calc(100% - 32px)); max-width:430px; max-height:calc(100dvh - 44px); }
+.vv-market-auth-compact .vv-market-auth-card { padding:24px 28px 18px; }
+.vv-market-auth-compact .vv-market-auth-wordmark { margin-bottom:5px; font-size:15px; }
+.vv-market-auth-compact .vv-market-auth-card h2 { margin-bottom:12px; font-size:23px; }
+.vv-market-auth-compact .vv-market-auth-card form { gap:8px; }
+.vv-market-auth-compact .vv-market-auth-roles button { min-height:34px; font-size:13px; }
+.vv-market-auth-compact .vv-market-auth-switch button { min-height:34px; font-size:13px; }
+.vv-market-auth-compact .vv-market-auth-field { gap:4px; font-size:12px; }
+.vv-market-auth-compact .vv-market-auth-field>b { font-size:11px; }
+.vv-market-auth-compact .vv-market-auth-field>input,.vv-market-auth-compact .vv-market-auth-phone { min-height:40px; }
+.vv-market-auth-compact .vv-market-auth-phone select { flex-basis:98px; font-size:12px; }
+.vv-market-auth-compact .vv-market-auth-phone input { font-size:13px; }
+.vv-market-auth-compact .vv-market-auth-consent { font-size:11px; line-height:1.35; }
+.vv-market-auth-compact .vv-market-auth-submit,.vv-market-auth-compact .vv-market-auth-google { min-height:40px; font-size:13px; }
+.vv-market-auth-compact .vv-market-auth-note,.vv-market-auth-compact .vv-market-auth-links { font-size:11px; }
+.vv-market-auth-compact .vv-market-auth-links { padding-top:9px; }
 @media(max-width:520px) { .vv-market-auth-card { padding:32px 22px 20px; }.vv-market-auth-card h2 { font-size:24px; } }
 @media(max-width:520px) { .vv-market-auth-otp-shell { padding:32px 22px 22px; }.vv-otp-embedded-stage .vv-otp-card { gap:13px; }.vv-otp-embedded-stage .vv-otp-entry>div>div { height:46px; font-size:18px; } }
 @media(max-width:900px) {
