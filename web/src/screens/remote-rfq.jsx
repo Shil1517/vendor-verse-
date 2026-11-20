@@ -91,7 +91,8 @@ export function RemoteVendorWork() {
   if (mine.error) return <Screen title="Work" back={false}><ErrorBox message={mine.error} onRetry={mine.reload} /></Screen>
   return (
     <BookingList title="Work" back={false} load={load} detail="v_booking" empty={vendorId ? 'Booking requests for your listings appear here.' : 'Register your business to receive bookings.'}>
-      <div className="space-y-3 px-4 pt-4">
+      <div className="vv-work-hub space-y-3 px-4 pt-4">
+        <h1 className="vv-work-title">Work</h1>
         <Section title="RFQs sent to you">
           {rfqs.loading && !rfqs.data && <Loading />}
           {rfqs.error && <ErrorBox message={rfqs.error} onRetry={rfqs.reload} />}

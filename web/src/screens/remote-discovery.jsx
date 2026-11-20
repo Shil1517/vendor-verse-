@@ -208,26 +208,26 @@ export function RemoteExplore({ params = {} }) {
 
   return (
     <Screen title="Explore" back={false} pad={false} headerless>
-      <div className="mx-auto w-full max-w-5xl space-y-4 px-4 py-6">
+      <div className="mx-auto w-full max-w-5xl space-y-5 px-4 py-6 md:py-8">
       <div>
-        <h1 className="text-2xl font-bold text-ink-900">{group || 'Explore'}</h1>
-        <p className="mt-1 text-sm text-ink-500">{group === 'New vendors' ? 'Recently joined, verified vendors.' : group ? `Products and services in ${group.toLowerCase()}.` : 'Search products and services from verified vendors.'}</p>
+        <h1 className="text-2xl font-bold tracking-tight md:text-3xl text-ink-900">{group || 'Explore'}</h1>
+        <p className="mt-1 text-sm text-ink-500 md:text-base">{group === 'New vendors' ? 'Recently joined, verified vendors.' : group ? `Products and services in ${group.toLowerCase()}.` : 'Search products and services from verified vendors.'}</p>
       </div>
-      <div className="space-y-3 rounded-2xl bg-white p-4 shadow-sm ring-1 ring-ink-100">
+      <div className="space-y-4 rounded-2xl bg-white p-4 md:p-6 shadow-sm ring-1 ring-ink-100">
         <SearchBar value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search vendors, products, services" />
         <Segmented value={type} onChange={setType} options={[{ id: 'all', label: 'All' }, { id: 'product', label: 'Products' }, { id: 'service', label: 'Services' }]} />
         {chipOptions.length > 0 && (
-          <Chips value={categoryId} onChange={setCategoryId} options={[{ id: 'all', label: 'All categories' }, ...chipOptions]} />
+          <Chips className="md:-mx-6 md:px-6" value={categoryId} onChange={setCategoryId} options={[{ id: 'all', label: 'All categories' }, ...chipOptions]} />
         )}
         <div className="flex items-end gap-2">
-          <Input label="Min price" inputMode="numeric" value={min} onChange={(e) => setMin(e.target.value.replace(/\D/g, ''))} />
-          <Input label="Max price" inputMode="numeric" value={max} onChange={(e) => setMax(e.target.value.replace(/\D/g, ''))} />
+          <Input className="!h-11" label="Min price" inputMode="numeric" value={min} onChange={(e) => setMin(e.target.value.replace(/\D/g, ''))} />
+          <Input className="!h-11" label="Max price" inputMode="numeric" value={max} onChange={(e) => setMax(e.target.value.replace(/\D/g, ''))} />
         </div>
         <Toggle label="Instant booking only" desc="Listings you can book without waiting for a reply" on={instantOnly} onChange={setInstantOnly} />
       </div>
-      <div className="space-y-3">
+      <div className="space-y-3.5">
         <UniversalPanel q={q} country={country} cityId={cityId} signedIn={Boolean(app.me?.loggedIn)} onCategory={setCategoryId} />
-        <p className="pt-1 text-xs font-bold uppercase tracking-wide text-ink-500">Products and services{(useSamples ? sampleItems.length : visibleItems.length) > 0 && ` (${useSamples ? sampleItems.length : visibleItems.length})`}</p>
+        <p className="pt-1 text-[13px] font-bold uppercase tracking-wide text-ink-500">Products and services{(useSamples ? sampleItems.length : visibleItems.length) > 0 && ` (${useSamples ? sampleItems.length : visibleItems.length})`}</p>
         {!useSamples && state.error && <ErrorBox message={state.error} onRetry={() => search()} />}
         {!state.error && !state.loading && !state.marketLive && (
           <Banner tone="amber" title="Not live in this area yet">VendorVerse is not open for search in {locale.city || 'this area'} yet, so nothing is shown. Nothing here is hidden from you.</Banner>
@@ -237,13 +237,13 @@ export function RemoteExplore({ params = {} }) {
           <Card key={l.id}>
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
-                <p className="truncate text-[15px] font-bold text-ink-900">{l.title}</p>
-                <p className="truncate text-xs text-ink-500">{l.vendor.name} · {l.categoryName} · {l.city}</p>
+                <p className="truncate text-base font-bold leading-snug text-ink-900 md:text-lg">{l.title}</p>
+                <p className="truncate text-[13px] text-ink-500 md:text-sm">{l.vendor.name} · {l.categoryName} · {l.city}</p>
               </div>
               <div className="flex shrink-0 gap-1.5">{l.instantBooking && <Badge tone="teal"><Zap size={11} /> Instant</Badge>}<Badge tone="gray">Sample</Badge></div>
             </div>
-            <p className="mt-2 text-sm font-semibold text-ink-800">{priceLabel(l.price)}</p>
-            <p className="mt-1 text-xs text-ink-500">{l.listingType === 'product' ? 'Product' : 'Service'}{l.isNew ? ' · New vendor' : ''}</p>
+            <p className="mt-2 text-[15px] font-semibold text-ink-800 md:text-base">{priceLabel(l.price)}</p>
+            <p className="mt-1 text-[13px] text-ink-500 md:text-sm">{l.listingType === 'product' ? 'Product' : 'Service'}{l.isNew ? ' · New vendor' : ''}</p>
           </Card>
         ))}
         {useSamples && sampleItems.length === 0 && (
@@ -256,13 +256,13 @@ export function RemoteExplore({ params = {} }) {
           <Card key={l.id} onClick={() => nav.go('c_listing', { id: l.id })}>
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
-                <p className="truncate text-[15px] font-bold text-ink-900">{l.title}</p>
-                <p className="truncate text-xs text-ink-500">{l.vendor.name} · {l.categoryName}</p>
+                <p className="truncate text-base font-bold leading-snug text-ink-900 md:text-lg">{l.title}</p>
+                <p className="truncate text-[13px] text-ink-500 md:text-sm">{l.vendor.name} · {l.categoryName}</p>
               </div>
               {l.instantBooking && <Badge tone="teal"><Zap size={11} /> Instant</Badge>}
             </div>
-            <p className="mt-2 text-sm font-semibold text-ink-800">{priceLabel(l.price)}</p>
-            <p className="mt-1 text-xs text-ink-500">{matchLabels(l.matchedOn).join(' · ')}</p>
+            <p className="mt-2 text-[15px] font-semibold text-ink-800 md:text-base">{priceLabel(l.price)}</p>
+            <p className="mt-1 text-[13px] text-ink-500 md:text-sm">{matchLabels(l.matchedOn).join(' · ')}</p>
           </Card>
         ))}
         {state.nextCursor && !state.loading && <Button full variant="secondary" onClick={() => search(state.nextCursor)}>Show more</Button>}
