@@ -92,6 +92,26 @@
 .vv-customer-route :is(.overflow-x-auto, [class*="overflow-x-auto"]) { max-width: 100%; overscroll-behavior-x: contain; }
 .vv-customer-route :is(p, dd, dt, h1, h2, h3) { overflow-wrap: anywhere; }
 
+/* Saved items are a collection, so give them the same visual rhythm as a
+   marketplace browse grid instead of stacking full-width rows. */
+.vv-customer-route .vv-saved-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr));
+  align-items: stretch;
+  gap: 18px;
+}
+.vv-customer-route .vv-saved-grid > * {
+  min-width: 0;
+  height: 100%;
+}
+.vv-customer-route .vv-saved-grid > *:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 28px -16px rgba(14, 27, 44, .26);
+}
+@media (max-width: 720px) {
+  .vv-customer-route .vv-saved-grid { gap: 12px; }
+}
+
 .vv-customer-route [class~="z-40"] > .relative.flex.max-h-\[88\%\] {
   width: min(100%, 720px);
   max-height: min(88%, 760px);

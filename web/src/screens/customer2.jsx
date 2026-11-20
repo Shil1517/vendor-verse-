@@ -382,7 +382,7 @@ export function Saved({ params = {} }) {
     <Screen title="Saved & compare">
       <Segmented value={tab} onChange={setTab} options={[{ id: 'saved', label: 'Saved', count: sl.length + sv.length }, { id: 'compare', label: 'Compare', count: cl.length }]} />
       {tab === 'saved' && (
-        <div className="space-y-2.5">
+        <div className="vv-saved-grid">
           {sv.map((v) => <VendorRow key={v.id} v={v} />)}
           {sl.map((l) => <ListingCard key={l.id} l={l} />)}
           {!sl.length && !sv.length && <EmptyState icon={Heart} title="Nothing saved yet" body="Tap the heart on any vendor or listing to keep it here." action={<Button size="sm" onClick={() => nav.go('c_explore')}>Explore</Button>} />}
