@@ -697,10 +697,6 @@ function VendorSidebar({ active, vendor, collapsed, onNavigate }) {
   return (
     <aside className="vx-side">
       <div className="vx-brand"><span className="vx-logo">V</span><div className="vx-bt"><b>VendorVerse</b><small>{businessSupplier ? 'Supplier workspace' : 'Vendor workspace'}</small></div></div>
-      <div className="vx-biz">
-        <Thumb tone={vendor?.tone || 'teal'} icon={vendor ? cat(vendor.cat).icon : Store} size={38} round="rounded-xl" />
-        <div><b>{businessSupplier ? me.businessName || 'Business / Company' : vendor?.name || 'Your business'}</b><small>{businessSupplier ? 'Supplier workspace' : vendor?.status === 'approved' ? 'Verified vendor' : 'Vendor workspace'}</small></div>
-      </div>
       <nav id="vendor-workspace-navigation" className="vx-nav" ref={navRef} aria-label={businessSupplier ? 'Business supplier workspace' : 'Vendor workspace'}>
         <span className="vx-pill" aria-hidden="true" style={pill ? { transform: `translateY(${pill.y}px)`, height: pill.h, opacity: 1 } : undefined} />
         {VENDOR_NAV.map(([group, items]) => (
@@ -1375,7 +1371,7 @@ export function Performance() {
   ]
   return (
     <VendorWorkspace>
-    <Screen title="Performance">
+    <Screen title="Performance" headerless>
       <div className="vx-perf-shell">
         <div className="vx-perf-header">
           <div>
@@ -1467,32 +1463,6 @@ export function Performance() {
           </section>
         </div>
 
-        <div className="vx-perf-grid lower-grid">
-          <section className="vx-card vx-perf-card">
-            <div className="vx-top-row">
-              <div>
-                <h3>Top categories</h3>
-                <p className="s">Approved listings in your catalogue</p>
-              </div>
-              <button type="button" className="vx-text-link" onClick={() => nav.go('v_listings')}>View all <ChevronRight size={14} /></button>
-            </div>
-            <div className="vx-perf-categories">
-              {top.map((category, index) => { const Icon = category.icon; return <button type="button" key={category.id} className={`vx-perf-category tone-${index % 5}`} onClick={() => nav.go('v_listings')}><span><Icon size={19} /></span><b>{category.name}</b><small>{category.count} approved {category.count === 1 ? 'listing' : 'listings'}</small></button> })}
-              {!top.length && <EmptyState icon={Store} title="No approved listings yet" body="Approved products and services will appear by category here." action={<Button size="sm" onClick={() => nav.go('v_listing_edit')}>Add listing</Button>} />}
-            </div>
-          </section>
-
-          <section className="vx-card vx-perf-card">
-            <div className="vx-top-row">
-              <div>
-                <h3>Response quality</h3>
-                <p className="s">Customer satisfaction trend</p>
-              </div>
-            </div>
-            <div className="vx-perf-quick">
-              {[[Plus, 'Add listing', 'v_listing_edit'], [MessageSquare, 'Respond to RFQ', 'v_work'], [PackageCheck, 'View orders', 'v_orders'], [UserRound, 'Update profile', 'v_profile']].map(([Icon, label, id]) => <button type="button" key={label} onClick={() => nav.go(id)}><span><Icon size={18} /></span>{label}</button>)}
-            </div>          </section>
-        </div>
       </div>
     </Screen>
     </VendorWorkspace>
@@ -1569,10 +1539,11 @@ export function VendorProfile() {
     <Screen title="Business profile" footer={<Button full size="lg" onClick={save}>Save changes</Button>}>
       <DemoPhonePePayment open={!!selectedPlan} amount={selectedPlan?.price} title={`${selectedPlan?.name || ''} subscription`} onClose={() => setSelectedPlan(null)} onSuccess={() => { patchVendor(v.id, { plan: selectedPlan.name }); setPaymentDone(selectedPlan); setSelectedPlan(null) }} />
       <div className="vv-vendor-profile-body">
-      <Section title="Business workspace"><Card className="!border-violet-200 !bg-violet-50/60 !p-4"><div className="flex items-start gap-3"><Thumb tone="violet" icon={Briefcase} size={46} round="rounded-xl" /><div className="min-w-0 flex-1"><p className="text-sm font-bold">{me.businessWorkspace ? 'Business workspace active' : 'Create business workspace'}</p><p className="mt-1 text-xs leading-relaxed text-ink-600">{me.businessWorkspace ? `Open ${me.businessName || 'your company'} supplier dashboard and manage vendor RFQs.` : 'Create a supplier workspace for your company. Vendors can send bulk RFQs and purchase requirements to you.'}</p><Button size="sm" className="mt-3" variant={me.businessWorkspace ? 'secondary' : 'primary'} onClick={() => { if (me.businessWorkspace) { setMe({ ...me, role: 'business', name: me.businessName || me.name, buyerMode: false }); nav.reset('b_home') } else nav.go('b_eligibility') }}>{me.businessWorkspace ? 'Open workspace' : 'Create workspace'}</Button></div></div></Card></Section>
+      <h1 className="vx-prof-title">Business profile</h1>
       <Dialog open={businessOpen} onClose={() => setBusinessOpen(false)} title="Create business workspace" actions={<><Button variant="secondary" className="flex-1" onClick={() => setBusinessOpen(false)}>Cancel</Button><Button className="flex-1" onClick={createBusinessWorkspace}>Create & open</Button></>}><p className="text-sm leading-relaxed text-ink-600">This workspace uses your verified vendor account as the supplier identity. Vendors will be able to send bulk RFQs, compare terms and place purchase orders with you.</p><div className="mt-4"><Input label="Business / company name" required value={businessName} onChange={(e) => setBusinessName(e.target.value)} /></div></Dialog>
-      <Section title="Danger zone"><Card className="!border-red-200 !bg-red-50/60 !p-4"><p className="text-sm font-bold text-red-900">{me.role === 'business' ? 'Delete business workspace' : 'Delete vendor account'}</p><p className="mt-1 text-xs leading-relaxed text-red-800/75">{me.role === 'business' ? 'Remove this supplier workspace and return to your vendor account.' : 'Sign out and record deletion of this vendor account in the demo.'}</p><Button variant="dangerSoft" className="mt-3" onClick={() => setDeleteOpen(true)}>Delete account</Button></Card></Section>
       <Dialog open={deleteOpen} onClose={() => setDeleteOpen(false)} title={me.role === 'business' ? 'Delete business workspace?' : 'Delete vendor account?'} actions={<><Button variant="secondary" className="flex-1" onClick={() => setDeleteOpen(false)}>Keep account</Button><Button variant="danger" className="flex-1" onClick={deleteAccount}>Confirm delete</Button></>}><p className="text-sm leading-relaxed text-ink-600">{me.role === 'business' ? 'Your vendor workspace and marketplace listings will remain available. Only the Business Supplier workspace will be removed.' : 'This demo will close the vendor session and record the account as deleted. Production deletion would require backend data-retention and verification rules.'}</p></Dialog>
+      <div className="vx-prof-col">
+      <section className="vx-prof-card"><h2 className="vx-prof-h">Business details</h2>
       <div className="flex justify-center"><Thumb tone={v.tone} icon={Store} size={84} /></div>
       <Input label="Business name" required value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} error={errs.name} />
       <Input label="GSTIN" value={v.gstin} readOnly hint="Verified by admin — contact support to change" />
@@ -1580,8 +1551,14 @@ export function VendorProfile() {
       <Input label="Email" value={f.email} onChange={(e) => setF({ ...f, email: e.target.value })} error={errs.email} />
       <Input label="About your business" textarea rows={3} value={f.about} onChange={(e) => setF({ ...f, about: e.target.value })} />
       <div><p className="mb-2 text-[13px] font-semibold text-ink-700">Service areas</p><Chips scroll={false} multi value={f.areas} onChange={(a) => setF({ ...f, areas: a })} options={['Jaipur', 'Delhi NCR', 'Ajmer', 'Sikar', 'Jodhpur', 'Kota']} />{errs.areas && <p className="mt-1.5 text-xs font-medium text-red-600">{errs.areas}</p>}</div>
+      </section>
+      <Section title="Danger zone"><Card className="!border-red-200 !bg-red-50/60 !p-4"><p className="text-sm font-bold text-red-900">{me.role === 'business' ? 'Delete business workspace' : 'Delete vendor account'}</p><p className="mt-1 text-xs leading-relaxed text-red-800/75">{me.role === 'business' ? 'Remove this supplier workspace and return to your vendor account.' : 'Sign out and record deletion of this vendor account in the demo.'}</p><Button variant="dangerSoft" className="mt-3" onClick={() => setDeleteOpen(true)}>Delete account</Button></Card></Section>
+      </div>
+      <div className="vx-prof-col">
+      <Section title="Business workspace"><Card className="!border-violet-200 !bg-violet-50/60 !p-4"><div className="flex items-start gap-3"><Thumb tone="violet" icon={Briefcase} size={46} round="rounded-xl" /><div className="min-w-0 flex-1"><p className="text-sm font-bold">{me.businessWorkspace ? 'Business workspace active' : 'Create business workspace'}</p><p className="mt-1 text-xs leading-relaxed text-ink-600">{me.businessWorkspace ? `Open ${me.businessName || 'your company'} supplier dashboard and manage vendor RFQs.` : 'Create a supplier workspace for your company. Vendors can send bulk RFQs and purchase requirements to you.'}</p><Button size="sm" className="mt-3" variant={me.businessWorkspace ? 'secondary' : 'primary'} onClick={() => { if (me.businessWorkspace) { setMe({ ...me, role: 'business', name: me.businessName || me.name, buyerMode: false }); nav.reset('b_home') } else nav.go('b_eligibility') }}>{me.businessWorkspace ? 'Open workspace' : 'Create workspace'}</Button></div></div></Card></Section>
       <Section title="Your plan"><Card><div className="flex items-center justify-between"><div><p className="text-sm font-bold">{v.plan || 'No active plan'}</p><p className="text-xs text-ink-500">{v.plan ? `Commission ${settings.plans.find((p) => p.name === v.plan)?.commission ?? settings.vendorCommissionPct}% · ${settings.plans.find((p) => p.name === v.plan)?.listings} listings` : 'Choose a subscription below to unlock marketplace growth tools.'}</p></div><Badge tone={v.plan ? 'teal' : 'amber'}>{v.plan ? <><Crown size={11} />Active</> : 'Unsubscribed'}</Badge></div><p className="mt-2 text-xs text-ink-500">Paid plans and subscriptions are managed by VendorVerse admin.</p></Card></Section>
       <Section title="Compare and upgrade"><div className="grid gap-3">{settings.plans.map((p) => <Card key={p.id} className={cx('relative', p.name === 'Growth' && 'ring-2 ring-brand-500')}><div className="flex items-start justify-between"><div><p className="text-lg font-extrabold">{p.name}</p><p className="text-sm font-bold text-amber-700">Price open (CFG-02) · sample values</p></div>{p.name === 'Growth' && <Badge tone="teal">Popular</Badge>}</div><p className="mt-2 text-sm text-ink-500">{p.listings} listings · {p.leads} enquiries/month</p><Button full className="mt-3" disabled={v.plan === p.name} onClick={() => nav.go('v_checkout', { plan: p.name })}>{v.plan === p.name ? 'Current plan' : `Add / upgrade to ${p.name}`}</Button></Card>)}</div></Section>
+      </div>
       {selectedPlan && <div className="fixed inset-0 z-50 grid place-items-center bg-ink-950/60 p-4"><Card className="w-full max-w-sm"><button className="float-right" aria-label="Close payment" onClick={() => setSelectedPlan(null)}><X /></button><p className="text-xs font-bold uppercase tracking-wider text-brand-700">Subscription payment demo</p><h2 className="mt-1 text-xl font-black">{selectedPlan.name} plan</h2><div className="my-5 rounded-2xl bg-gradient-to-br from-violet-700 to-indigo-600 p-5 text-white"><p className="text-3xl font-black">â‚¹{selectedPlan.price}<span className="text-sm text-white/70"> / month</span></p><p className="mt-3 text-xs text-white/70">Demo checkout · no real money is charged</p></div><Button full disabled={selectedPlan.loading} onClick={() => { setSelectedPlan({ ...selectedPlan, loading: true }); setTimeout(() => { patchVendor(v.id, { plan: selectedPlan.name }); setPaymentDone(selectedPlan); setSelectedPlan(null) }, 1600) }}>{selectedPlan.loading ? <><span className="size-4 animate-spin rounded-full border-2 border-white/40 border-t-white" /> Processing payment…</> : <><Wallet size={17} /> Pay securely with PhonePe</>}</Button><p className="mt-3 text-center text-[11px] text-ink-400">UPI · Cards · Net banking</p></Card></div>}
       {paymentDone && <div className="fixed inset-0 z-[51] grid place-items-center bg-ink-950/60 p-4"><Card className="w-full max-w-sm text-center"><div className="mx-auto grid size-20 place-items-center rounded-full bg-emerald-100 text-emerald-600"><Check size={40} strokeWidth={3} /></div><h2 className="mt-5 text-2xl font-black">Payment successful</h2><p className="mt-2 text-sm text-ink-500">{paymentDone.name} is now active on your vendor profile.</p><p className="mt-5 rounded-xl bg-ink-50 p-3 text-sm font-bold">â‚¹{paymentDone.price} · Demo transaction</p><Button full className="mt-5" onClick={() => setPaymentDone(null)}>Done</Button></Card></div>}
       </div>
