@@ -12,7 +12,7 @@ import { remoteInbox, useInbox } from '../useInbox.js'
 import { GEO, findCity } from '../geo.js'
 import { cat, CATS, calcPrice, listing as findListing, SLOTS } from '../data.jsx'
 import {
-  Screen, Card, Section, Button, Thumb, Chips, Segmented, Sheet, Dialog, Input, Select, Toggle, Badge, Rating, Banner, EmptyState, SearchBar,
+  Screen, Card, Section, Button, Thumb, Chips, Segmented, Sheet, Dialog, Input, Select, CategorySelect, Toggle, Badge, Rating, Banner, EmptyState, SearchBar,
   PriceBreakdown, KV, fmt, cx, Pill, IconBtn, StatusBadge, Stars, ListRow, Group, Timeline, Avatar, SOFT, Meta, DemoPhonePePayment,
 } from '../ui.jsx'
 import { ListingCard, VendorRow, VerifiedBadge, useGate, useStartChat } from './shared.jsx'
@@ -81,8 +81,8 @@ export function RfqNew({ params = {} }) {
     nav.replace('c_rfq', { id })
   }
   return (
-    <Screen title="Request quotation" subtitle={targetVendor ? `Direct to ${targetVendor.name}` : 'Structured request for eligible vendors'} footer={<Button full size="lg" icon={Send} onClick={submit}>Send RFQ</Button>}>
-      <Select label="Category" required value={f.cat} error={errs.cat} onChange={(e) => { setF({ ...f, cat: e.target.value, answers: {} }); setErrs({ ...errs, cat: '' }) }} options={[{ value: '', label: 'Choose a category' }, ...CATS.map((x) => ({ value: x.id, label: x.name }))]} />
+    <Screen title="Request quotation" subtitle={targetVendor ? `Direct to ${targetVendor.name}` : 'Structured request for eligible vendors'} headerClass="bg-[#fffdf8]" bg="bg-[#f4efe6]" footer={<Button className="!border !border-[#d8cdbb] !bg-[#e7dfd1] !text-[#0e1b2c] hover:!border-[#0e1b2c] hover:!bg-[#0e1b2c] hover:!text-white" full size="lg" icon={Send} onClick={submit}>Send RFQ</Button>}>
+      <CategorySelect label="Category" required value={f.cat} error={errs.cat} onChange={(e) => { setF({ ...f, cat: e.target.value, answers: {} }); setErrs({ ...errs, cat: '' }) }} options={[{ value: '', label: 'Choose a category' }, ...CATS.map((x) => ({ value: x.id, label: x.name }))]} />
       <Segmented value={f.kind} onChange={(kind) => setF({ ...f, kind })} options={[{ id: 'service', label: 'Service' }, { id: 'goods', label: 'Goods' }]} />
       <Input label="What do you need?" required placeholder="e.g. Repair kitchen pipe leak" value={f.title} onChange={set('title')} error={errs.title} />
       <Input label="Scope" required textarea placeholder="Describe the work or the items" value={f.scope} onChange={set('scope')} error={errs.scope} />

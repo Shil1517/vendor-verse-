@@ -1,10 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Battery, Signal, Wifi, Search, X, LayoutGrid, CheckCircle2, AlertTriangle, Info, ChevronRight, FileCheck2, Rocket, Users2, Target, HelpCircle, Smartphone, Menu, Bell, Globe, ArrowLeftRight, PanelRightClose, PanelRightOpen, PanelLeftClose, PanelLeftOpen, LogOut, MapPin } from 'lucide-react'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { faHouse, faScrewdriverWrench, faChampagneGlasses, faUserTie, faCode, faBoxesStacked, faIndustry, faTruck } from '@fortawesome/free-solid-svg-icons'
 import { AppProvider, COUNTRY_SETTINGS, LOCATION_PRESETS, useApp } from './store.jsx'
 import { canOpenRoute } from './services/authorization.js'
 import { authService } from './services/authService.js'
 import { NavProvider, useNav } from './nav.jsx'
 import { HOME, TABS, ROLES, ADMIN_SIDEBAR } from './roles.js'
+import { INDUSTRIES } from './data.jsx'
 import { SCREENS, GROUPS } from './registry.jsx'
 import { pathForScreen, screenForLocation } from './screen-routes.js'
 import { Logo } from './screens/auth.jsx'
@@ -25,6 +28,63 @@ import './layout.css'
 import './workspace-themes.css'
 
 const INITIAL_ROUTE = screenForLocation(window.location, SCREENS)
+
+const MARKETPLACE_CATEGORIES = [
+  ['Home services', faHouse],
+  ['Construction', faScrewdriverWrench],
+  ['Events', faChampagneGlasses],
+  ['Professional services', faUserTie],
+  ['IT and digital', faCode],
+  ['Wholesale and industrial', faBoxesStacked],
+  ['Manufacturing and supply', faIndustry],
+  ['Logistics', faTruck],
+]
+
+function MarketplaceCategoriesMenu({ nav }) {
+  const [open, setOpen] = useState(false)
+  const [activeId, setActiveId] = useState(INDUSTRIES[0]?.id)
+  const menuRef = useRef(null)
+  const activeIndustry = INDUSTRIES.find((industry) => industry.id === activeId) || INDUSTRIES[0]
+
+  useEffect(() => {
+    const closeOnOutsideClick = (event) => { if (menuRef.current && !menuRef.current.contains(event.target)) setOpen(false) }
+    document.addEventListener('mousedown', closeOnOutsideClick)
+    return () => document.removeEventListener('mousedown', closeOnOutsideClick)
+  }, [])
+
+  return <div ref={menuRef} className={cx('vv-category-menu', open && 'is-open')}>
+    <button
+      type="button"
+      className="is-featured"
+      aria-haspopup="true"
+      aria-expanded={open}
+      onClick={() => { setOpen((value) => !value); setActiveId((value) => value || INDUSTRIES[0]?.id) }}
+    >
+      <LayoutGrid size={15} aria-hidden="true" />
+      <span>Categories</span>
+    </button>
+    <div className="vv-category-mega" role="menu">
+      <div className="vv-category-mega-heading">
+        <div><strong>All categories</strong><span>Hover over a category to see its subcategories</span></div>
+      </div>
+      <div className="vv-category-browser">
+        <div className="vv-category-browser-list" role="menu" aria-label="All categories">
+          {INDUSTRIES.map((industry) => <button key={industry.id} type="button" role="menuitem" aria-current={activeIndustry?.id === industry.id ? 'true' : undefined} className={cx(activeIndustry?.id === industry.id && 'is-selected')} onMouseEnter={() => setActiveId(industry.id)} onFocus={() => setActiveId(industry.id)} onClick={() => { setOpen(false); nav.go('c_explore', { group: industry.name }) }}>
+            <span>{industry.name}</span><small>{industry.cats}</small><ChevronRight size={14} aria-hidden="true" />
+          </button>)}
+        </div>
+        <div className="vv-category-browser-detail" role="menu" aria-label={`${activeIndustry?.name || 'Category'} subcategories`}>
+          {activeIndustry && <>
+            <div className="vv-category-browser-detail-heading"><strong>{activeIndustry.name}</strong><span>{activeIndustry.cats} sample categories</span></div>
+            <div className="vv-category-browser-subs">
+              {activeIndustry.subs.map((subcategory) => <button key={subcategory} type="button" role="menuitem" onClick={() => { setOpen(false); nav.go('c_explore', { group: activeIndustry.name, q: subcategory }) }}>{subcategory}</button>)}
+            </div>
+          </>}
+        </div>
+      </div>
+    </div>
+  </div>
+}
 
 function useViewport() {
   const [v, setV] = useState({ w: window.innerWidth, h: window.innerHeight })
@@ -287,7 +347,7 @@ function WebHeader({ onMenu, hideTabs, workspaceHeader = false, workspaceTheme =
         </div>
         </>}
       </div>
-      {mockMarketplaceHeader && marketplaceCategories && <nav className="vv-mock-category-nav" aria-label="Categories">{['New vendors', 'Home services', 'Construction', 'Events', 'Professional services', 'IT and digital', 'Wholesale and industrial', 'Manufacturing and supply', 'Logistics'].map((category, index) => <button key={category} className={cx(index === 0 && 'is-featured', nav.id === 'c_explore' && nav.params?.group === category && 'is-active')} onClick={() => nav.go('c_explore', { group: category })}>{category}</button>)}</nav>}
+      {mockMarketplaceHeader && marketplaceCategories && <nav className="vv-mock-category-nav" aria-label="Categories"><div className="vv-category-nav-items"><MarketplaceCategoriesMenu nav={nav} />{MARKETPLACE_CATEGORIES.map(([category, icon]) => <button key={category} className={cx(nav.id === 'c_explore' && nav.params?.group === category && 'is-active')} onClick={() => nav.go('c_explore', { group: category })}><FontAwesomeIcon icon={icon} aria-hidden="true" /><span>{category}</span></button>)}</div></nav>}
       <div className="sr-only" aria-live="polite">{screen.title}</div>
       {authService.isRemote && <LocationDialog open={locationOpen} onClose={() => setLocationOpen(false)} />}
       {authDialog && <MarketplaceAuthDialog mode={authDialog} onClose={() => setAuthDialog(null)} onChangeMode={setAuthDialog} />}
