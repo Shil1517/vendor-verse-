@@ -1245,7 +1245,7 @@
 .vv-mock-section-heading button:disabled { opacity:.3; cursor:default; }
 .vv-mock-category-rail { gap:25px; }
 .vv-mock-category-section { position:relative; left:50%; width:min(calc(100vw - 200px),1648px); max-width:none; transform:translateX(-50%); }
-.vv-mock-category-heading { justify-content:flex-start; align-items:center; gap:18px; margin-left:53px; }
+.vv-mock-category-heading { justify-content:flex-start; align-items:center; gap:18px; margin-left:26px; }
 .vv-mock-category-heading h2 { font-size:46px; line-height:1.2; }
 .vv-mock-category-heading>div:not(:first-child) { flex:none; gap:4px; margin-left:0 !important; }
 .vv-mock-category-section .vv-mock-category-rail { width:calc(100% + 1px); margin-left:26px; }
@@ -1316,7 +1316,48 @@
 .vv-mock-dialog-content h2 { margin:14px 0 2px; font-size:28px; }.vv-mock-dialog-subtitle { margin:0 0 12px; color:#5B5F6B; }
 .vv-mock-dialog-content table { margin:12px 0 18px; }.vv-mock-dialog-content td { padding:9px 8px; white-space:normal; }.vv-mock-dialog-content td:first-child { color:#5B5F6B; }
 .vv-mock-dialog-actions { display:flex; flex-wrap:wrap; gap:8px; }.vv-mock-dialog-actions>button:not(.vv-mock-primary) { min-height:44px; padding:0 16px; border:1px solid #E4DDD0; border-radius:999px; background:#fff; }
+.vv-mock-how { padding:58px 0 54px !important; border-top:1px solid #E4DDD0; border-bottom:1px solid #E4DDD0; }
+.vv-mock-how-heading { display:grid; grid-template-columns:minmax(0,1.2fr) minmax(260px,.8fr); align-items:end; gap:34px; margin-bottom:24px; }
+.vv-mock-how-heading .vv-mock-eyebrow { display:block; margin-bottom:8px; }
+.vv-mock-how-heading h2 { max-width:620px; font-size:clamp(28px,3.4vw,44px); }
+.vv-mock-how-heading>p { max-width:430px; margin:0 0 3px; color:#5B5F6B; font-size:16px; }
+.vv-mock-how-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:16px; }
+.vv-mock-how-grid article { position:relative; min-height:210px; padding:24px; overflow:hidden; border:1px solid #E4DDD0; border-radius:20px; background:#fff; box-shadow:0 10px 28px #0e1b2c0a; }
+.vv-mock-step-icon { display:grid; width:42px; height:42px; place-items:center; border-radius:13px; color:#087F5B; background:#E1EFE9; }
+.vv-mock-step-number { position:absolute; top:20px; right:22px; color:#D8D1C4; font:500 40px/1 "Playfair Display",Georgia,serif; }
+.vv-mock-how-grid h3 { margin:28px 0 6px; font-size:21px; }
+.vv-mock-how-grid p { max-width:300px; margin:0; color:#5B5F6B; font-size:14px; }
 @media(max-width:1000px) { .vv-mock-category-section { width:calc(100vw - 48px); }.vv-mock-category-heading { margin-left:0; }.vv-mock-category-section .vv-mock-category-rail { width:100%; margin-left:0; }.vv-mock-category { flex-basis:calc((100% - 20px)/2); }.vv-mock-product-card { flex-basis:calc((100% - 20px)/2); } }
-@media(max-width:820px) { .vv-mock-hero { grid-template-columns:1fr; }.vv-mock-hero-art { min-height:300px; }.vv-mock-hero-art:after { background:linear-gradient(180deg,#12233a,transparent 40%); }.vv-storefront-illustration { object-position:center 76%; -webkit-mask-image:linear-gradient(180deg,transparent 0%,#000 28%); mask-image:linear-gradient(180deg,transparent 0%,#000 28%); }.vv-mock-vendors { grid-template-columns:repeat(2,minmax(0,1fr)); }.vv-mock-footer { grid-template-columns:1fr 1fr; }.vv-mock-footer>div:first-child { grid-column:1/-1; } }
+@media(max-width:820px) { .vv-mock-hero { grid-template-columns:1fr; }.vv-mock-hero-art { min-height:300px; }.vv-mock-hero-art:after { background:linear-gradient(180deg,#12233a,transparent 40%); }.vv-storefront-illustration { object-position:center 76%; -webkit-mask-image:linear-gradient(180deg,transparent 0%,#000 28%); mask-image:linear-gradient(180deg,transparent 0%,#000 28%); }.vv-mock-how-heading { grid-template-columns:1fr; gap:10px; }.vv-mock-how-grid { grid-template-columns:1fr; }.vv-mock-how-grid article { min-height:0; }.vv-mock-vendors { grid-template-columns:repeat(2,minmax(0,1fr)); }.vv-mock-footer { grid-template-columns:1fr 1fr; }.vv-mock-footer>div:first-child { grid-column:1/-1; } }
 @media(max-width:620px) { .vv-mock-category-section { width:calc(100vw - 36px); }.vv-mock-category-heading { gap:10px; }.vv-mock-category-heading h2 { font-size:32px; }.vv-mock-category { flex-basis:100%; }.vv-mock-product-card { flex-basis:100%; }.vv-mock-section-heading { align-items:flex-end; }.vv-mock-product-heading { flex-wrap:nowrap; }.vv-mock-product-heading>div:first-child { flex:1 1 auto; flex-basis:auto; }.vv-mock-product-heading .vv-mock-text-button { font-size:12px; }.vv-mock-footer { padding:36px 18px 22px; gap:24px 14px; }.vv-mock-footer-bottom { gap:8px 14px; }.vv-mock-footer-bottom span { flex-basis:100%; }.vv-mock-dialog { grid-template-columns:1fr; }.vv-mock-dialog-visual { min-height:200px; max-height:250px; }.vv-mock-dialog-visual>.vv-mock-product-icon { min-height:220px; } }
 @media(prefers-reduced-motion:reduce) { .vv-mock-home *, .vv-mock-home *:before, .vv-mock-home *:after { scroll-behavior:auto !important; animation:none !important; transition:none !important; } }
+
+/* Blend the storefront illustration into the navy copy panel and warm page canvas. */
+.vv-mock-home .vv-mock-hero-art {
+  isolation: isolate;
+  background: linear-gradient(90deg, #12233a 0%, #20364b 13%, #dfe9e5 39%, #f7f4ee 62%, #f7f4ee 100%);
+}
+.vv-mock-home .vv-mock-hero-art:after {
+  display: block;
+  background: linear-gradient(90deg, #12233a 0%, rgba(18,35,58,.72) 11%, rgba(18,35,58,.16) 29%, transparent 50%);
+  pointer-events: none;
+}
+.vv-mock-home .vv-storefront-illustration {
+  z-index: 0;
+  transform: scale(1.04);
+  object-position: center 78%;
+  -webkit-mask-image: linear-gradient(90deg, transparent 0%, rgba(0,0,0,.35) 9%, #000 27%, #000 100%);
+  mask-image: linear-gradient(90deg, transparent 0%, rgba(0,0,0,.35) 9%, #000 27%, #000 100%);
+}
+.vv-mock-home .vv-mock-hero {
+  box-shadow: 0 20px 55px rgba(14,27,44,.12);
+}
+@media(max-width:820px) {
+  .vv-mock-home .vv-mock-hero-art { background: linear-gradient(180deg, #12233a 0%, #dfe9e5 42%, #f7f4ee 100%); }
+  .vv-mock-home .vv-mock-hero-art:after { background: linear-gradient(180deg, #12233a 0%, rgba(18,35,58,.35) 22%, transparent 48%); }
+  .vv-mock-home .vv-storefront-illustration {
+    transform: scale(1.02);
+    -webkit-mask-image: linear-gradient(180deg, transparent 0%, rgba(0,0,0,.55) 16%, #000 36%, #000 100%);
+    mask-image: linear-gradient(180deg, transparent 0%, rgba(0,0,0,.55) 16%, #000 36%, #000 100%);
+  }
+}

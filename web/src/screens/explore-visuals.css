@@ -37,6 +37,31 @@
   backdrop-filter: blur(18px);
   -webkit-backdrop-filter: blur(18px);
 }
+
+/* Keep the desktop filter rail compact so the listing column gets the space. */
+.vv-explore-route .vv-explore-filter > div {
+  border-radius: 24px;
+}
+.vv-explore-route .vv-explore-filter h2 {
+  font-size: 16px;
+}
+.vv-explore-route .vv-explore-filter p {
+  line-height: 1.35;
+}
+.vv-explore-route .vv-explore-filter label > span {
+  margin-bottom: 5px;
+  font-size: 12px;
+}
+.vv-explore-route .vv-explore-filter input,
+.vv-explore-route .vv-explore-filter select {
+  font-size: 13px;
+}
+.vv-explore-route .vv-explore-filter button {
+  font-size: 13px;
+}
+.vv-explore-route .vv-explore-filter .rounded-2xl {
+  padding: 12px;
+}
 .vv-explore-route .vv-explore-tools::after {
   content: "";
   position: absolute;

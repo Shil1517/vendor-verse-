@@ -27,6 +27,9 @@
 .vv-mock-wordmark span { color:#8a6420; }
 .vv-mock-brand-tagline { color:#5b5f6b; font-size:11px; font-weight:500; white-space:nowrap; }
 .vv-mock-header-spacer { flex:1; }
+.vv-mock-header-search { flex:1 1 420px; min-width:180px; max-width:560px; margin-left:auto; }
+.vv-mock-header-search > div { width:100%; }
+.vv-mock-header-search input { height:42px; border-radius:999px; background:#f7f4ee; ring-color:#e4ddd0; }
 .vv-mock-header-controls { display:flex; align-items:center; gap:8px; white-space:nowrap; }
 .vv-mock-header-select { min-height:42px; padding:0 10px; border:0; border-radius:10px; outline:none; background:#fff; color:#0e1b2c; font:600 14px "DM Sans",system-ui,sans-serif; }
 .vv-mock-header-notifications { display:grid; width:40px; height:40px; place-items:center; border:0; border-radius:10px; background:transparent; color:#0e1b2c; cursor:pointer; }
@@ -117,7 +120,9 @@
   .vv-mock-wordmark { font-size:16px; }
   .vv-mock-brand-tagline { font-size:9px; }
   .vv-mock-header-spacer { flex:1; }
-  .vv-mock-header-controls { flex:1 0 100%; justify-content:space-between; gap:2px; }
+  .vv-mock-header-search { flex:1 0 100%; order:3; max-width:none; margin:4px 0 0; }
+  .vv-mock-header-search input { height:38px; }
+  .vv-mock-header-controls { flex:1 0 100%; order:4; justify-content:space-between; gap:2px; }
   .vv-mock-header-select { min-height:34px; padding-inline:4px; font-size:11px; }
   .vv-mock-location { gap:2px; }
   .vv-mock-location select { max-width:80px; font-size:11px; }

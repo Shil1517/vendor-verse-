@@ -13,7 +13,7 @@ import { ThemeToggle } from './components/ThemeToggle.jsx'
 import { MarketplaceAuthDialog, OPEN_AUTH_EVENT } from './components/MarketplaceAuthDialog.jsx'
 import { LocationDialog } from './components/LocationDialog.jsx'
 import { FRS, NFR, MVP, PHASE2, ACCEPTANCE, DECISIONS, ROLE_TABLE } from './specs.js'
-import { cx } from './ui.jsx'
+import { cx, SearchBar } from './ui.jsx'
 import { ThemeProvider } from './hooks/useTheme.jsx'
 import './screens/customer-visuals.css'
 import './screens/vendor-dashboard-visuals.css'
@@ -233,7 +233,9 @@ function WebHeader({ onMenu, hideTabs, workspaceHeader = false, workspaceTheme =
   const [locationOpen, setLocationOpen] = useState(false)
   const [locationQuery, setLocationQuery] = useState('')
   const [headerLanguage, setHeaderLanguage] = useState(lang)
+  const [headerSearch, setHeaderSearch] = useState(nav.params?.q || '')
   const [authDialog, setAuthDialog] = useState(null)
+  useEffect(() => setHeaderSearch(nav.params?.q || ''), [nav.id, nav.params?.q])
   useEffect(() => {
     const open = (event) => setAuthDialog(event.detail?.mode === 'signup' ? 'signup' : 'signin')
     window.addEventListener(OPEN_AUTH_EVENT, open)
@@ -247,13 +249,18 @@ function WebHeader({ onMenu, hideTabs, workspaceHeader = false, workspaceTheme =
   const localeCountry = ['India', 'United Arab Emirates', 'United Kingdom'].includes(locale.countryName) ? locale.countryName : 'India'
   const changeCountry = (countryName) => setLocale({ ...locale, ...COUNTRY_SETTINGS[countryName], ...LOCATION_PRESETS[countryName], countryName })
   const changeCurrency = (currency) => changeCountry(({ INR: 'India', AED: 'United Arab Emirates', GBP: 'United Kingdom' })[currency])
+  const submitMarketplaceSearch = (e) => {
+    e.preventDefault()
+    const value = headerSearch.trim()
+    nav.go('c_explore', { ...(nav.params?.group ? { group: nav.params.group } : {}), ...(value ? { q: value } : {}) })
+  }
   return (
     <header className={cx('sticky top-0 z-40 shrink-0 border-b border-ink-200 bg-white/95 shadow-[0_2px_10px_rgba(20,40,75,.04)] backdrop-blur', workspaceHeader && 'vv-workspace-global-header', mockMarketplaceHeader && 'vv-mock-global-header')}>
       {mockMarketplaceHeader && marketplaceAnnouncement && <div className="vv-mock-announcement">Discover and work with verified vendors worldwide.</div>}
       <div className="mx-auto flex h-[72px] max-w-[1600px] items-center gap-3 px-4 sm:px-7 lg:px-10">
         {mockMarketplaceHeader ? <>
           <button onClick={() => nav.reset('c_home')} className="vv-mock-brand" aria-label="VendorVerse home"><span className="vv-mock-wordmark">VENDOR<span>VERSE</span></span><span className="vv-mock-brand-tagline">Global Marketplace · products · services · quotes</span></button>
-          <div className="vv-mock-header-spacer" />
+          {nav.id === 'c_explore' ? <form className="vv-mock-header-search" onSubmit={submitMarketplaceSearch} role="search"><SearchBar value={headerSearch} onChange={(e) => setHeaderSearch(e.target.value)} placeholder="Search vendors, products, services" /></form> : <div className="vv-mock-header-spacer" />}
           <div className="vv-mock-header-controls">
             {authService.isRemote ? <button type="button" onClick={() => setLocationOpen(true)} className="vv-mock-header-select vv-mock-location" aria-label="Choose location" title={t('searchLocation')}><MapPin size={16}/><span className="max-w-[150px] truncate">{locale.city || localeCountry}{locale.pincode ? ` ${locale.pincode}` : ''}</span></button> : <label className="vv-mock-header-select vv-mock-location"><MapPin size={16}/><select aria-label="Location" value={localeCountry} onChange={(e) => changeCountry(e.target.value)}>{Object.keys(countryLabel).map((country) => <option key={country} value={country}>{countryLabel[country]}</option>)}</select></label>}
             <select className="vv-mock-header-select" aria-label="Language" value={headerLanguage} onChange={(e) => { const value = e.target.value; setHeaderLanguage(value); if (value !== 'ar') setLang(value); document.documentElement.dir = value === 'ar' ? 'rtl' : 'ltr' }}><option value="en">English</option><option value="hi">हिन्दी</option><option value="ar">العربية</option></select>
