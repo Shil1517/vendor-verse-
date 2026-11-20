@@ -754,7 +754,7 @@ html[data-theme] .vv-agent-route .vv-screen-scroll :is(input, textarea, select):
 }
 
 html[data-theme] .vv-agent-route .vv-screen-scroll > div > *:not(.vv-agent-hero) {
-  animation: vv-workspace-enter .48s cubic-bezier(.2, .8, .2, 1) both;
+  animation: none;
 }
 
 html[data-theme] .vv-agent-route .vv-screen-scroll > div > :nth-child(2) { animation-delay: 55ms; }
@@ -949,19 +949,19 @@ html[data-theme='midnight'] .vv-business-shell .vv-workspace-global-header {
 }
 
 html[data-theme] .vv-vendor-workspace.vx-shell .vx-side {
-  animation: vv-workspace-sidebar-enter .48s cubic-bezier(.2, .8, .2, 1) both;
+  animation: none;
 }
 
 html[data-theme] .vv-vendor-workspace.vx-shell .vx-top,
 html[data-theme] .vv-vendor-workspace.vx-shell .vx-panel {
-  animation: vv-workspace-enter .5s cubic-bezier(.2, .8, .2, 1) both;
+  animation: none;
 }
 
 html[data-theme] .vv-vendor-workspace.vx-shell .vx-top { animation-delay: 45ms; }
 html[data-theme] .vv-vendor-workspace.vx-shell .vx-panel { animation-delay: 90ms; }
 
 html[data-theme] .vv-vendor-workspace.vx-shell .vx-panel .vv-screen-scroll > div > * {
-  animation: vv-workspace-enter .48s cubic-bezier(.2, .8, .2, 1) both;
+  animation: none;
 }
 
 html[data-theme] .vv-vendor-workspace.vx-shell .vx-panel .vv-screen-scroll > div > :nth-child(2) { animation-delay: 55ms; }
@@ -1009,7 +1009,7 @@ html[data-theme] .vv-agent-shell .vv-agent-sidebar-link:hover {
 }
 
 html[data-theme] .vv-agent-route .vv-screen-scroll > div > :not(.bg-gradient-to-b) {
-  animation: vv-workspace-enter .48s cubic-bezier(.2, .8, .2, 1) both;
+  animation: none;
 }
 
 html[data-theme] .vv-agent-route .vv-screen-scroll > div > :nth-child(2) { animation-delay: 55ms; }
@@ -1329,7 +1329,7 @@ html[data-theme] .vv-agent-route .vv-agent-source-track > span {
   background: linear-gradient(90deg, var(--vv-theme-accent), var(--vv-theme-accent-2));
   box-shadow: 0 3px 12px var(--vv-theme-glow);
   transform-origin: left center;
-  animation: vv-agent-funnel-enter .7s cubic-bezier(.2,.8,.2,1) both;
+  animation: none;
 }
 
 html[data-theme] .vv-agent-route .vv-agent-portfolio-content {
@@ -1350,7 +1350,7 @@ html[data-theme] .vv-agent-route .vv-agent-portfolio-donut {
   place-items: center;
   border-radius: 50%;
   box-shadow: 0 12px 28px var(--vv-theme-shadow);
-  animation: vv-agent-card-enter .65s cubic-bezier(.2,.8,.2,1) both;
+  animation: none;
 }
 
 html[data-theme] .vv-agent-route .vv-agent-portfolio-donut > span {
@@ -1446,7 +1446,7 @@ html[data-theme] .vv-agent-route :is(
 html[data-theme] .vv-agent-route .vv-agent-kpi-grid > * {
   min-height: 100px;
   padding: clamp(12px, 1.15vw, 17px);
-  animation: vv-agent-card-enter .62s cubic-bezier(.2,.8,.2,1) both;
+  animation: none;
 }
 
 html[data-theme] .vv-agent-route .vv-agent-kpi-grid > :nth-child(2) { animation-delay: 65ms; }
@@ -1497,7 +1497,7 @@ html[data-theme] .vv-agent-route .vv-agent-pipeline-card button.grid > span:nth-
   overflow: hidden;
   box-shadow: inset 0 1px rgba(255,255,255,.38), 0 8px 18px var(--vv-theme-shadow);
   transform-origin: left center;
-  animation: vv-agent-funnel-enter .78s cubic-bezier(.2,.8,.2,1) both;
+  animation: none;
 }
 
 html[data-theme] .vv-agent-route .vv-agent-pipeline-card button.grid > span:nth-child(2) > span::after {
@@ -1521,7 +1521,7 @@ html[data-theme] .vv-agent-route .vv-agent-performance-card .h-2.overflow-hidden
 html[data-theme] .vv-agent-route .vv-agent-performance-card .h-2.overflow-hidden.rounded-full > span {
   border-radius: inherit;
   transform-origin: left center;
-  animation: vv-agent-funnel-enter .75s cubic-bezier(.2,.8,.2,1) both;
+  animation: none;
 }
 
 html[data-theme] .vv-agent-route .vv-screen-scroll :is(button, a, input, select, textarea) {

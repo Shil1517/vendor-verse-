@@ -103,7 +103,7 @@
   border-radius: 0 0 26px 26px;
   background: linear-gradient(120deg, #0b7180, #218b8a 56%, #54a99f);
   box-shadow: 0 18px 34px rgba(22, 125, 132, .2);
-  animation: vv-admin-rise .48s cubic-bezier(.2, .8, .2, 1) both;
+  animation: none;
 }
 .vv-admin-route .vv-screen-scroll > div > .bg-gradient-to-b::before,
 .vv-admin-route .vv-screen-scroll > div > .bg-gradient-to-b::after {
@@ -124,7 +124,7 @@
 .vv-admin-route .vv-screen-scroll > div > .-mt-10 > *,
 .vv-admin-route .vv-screen-scroll > div > :not(.bg-gradient-to-b) > * {
   min-width: 0;
-  animation: vv-admin-rise .44s cubic-bezier(.2, .8, .2, 1) both;
+  animation: none;
 }
 .vv-admin-route .vv-screen-scroll > div.space-y-4 > :nth-child(2),
 .vv-admin-route .vv-screen-scroll > div > .-mt-10 > :nth-child(2) { animation-delay: 55ms; }
