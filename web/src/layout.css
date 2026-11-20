@@ -42,6 +42,7 @@
 .vv-mock-category-nav::-webkit-scrollbar { display:none; }
 .vv-mock-category-nav button { flex:none; min-height:42px; padding:0 11px; border:0; border-bottom:2px solid transparent; border-radius:0; background:none; color:#5b5f6b; font-size:13px; white-space:nowrap; }
 .vv-mock-category-nav button:hover { border-bottom-color:#0e1b2c; color:#0e1b2c; }
+.vv-mock-category-nav button.is-active { border-bottom-color:#0e1b2c; color:#0e1b2c; font-weight:700; }
 .vv-mock-category-nav button.is-featured { color:#8a6420; font-weight:700; }
 .vv-market-auth-dialog { position:fixed; inset:0; margin:auto; width:min(460px,calc(100% - 32px)); max-width:460px; max-height:calc(100dvh - 32px); padding:0; overflow:auto; border:0; border-radius:20px; background:#fff; color:#0e1b2c; box-shadow:0 24px 70px #0e1b2c40; }
 .vv-market-auth-dialog-otp { width:min(460px,calc(100% - 32px)); max-width:460px; border-radius:20px; }

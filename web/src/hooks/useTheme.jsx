@@ -26,7 +26,8 @@ function getStoredTheme() {
 export function ThemeProvider({ children }) {
   const [theme, setTheme] = useState(() => {
     const stored = getStoredTheme()
-    if (stored) return stored
+    // The colour presets are no longer selectable, so a saved preset falls back to light or dark.
+    if (stored) return stored === 'dark' || stored === 'midnight' ? 'dark' : 'light'
     if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
       return 'dark'
     }

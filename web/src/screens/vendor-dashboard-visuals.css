@@ -4751,3 +4751,309 @@
 }
 .vv-vendor-workspace-route:not(.vv-business-workspace-route) .vv-vendor-wave-chart .vv-vendor-chart-area { fill: url(#vv-vendor-chart-fill); }
 .vv-vendor-workspace-route:not(.vv-business-workspace-route) .vv-vendor-wave-chart #vv-vendor-chart-fill stop { stop-color: #2563eb; }
+
+/* ===== Vendor dashboard v2: fewer boxes, readable type =====
+   One KPI strip instead of four cards, attention list beside categories, and no
+   duplicate "Quick actions" card (Add listing / Performance live in the header). */
+.vv-vendor-workspace-route:not(.vv-business-workspace-route) .vv-vendor-workspace .vx-perf-shell { font-size: 14px; }
+.vv-vendor-workspace-route:not(.vv-business-workspace-route) .vv-vendor-workspace .vx-perf-shell { gap: 20px; }
+
+/* header */
+.vv-vendor-workspace-route:not(.vv-business-workspace-route) .vv-vendor-workspace .vx-perf-shell .vx-perf-kicker { margin-bottom: 6px; font-size: 12px; font-weight: 700; letter-spacing: .08em; }
+.vv-vendor-workspace-route:not(.vv-business-workspace-route) .vv-vendor-workspace .vx-perf-shell .vx-perf-header h2 { font-size: clamp(26px, 2.6vw, 32px); font-weight: 800; letter-spacing: -.03em; line-height: 1.15; }
+.vv-vendor-workspace-route:not(.vv-business-workspace-route) .vv-vendor-workspace .vx-perf-shell .vx-perf-subtitle { margin-top: 6px; font-size: 14px; }
+.vv-vendor-workspace-route:not(.vv-business-workspace-route) .vv-vendor-workspace .vx-perf-shell .vx-perf-pill { padding: 8px 12px; font-size: 13px; font-weight: 700; }
+.vv-vendor-workspace-route:not(.vv-business-workspace-route) .vv-vendor-workspace .vx-perf-shell .vx-perf-actions { gap: 10px; }
+.vv-vendor-workspace-route:not(.vv-business-workspace-route) .vv-vendor-workspace .vx-perf-shell .vx-perf-actions > .block { min-height: 40px; padding: 0 16px; font-size: 14px; }
+
+/* KPI strip: one card, four cells split by hairlines */
+.vv-vendor-workspace-route:not(.vv-business-workspace-route) .vv-vendor-workspace .vx-perf-shell .vx-kpi-strip {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0;
+  overflow: hidden;
+  border: 1px solid var(--vv-theme-line);
+  border-radius: 16px;
+  background: var(--vv-theme-surface);
+  box-shadow: 0 4px 14px rgba(30, 64, 120, .045);
+}
+.vv-vendor-workspace-route:not(.vv-business-workspace-route) .vv-vendor-workspace .vx-perf-shell .vx-kpi-strip .vx-perf-stat {
+  grid-template-columns: 44px minmax(0, 1fr);
+  grid-template-rows: auto auto;
+  align-items: center;
+  column-gap: 14px;
+  row-gap: 2px;
+  min-height: 0;
+  padding: 20px 22px;
+  border: 0;
+  border-left: 1px solid var(--vv-theme-line);
+  border-radius: 0;
+  background: transparent !important;
+  box-shadow: none !important;
+  text-align: left;
+  cursor: pointer;
+  transition: background .2s ease;
+}
+.vv-vendor-workspace-route:not(.vv-business-workspace-route) .vv-vendor-workspace .vx-perf-shell .vx-kpi-strip .vx-perf-stat:first-child { border-left: 0; }
+.vv-vendor-workspace-route:not(.vv-business-workspace-route) .vv-vendor-workspace .vx-perf-shell .vx-kpi-strip .vx-perf-stat:hover { transform: none; background: #f5f8ff !important; box-shadow: none !important; }
+.vv-vendor-workspace-route:not(.vv-business-workspace-route) .vv-vendor-workspace .vx-perf-shell .vx-kpi-strip .vx-perf-ic { grid-row: 1 / span 2; width: 44px; height: 44px; border-radius: 12px; }
+.vv-vendor-workspace-route:not(.vv-business-workspace-route) .vv-vendor-workspace .vx-perf-shell .vx-kpi-strip .vx-perf-ic svg { width: 22px; height: 22px; }
+.vv-vendor-workspace-route:not(.vv-business-workspace-route) .vv-vendor-workspace .vx-perf-shell .vx-kpi-strip .vx-perf-stat-text { grid-column: 2; grid-row: 1; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; }
+.vv-vendor-workspace-route:not(.vv-business-workspace-route) .vv-vendor-workspace .vx-perf-shell .vx-kpi-strip .vx-perf-stat b { font-size: 30px; font-weight: 800; line-height: 1.05; letter-spacing: -.02em; }
+.vv-vendor-workspace-route:not(.vv-business-workspace-route) .vv-vendor-workspace .vx-perf-shell .vx-kpi-strip .vx-perf-stat-text > span { font-size: 14px; font-weight: 650; }
+.vv-vendor-workspace-route:not(.vv-business-workspace-route) .vv-vendor-workspace .vx-perf-shell .vx-kpi-strip .vx-perf-stat > small { display: none; }
+.vv-vendor-workspace-route:not(.vv-business-workspace-route) .vv-vendor-workspace .vx-perf-shell .vx-kpi-strip .vx-dash-stat-caption { grid-column: 2; grid-row: 2; font-size: 12.5px; font-weight: 500; line-height: 1.35; }
+
+/* cards */
+.vv-vendor-workspace-route:not(.vv-business-workspace-route) .vv-vendor-workspace .vx-perf-shell .wide-grid { grid-template-columns: minmax(0, 1.8fr) minmax(280px, 1fr); gap: 20px; }
+.vv-vendor-workspace-route:not(.vv-business-workspace-route) .vv-vendor-workspace .vx-perf-shell .lower-grid { grid-template-columns: minmax(0, 1.3fr) minmax(280px, 1fr); gap: 20px; align-items: start; }
+.vv-vendor-workspace-route:not(.vv-business-workspace-route) .vv-vendor-workspace .vx-perf-shell .vx-perf-card { padding: 22px 24px; border-radius: 16px; }
+.vv-vendor-workspace-route:not(.vv-business-workspace-route) .vv-vendor-workspace .vx-perf-shell .vx-perf-card .vx-top-row { align-items: flex-start; margin-bottom: 14px; }
+.vv-vendor-workspace-route:not(.vv-business-workspace-route) .vv-vendor-workspace .vx-perf-shell .vx-perf-card h3 { font-size: 17px; font-weight: 750; }
+.vv-vendor-workspace-route:not(.vv-business-workspace-route) .vv-vendor-workspace .vx-perf-shell .vx-perf-card .s { margin-top: 4px; font-size: 13px; }
+.vv-vendor-workspace-route:not(.vv-business-workspace-route) .vv-vendor-workspace .vx-perf-shell .vx-text-link { font-size: 14px; font-weight: 700; }
+.vv-vendor-workspace-route:not(.vv-business-workspace-route) .vv-vendor-workspace .vx-perf-shell .vx-count { margin-left: 6px; padding: 2px 9px; font-size: 12.5px; }
+.vv-vendor-workspace-route:not(.vv-business-workspace-route) .vv-vendor-workspace .vx-perf-shell .vx-perf-period button { min-height: 32px; padding-inline: 13px; font-size: 13px; font-weight: 650; }
+
+/* chart: line + soft area, readable axis text */
+.vv-vendor-workspace-route:not(.vv-business-workspace-route) .vv-vendor-workspace .vx-perf-shell .vv-vendor-wave-chart { margin-top: 8px; }
+.vv-vendor-workspace-route:not(.vv-business-workspace-route) .vv-vendor-workspace .vx-perf-shell .vv-vendor-wave-chart text { fill: #64748b; font: 600 12px system-ui, sans-serif; }
+.vv-vendor-workspace-route:not(.vv-business-workspace-route) .vv-vendor-workspace .vx-perf-shell .vv-vendor-wave-chart line { stroke: #e2e8f0; stroke-dasharray: 0; }
+.vv-vendor-workspace-route:not(.vv-business-workspace-route) .vv-vendor-workspace .vx-perf-shell .vv-vendor-wave-chart #vv-vendor-chart-fill stop:first-child { stop-opacity: .22; }
+
+/* conversion */
+.vv-vendor-workspace-route:not(.vv-business-workspace-route) .vv-vendor-workspace .vx-perf-shell .vx-conversion-list { gap: 22px; margin-top: 22px; }
+.vv-vendor-workspace-route:not(.vv-business-workspace-route) .vv-vendor-workspace .vx-perf-shell .vx-conversion-meta { font-size: 15px; }
+.vv-vendor-workspace-route:not(.vv-business-workspace-route) .vv-vendor-workspace .vx-perf-shell .vx-conversion-meta b { font-size: 18px; }
+.vv-vendor-workspace-route:not(.vv-business-workspace-route) .vv-vendor-workspace .vx-perf-shell .vx-conversion-bar { height: 10px; border-radius: 999px; }
+.vv-vendor-workspace-route:not(.vv-business-workspace-route) .vv-vendor-workspace .vx-perf-shell .vx-conversion-bar i { border-radius: 999px; }
+
+/* attention rows: plain list, no nested boxes */
+.vv-vendor-workspace-route:not(.vv-business-workspace-route) .vv-vendor-workspace .vx-perf-shell .vx-rows { gap: 0; margin-top: 0; }
+.vv-vendor-workspace-route:not(.vv-business-workspace-route) .vv-vendor-workspace .vx-perf-shell .vx-row {
+  gap: 14px;
+  padding: 13px 8px;
+  border: 0;
+  border-top: 1px solid var(--vv-theme-line);
+  border-radius: 10px;
+  background: transparent;
+  box-shadow: none;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+.vv-vendor-workspace-route:not(.vv-business-workspace-route) .vv-vendor-workspace .vx-perf-shell .vx-row:first-child { border-top: 0; }
+.vv-vendor-workspace-route:not(.vv-business-workspace-route) .vv-vendor-workspace .vx-perf-shell .vx-row:hover { transform: none; background: #f5f8ff; }
+.vv-vendor-workspace-route:not(.vv-business-workspace-route) .vv-vendor-workspace .vx-perf-shell .vx-row .ri { width: 40px; height: 40px; border-radius: 12px; }
+.vv-vendor-workspace-route:not(.vv-business-workspace-route) .vv-vendor-workspace .vx-perf-shell .vx-row .rt b { font-size: 15px; font-weight: 700; }
+.vv-vendor-workspace-route:not(.vv-business-workspace-route) .vv-vendor-workspace .vx-perf-shell .vx-row .rt small { margin-top: 3px; font-size: 13px; }
+.vv-vendor-workspace-route:not(.vv-business-workspace-route) .vv-vendor-workspace .vx-perf-shell .vx-empty { padding: 18px 8px; font-size: 14px; }
+
+/* top categories: compact ranked list */
+.vv-vendor-workspace-route:not(.vv-business-workspace-route) .vv-vendor-workspace .vx-perf-shell .vx-cat-list { display: flex; flex-direction: column; }
+.vv-vendor-workspace-route:not(.vv-business-workspace-route) .vv-vendor-workspace .vx-perf-shell .vx-cat-row {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+  padding: 11px 8px;
+  border: 0;
+  border-top: 1px solid var(--vv-theme-line);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--vv-theme-ink);
+  text-align: left;
+  transition: background .2s ease;
+}
+.vv-vendor-workspace-route:not(.vv-business-workspace-route) .vv-vendor-workspace .vx-perf-shell .vx-cat-row:first-child { border-top: 0; }
+.vv-vendor-workspace-route:not(.vv-business-workspace-route) .vv-vendor-workspace .vx-perf-shell .vx-cat-row:hover { background: #f5f8ff; }
+.vv-vendor-workspace-route:not(.vv-business-workspace-route) .vv-vendor-workspace .vx-perf-shell .vx-cat-row .ci { display: grid; width: 40px; height: 40px; place-items: center; border-radius: 12px; background: #eaf1ff; color: #2563eb; }
+.vv-vendor-workspace-route:not(.vv-business-workspace-route) .vv-vendor-workspace .vx-perf-shell .vx-cat-row b { overflow: hidden; font-size: 15px; font-weight: 650; text-overflow: ellipsis; white-space: nowrap; }
+.vv-vendor-workspace-route:not(.vv-business-workspace-route) .vv-vendor-workspace .vx-perf-shell .vx-cat-row em { min-width: 28px; padding: 3px 10px; border-radius: 999px; background: #eaf1ff; color: #1d4ed8; font-size: 13px; font-style: normal; font-weight: 750; text-align: center; }
+
+@media (max-width: 1100px) {
+  .vv-vendor-workspace-route:not(.vv-business-workspace-route) .vv-vendor-workspace .vx-perf-shell .vx-kpi-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .vv-vendor-workspace-route:not(.vv-business-workspace-route) .vv-vendor-workspace .vx-perf-shell .vx-kpi-strip .vx-perf-stat:nth-child(3) { border-left: 0; }
+  .vv-vendor-workspace-route:not(.vv-business-workspace-route) .vv-vendor-workspace .vx-perf-shell .vx-kpi-strip .vx-perf-stat:nth-child(n+3) { border-top: 1px solid var(--vv-theme-line); }
+}
+@media (max-width: 900px) {
+  .vv-vendor-workspace-route:not(.vv-business-workspace-route) .vv-vendor-workspace .vx-perf-shell :is(.wide-grid, .lower-grid) { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 520px) {
+  .vv-vendor-workspace-route:not(.vv-business-workspace-route) .vv-vendor-workspace .vx-perf-shell .vx-kpi-strip { grid-template-columns: minmax(0, 1fr); }
+  .vv-vendor-workspace-route:not(.vv-business-workspace-route) .vv-vendor-workspace .vx-perf-shell .vx-kpi-strip .vx-perf-stat { border-top: 1px solid var(--vv-theme-line); border-left: 0; }
+  .vv-vendor-workspace-route:not(.vv-business-workspace-route) .vv-vendor-workspace .vx-perf-shell .vx-kpi-strip .vx-perf-stat:first-child { border-top: 0; }
+  .vv-vendor-workspace-route:not(.vv-business-workspace-route) .vv-vendor-workspace .vx-perf-shell .vx-perf-card { padding: 18px; }
+}
+
+/* ===== Vendor "More" screen v2: grouped tiles, readable type ===== */
+.vv-vendor-workspace .vx-more {
+  --m-line: var(--vv-theme-line, #dbe4ef);
+  --m-surface: var(--vv-theme-surface, #fff);
+  --m-ink: var(--vv-theme-ink, #1e293b);
+  --m-muted: var(--vv-theme-muted, #64748b);
+  --m-accent: var(--vv-theme-accent, #2563eb);
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+  padding: 24px 4px 32px;
+  color: var(--m-ink);
+}
+.vv-vendor-workspace .vx-more button { font-family: inherit; text-align: left; cursor: pointer; }
+.vv-vendor-workspace .vx-more button:focus-visible { outline: 2px solid var(--m-accent); outline-offset: 2px; }
+
+/* business header */
+.vv-vendor-workspace .vx-more-profile {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  width: 100%;
+  padding: 24px 28px;
+  border: 1px solid var(--m-line);
+  border-radius: 18px;
+  background: var(--m-surface);
+  color: inherit;
+  box-shadow: 0 4px 14px rgba(30, 64, 120, .045);
+  transition: border-color .2s ease, box-shadow .2s ease;
+}
+.vv-vendor-workspace .vx-more-profile:hover { border-color: var(--m-accent); box-shadow: 0 8px 22px rgba(30, 64, 120, .09); }
+.vv-vendor-workspace .vx-more-logo { display: grid; flex: 0 0 auto; place-items: center; width: 68px; height: 68px; border-radius: 18px; background: linear-gradient(145deg, #ffb020, #f97316); color: #fff; }
+.vv-vendor-workspace .vx-more-profile-text { display: flex; flex: 1; min-width: 0; flex-direction: column; gap: 3px; }
+.vv-vendor-workspace .vx-more-profile-text b { overflow: hidden; font-size: 22px; font-weight: 800; letter-spacing: -.02em; text-overflow: ellipsis; white-space: nowrap; }
+.vv-vendor-workspace .vx-more-profile-text > span:not(.vx-more-status) { color: var(--m-muted); font-size: 16px; }
+.vv-vendor-workspace .vx-more-status { margin-top: 6px; }
+.vv-vendor-workspace .vx-more-status > * { font-size: 13px; }
+.vv-vendor-workspace .vx-more-profile > svg { flex: 0 0 auto; color: var(--m-muted); }
+
+/* sections */
+.vv-vendor-workspace .vx-more-section h3 { margin: 0 0 12px 2px; color: var(--m-muted); font-size: 13px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+.vv-vendor-workspace .vx-more-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 14px; }
+.vv-vendor-workspace .vx-more-item {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-width: 0;
+  padding: 16px 18px;
+  border: 1px solid var(--m-line);
+  border-radius: 14px;
+  background: var(--m-surface);
+  color: inherit;
+  transition: border-color .2s ease, background .2s ease, box-shadow .2s ease;
+}
+.vv-vendor-workspace .vx-more-item:hover { border-color: var(--m-accent); background: #f5f8ff; box-shadow: 0 6px 18px rgba(30, 64, 120, .07); }
+.vv-vendor-workspace .vx-more-ic { display: grid; flex: 0 0 auto; place-items: center; width: 46px; height: 46px; border-radius: 12px; background: #eaf1ff; color: var(--m-accent); }
+.vv-vendor-workspace .vx-more-text { display: flex; flex: 1; min-width: 0; flex-direction: column; gap: 3px; }
+.vv-vendor-workspace .vx-more-text b { overflow: hidden; font-size: 16px; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
+.vv-vendor-workspace .vx-more-text small { display: -webkit-box; overflow: hidden; color: var(--m-muted); font-size: 14px; line-height: 1.35; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; }
+.vv-vendor-workspace .vx-more-chev { flex: 0 0 auto; color: var(--m-muted); transition: transform .2s ease; }
+.vv-vendor-workspace .vx-more-item:hover .vx-more-chev { transform: translateX(3px); color: var(--m-accent); }
+
+@media (max-width: 680px) {
+  .vv-vendor-workspace .vx-more { gap: 22px; padding-top: 16px; }
+  .vv-vendor-workspace .vx-more-profile { padding: 18px; }
+  .vv-vendor-workspace .vx-more-logo { width: 56px; height: 56px; }
+  .vv-vendor-workspace .vx-more-profile-text b { font-size: 19px; }
+  .vv-vendor-workspace .vx-more-grid { grid-template-columns: minmax(0, 1fr); gap: 10px; }
+}
+[data-theme='dark'] .vv-vendor-workspace .vx-more-item:hover { background: rgba(255, 255, 255, .06); }
+[data-theme='dark'] .vv-vendor-workspace .vx-more-ic { background: rgba(96, 165, 250, .16); }
+
+/* ===== Vendor workspace shell v2: one font, readable sidebar and top bar =====
+   The shell mixed Sora, Plus Jakarta Sans and Inter at 9-13px. One family, one type scale:
+   labels 15px, group titles 12px, captions 13px. */
+.vv-vendor-workspace-route.vv-vendor-workspace-route.vv-vendor-workspace-route:not(.vv-business-workspace-route) .vv-vendor-workspace.vx-shell:not(.is-collapsed) { --sw: clamp(248px, 16vw, 280px); }
+.vv-vendor-workspace-route.vv-vendor-workspace-route.vv-vendor-workspace-route:not(.vv-business-workspace-route) .vv-vendor-workspace.vx-shell :is(.vx-side, .vx-top) {
+  font-family: Inter, 'Plus Jakarta Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+
+/* ---- sidebar ---- */
+.vv-vendor-workspace-route.vv-vendor-workspace-route.vv-vendor-workspace-route:not(.vv-business-workspace-route) .vv-vendor-workspace.vx-shell .vx-side { padding: 20px 14px 16px; }
+.vv-vendor-workspace-route.vv-vendor-workspace-route.vv-vendor-workspace-route:not(.vv-business-workspace-route) .vv-vendor-workspace.vx-shell .vx-brand { gap: 12px; padding: 2px 8px 14px; }
+.vv-vendor-workspace-route.vv-vendor-workspace-route.vv-vendor-workspace-route:not(.vv-business-workspace-route) .vv-vendor-workspace.vx-shell .vx-side .vx-logo { width: 44px; height: 44px; border-radius: 14px; font: 800 22px Inter, system-ui, sans-serif; }
+.vv-vendor-workspace-route.vv-vendor-workspace-route.vv-vendor-workspace-route:not(.vv-business-workspace-route) .vv-vendor-workspace.vx-shell .vx-bt { gap: 3px; min-width: 0; }
+.vv-vendor-workspace-route.vv-vendor-workspace-route.vv-vendor-workspace-route:not(.vv-business-workspace-route) .vv-vendor-workspace.vx-shell .vx-bt b { overflow: hidden; font: 800 18px/1.15 Inter, system-ui, sans-serif; letter-spacing: -.02em; text-overflow: ellipsis; white-space: nowrap; }
+.vv-vendor-workspace-route.vv-vendor-workspace-route.vv-vendor-workspace-route:not(.vv-business-workspace-route) .vv-vendor-workspace.vx-shell .vx-bt small { overflow: hidden; font-size: 13px; text-overflow: ellipsis; white-space: nowrap; }
+
+.vv-vendor-workspace-route.vv-vendor-workspace-route.vv-vendor-workspace-route:not(.vv-business-workspace-route) .vv-vendor-workspace.vx-shell .vx-side .vx-biz { gap: 12px; margin: 6px 0 0; padding: 12px; border-radius: 14px; }
+.vv-vendor-workspace-route.vv-vendor-workspace-route.vv-vendor-workspace-route:not(.vv-business-workspace-route) .vv-vendor-workspace.vx-shell .vx-biz > div:last-child { min-width: 0; }
+.vv-vendor-workspace-route.vv-vendor-workspace-route.vv-vendor-workspace-route:not(.vv-business-workspace-route) .vv-vendor-workspace.vx-shell .vx-biz b { max-width: none; overflow: hidden; font-size: 15px; font-weight: 700; text-overflow: ellipsis; }
+.vv-vendor-workspace-route.vv-vendor-workspace-route.vv-vendor-workspace-route:not(.vv-business-workspace-route) .vv-vendor-workspace.vx-shell .vx-biz small { display: block; margin-top: 2px; overflow: hidden; font-size: 13px; text-overflow: ellipsis; white-space: nowrap; }
+
+.vv-vendor-workspace-route.vv-vendor-workspace-route.vv-vendor-workspace-route:not(.vv-business-workspace-route) .vv-vendor-workspace.vx-shell .vx-nav { gap: 3px; }
+.vv-vendor-workspace-route.vv-vendor-workspace-route.vv-vendor-workspace-route:not(.vv-business-workspace-route) .vv-vendor-workspace.vx-shell .vx-group { padding: 18px 14px 6px; font-size: 12px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; opacity: 1; }
+.vv-vendor-workspace-route.vv-vendor-workspace-route.vv-vendor-workspace-route:not(.vv-business-workspace-route) .vv-vendor-workspace.vx-shell .vx-nav-item { gap: 14px; min-height: 46px; padding: 10px 14px; border-radius: 12px; font-size: 15px; font-weight: 600; letter-spacing: 0; }
+.vv-vendor-workspace-route.vv-vendor-workspace-route.vv-vendor-workspace-route:not(.vv-business-workspace-route) .vv-vendor-workspace.vx-shell .vx-nav-item svg { width: 20px; height: 20px; }
+.vv-vendor-workspace-route.vv-vendor-workspace-route.vv-vendor-workspace-route:not(.vv-business-workspace-route) .vv-vendor-workspace.vx-shell .vx-lbl { max-width: 190px; }
+.vv-vendor-workspace-route.vv-vendor-workspace-route.vv-vendor-workspace-route:not(.vv-business-workspace-route) .vv-vendor-workspace.vx-shell .vx-badge { min-width: 24px; height: 24px; border-radius: 12px; font-size: 13px; font-weight: 700; }
+
+.vv-vendor-workspace-route.vv-vendor-workspace-route.vv-vendor-workspace-route:not(.vv-business-workspace-route) .vv-vendor-workspace.vx-shell .vx-side .vx-plan { margin: auto 0 0; padding: 14px 16px; border-radius: 14px; font-size: 13px; }
+.vv-vendor-workspace-route.vv-vendor-workspace-route.vv-vendor-workspace-route:not(.vv-business-workspace-route) .vv-vendor-workspace.vx-shell .vx-plan > div { gap: 12px; margin-bottom: 10px; font-size: 13px; white-space: nowrap; }
+.vv-vendor-workspace-route.vv-vendor-workspace-route.vv-vendor-workspace-route:not(.vv-business-workspace-route) .vv-vendor-workspace.vx-shell .vx-plan b { font-size: 13px; }
+.vv-vendor-workspace-route.vv-vendor-workspace-route.vv-vendor-workspace-route:not(.vv-business-workspace-route) .vv-vendor-workspace.vx-shell .vx-logout { margin-top: 6px; }
+
+/* collapsed rail keeps icons centred */
+.vv-vendor-workspace-route.vv-vendor-workspace-route.vv-vendor-workspace-route:not(.vv-business-workspace-route) .vv-vendor-workspace.vx-shell.is-collapsed .vx-nav-item { justify-content: center; padding-inline: 0; }
+.vv-vendor-workspace-route.vv-vendor-workspace-route.vv-vendor-workspace-route:not(.vv-business-workspace-route) .vv-vendor-workspace.vx-shell.is-collapsed .vx-side { padding-inline: 10px; }
+
+/* ---- top bar ---- */
+.vv-vendor-workspace-route.vv-vendor-workspace-route.vv-vendor-workspace-route:not(.vv-business-workspace-route) .vv-vendor-workspace.vx-shell .vx-top { gap: 12px; padding: 8px 20px; }
+.vv-vendor-workspace-route.vv-vendor-workspace-route.vv-vendor-workspace-route:not(.vv-business-workspace-route) .vv-vendor-workspace.vx-shell .vx-search { height: 42px; max-width: 560px; padding: 0 14px; gap: 10px; }
+.vv-vendor-workspace-route.vv-vendor-workspace-route.vv-vendor-workspace-route:not(.vv-business-workspace-route) .vv-vendor-workspace.vx-shell .vx-search svg { width: 18px; height: 18px; }
+.vv-vendor-workspace-route.vv-vendor-workspace-route.vv-vendor-workspace-route:not(.vv-business-workspace-route) .vv-vendor-workspace.vx-shell .vx-search input { font: 500 14px Inter, system-ui, sans-serif; }
+.vv-vendor-workspace-route.vv-vendor-workspace-route.vv-vendor-workspace-route:not(.vv-business-workspace-route) .vv-vendor-workspace.vx-shell .vx-top-nav-item { min-height: 40px; padding: 0 12px; gap: 8px; border-radius: 10px; font: 600 14px/1 Inter, system-ui, sans-serif; }
+.vv-vendor-workspace-route.vv-vendor-workspace-route.vv-vendor-workspace-route:not(.vv-business-workspace-route) .vv-vendor-workspace.vx-shell :is(.vx-ico, .vx-theme-toggle) { width: 40px; height: 40px; }
+.vv-vendor-workspace-route.vv-vendor-workspace-route.vv-vendor-workspace-route:not(.vv-business-workspace-route) .vv-vendor-workspace.vx-shell .vx-locale { display: inline-flex; align-items: center; gap: 6px; min-height: 40px; padding: 0 12px; font: 700 13px Inter, system-ui, sans-serif; white-space: nowrap; }
+.vv-vendor-workspace-route.vv-vendor-workspace-route.vv-vendor-workspace-route:not(.vv-business-workspace-route) .vv-vendor-workspace.vx-shell .vx-locale svg { width: 16px; height: 16px; }
+.vv-vendor-workspace-route.vv-vendor-workspace-route.vv-vendor-workspace-route:not(.vv-business-workspace-route) .vv-vendor-workspace.vx-shell .vx-me { gap: 10px; padding: 4px 12px 4px 4px; }
+.vv-vendor-workspace-route.vv-vendor-workspace-route.vv-vendor-workspace-route:not(.vv-business-workspace-route) .vv-vendor-workspace.vx-shell .vx-av { width: 36px; height: 36px; border-radius: 11px; font: 800 13px Inter, system-ui, sans-serif; }
+.vv-vendor-workspace-route.vv-vendor-workspace-route.vv-vendor-workspace-route:not(.vv-business-workspace-route) .vv-vendor-workspace.vx-shell .vx-me b { font-size: 14px; font-weight: 700; line-height: 1.2; white-space: nowrap; }
+.vv-vendor-workspace-route.vv-vendor-workspace-route.vv-vendor-workspace-route:not(.vv-business-workspace-route) .vv-vendor-workspace.vx-shell .vx-me small { margin-top: 1px; font-size: 12px; line-height: 1.2; }
+.vv-vendor-workspace-route.vv-vendor-workspace-route.vv-vendor-workspace-route:not(.vv-business-workspace-route) .vv-vendor-workspace.vx-shell .vx-toggle { top: 30px; }
+
+@media (max-width: 900px) {
+  .vv-vendor-workspace-route.vv-vendor-workspace-route.vv-vendor-workspace-route:not(.vv-business-workspace-route) .vv-vendor-workspace.vx-shell .vx-me > div:last-child { display: none; }
+  .vv-vendor-workspace-route.vv-vendor-workspace-route.vv-vendor-workspace-route:not(.vv-business-workspace-route) .vv-vendor-workspace.vx-shell .vx-top { padding: 10px 14px; }
+}
+
+/* ===== Vendor workspace pages v2: readable type on every sidebar page =====
+   The pages use Tailwind text utilities at 10-14px. Inside the vendor workspace panel they are
+   stepped up one size so Analytics, My listings, Supplier shop, Quote requests, Purchase orders,
+   Messages, Reviews, Verification and Business profile all read comfortably. */
+.vv-vendor-workspace.vx-shell .vx-panel { --vp-fs: 15px; font-size: 15px; }
+.vv-vendor-workspace.vx-shell .vx-panel :is(.text-\[9px\], .text-\[10px\], .text-\[11px\]) { font-size: 12.5px; line-height: 1.4; }
+.vv-vendor-workspace.vx-shell .vx-panel :is(.text-xs, .text-\[12px\]) { font-size: 13.5px; line-height: 1.45; }
+.vv-vendor-workspace.vx-shell .vx-panel :is(.text-\[13px\]) { font-size: 14.5px; line-height: 1.45; }
+.vv-vendor-workspace.vx-shell .vx-panel :is(.text-sm, .text-\[14px\]) { font-size: 15.5px; line-height: 1.5; }
+.vv-vendor-workspace.vx-shell .vx-panel :is(.text-\[15px\]) { font-size: 16.5px; line-height: 1.45; }
+.vv-vendor-workspace.vx-shell .vx-panel :is(.text-base) { font-size: 17px; }
+.vv-vendor-workspace.vx-shell .vx-panel :is(.text-lg) { font-size: 19px; }
+
+/* page header: bigger title, roomier bar */
+.vv-vendor-workspace.vx-shell .vx-panel .vv-screen-layout > header { min-height: 76px; }
+.vv-vendor-workspace.vx-shell .vx-panel .vv-screen-layout > header h1 { font-size: 24px; font-weight: 800; letter-spacing: -.02em; }
+.vv-vendor-workspace.vx-shell .vx-panel .vv-screen-layout > header :is(button, a) { font-size: 15px; }
+
+/* form controls and buttons */
+.vv-vendor-workspace.vx-shell .vx-panel :is(input:not([type='checkbox'], [type='radio'], [type='range']), select, textarea) { min-height: 46px; font-size: 15.5px; }
+.vv-vendor-workspace.vx-shell .vx-panel :is(input, textarea)::placeholder { font-size: 15px; }
+
+/* top bar search: room for the placeholder */
+.vv-vendor-workspace-route.vv-vendor-workspace-route.vv-vendor-workspace-route:not(.vv-business-workspace-route) .vv-vendor-workspace.vx-shell .vx-search { flex: 1 1 420px; min-width: 260px; max-width: 620px; }
+.vv-vendor-workspace-route.vv-vendor-workspace-route.vv-vendor-workspace-route:not(.vv-business-workspace-route) .vv-vendor-workspace.vx-shell .vx-search input { text-overflow: ellipsis; }
+
+/* ===== Performance (Analytics) screen: same card family as the dashboard ===== */
+.vv-vendor-workspace-route:not(.vv-business-workspace-route) .vv-vendor-workspace .vx-perf-shell .vx-perf-stat:not(.vx-kpi-strip .vx-perf-stat) { min-height: 88px; padding: 14px 16px; gap: 12px; }
+.vv-vendor-workspace-route:not(.vv-business-workspace-route) .vv-vendor-workspace .vx-perf-shell .vx-perf-stat:not(.vx-kpi-strip .vx-perf-stat) b { font-size: 28px; font-weight: 800; }
+.vv-vendor-workspace-route:not(.vv-business-workspace-route) .vv-vendor-workspace .vx-perf-shell .vx-perf-stat:not(.vx-kpi-strip .vx-perf-stat) span { font-size: 14px; }
+.vv-vendor-workspace-route:not(.vv-business-workspace-route) .vv-vendor-workspace .vx-perf-shell .vx-perf-stat:not(.vx-kpi-strip .vx-perf-stat) small { font-size: 13px; font-weight: 700; }
+.vv-vendor-workspace-route:not(.vv-business-workspace-route) .vv-vendor-workspace .vx-perf-shell .vx-analytics-line { height: 230px; }
+.vv-vendor-workspace-route:not(.vv-business-workspace-route) .vv-vendor-workspace .vx-perf-shell .vx-analytics-axis-label { font-size: 12px; }
+.vv-vendor-workspace-route:not(.vv-business-workspace-route) .vv-vendor-workspace .vx-perf-shell .vx-perf-chart-chip { padding: 5px 10px; font-size: 12.5px; }
+.vv-vendor-workspace-route:not(.vv-business-workspace-route) .vv-vendor-workspace .vx-perf-shell .vx-perf-chart-chip span { font-size: 12.5px; }
+.vv-vendor-workspace-route:not(.vv-business-workspace-route) .vv-vendor-workspace .vx-perf-shell .vx-perf-categories { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; margin-top: 12px; }
+.vv-vendor-workspace-route:not(.vv-business-workspace-route) .vv-vendor-workspace .vx-perf-shell .vx-perf-category { gap: 8px; padding: 16px 10px; border-radius: 12px; }
+.vv-vendor-workspace-route:not(.vv-business-workspace-route) .vv-vendor-workspace .vx-perf-shell .vx-perf-category > span { width: 40px; height: 40px; }
+.vv-vendor-workspace-route:not(.vv-business-workspace-route) .vv-vendor-workspace .vx-perf-shell .vx-perf-category b { font-size: 14px; line-height: 1.3; }
+.vv-vendor-workspace-route:not(.vv-business-workspace-route) .vv-vendor-workspace .vx-perf-shell .vx-perf-category small { font-size: 12.5px; }
+.vv-vendor-workspace-route:not(.vv-business-workspace-route) .vv-vendor-workspace .vx-perf-shell .vx-perf-quick { gap: 12px; margin-top: 12px; }
+.vv-vendor-workspace-route:not(.vv-business-workspace-route) .vv-vendor-workspace .vx-perf-shell .vx-perf-quick button { gap: 8px; padding: 14px 8px; border-radius: 12px; font-size: 14px; font-weight: 650; line-height: 1.25; text-align: center; }
+.vv-vendor-workspace-route:not(.vv-business-workspace-route) .vv-vendor-workspace .vx-perf-shell .vx-perf-quick button > span { width: 40px; height: 40px; }

@@ -12,6 +12,7 @@ import { Badge, Banner, Button, Card, Chips, EmptyState, Input, KV, ListRow, Scr
 import { useApp } from '../store.jsx'
 import { useNav } from '../nav.jsx'
 import { authService } from '../services/authService.js'
+import { SAMPLE_GROUPS, SAMPLE_LISTINGS } from '../data/exploreSamples.js'
 
 const newKey = () => globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(16).slice(2)}`
 const deviceZone = () => Intl.DateTimeFormat().resolvedOptions().timeZone
@@ -106,7 +107,7 @@ function UniversalPanel({ q, country, cityId, signedIn, onCategory }) {
   }, [text, country, cityId, signedIn])
 
   if (text.length < 2) return null
-  if (state.error) return <ErrorBox message={state.error} />
+  if (state.error) return signedIn ? <ErrorBox message={state.error} /> : null // signed-out visitors just see the listings below
   const sections = state.data?.sections || {}
   const vendors = sections.vendor?.items || []
   const categories = sections.category?.items || []
@@ -145,6 +146,7 @@ export function RemoteExplore({ params = {} }) {
   const app = useApp()
   const locale = app.locale ?? app.loc ?? {} // web keeps the place in `locale`, mobile in `loc`
   const [q, setQ] = useState(params.q || '')
+  const [group, setGroup] = useState(params.group || '') // top-level category picked in the marketplace header
   const [type, setType] = useState('all')
   const [categoryId, setCategoryId] = useState('all')
   const [instantOnly, setInstantOnly] = useState(false)
@@ -152,6 +154,9 @@ export function RemoteExplore({ params = {} }) {
   const [max, setMax] = useState('')
   const [state, setState] = useState({ loading: true, error: '', items: [], nextCursor: null, marketLive: true })
   const country = locale.country || 'IN'
+
+  // Picking another header category while this screen is open starts a fresh browse of it.
+  useEffect(() => { setGroup(params.group || ''); setQ(params.q || ''); setCategoryId('all') }, [params.group, params.q])
 
   // Resolve the saved city name to a geography id once.
   const cities = useLoad(() => authService.listCities(country), [country])
@@ -178,13 +183,41 @@ export function RemoteExplore({ params = {} }) {
     return () => clearTimeout(t)
   }, [search, cities.loading])
 
+  // Sample data fills the screen until real listings exist (see data/exploreSamples.js).
+  const realCategories = categories.data?.categories || []
+  const groupSubs = group && group !== 'New vendors' ? SAMPLE_GROUPS[group] || [] : null
+  // The API has flat categories; the header groups them by name, so apply the group here.
+  const visibleItems = useMemo(() => (groupSubs ? state.items.filter((l) => groupSubs.includes(l.categoryName)) : state.items), [state.items, groupSubs])
+  const useSamples = !state.loading && visibleItems.length === 0 && (Boolean(state.error) || state.marketLive)
+  const sampleCategories = Object.entries(SAMPLE_GROUPS).filter(([g]) => !group || group === 'New vendors' || g === group).flatMap(([, subs]) => subs)
+  const chipOptions = realCategories.length > 0
+    ? realCategories.filter((c) => !groupSubs || groupSubs.includes(c.name)).map((c) => ({ id: c.categoryId, label: c.name }))
+    : sampleCategories.map((name) => ({ id: name, label: name }))
+  const sampleItems = useMemo(() => {
+    const text = q.trim().toLowerCase()
+    return SAMPLE_LISTINGS.filter((l) => {
+      if (group === 'New vendors' ? !l.isNew : group && l.group !== group) return false
+      if (type !== 'all' && l.listingType !== type) return false
+      if (categoryId !== 'all' && l.categoryName !== categoryId) return false
+      if (instantOnly && !l.instantBooking) return false
+      if (min && l.price.maxMinor < Number(min) * 100) return false
+      if (max && l.price.minMinor > Number(max) * 100) return false
+      return !text || [l.title, l.vendor.name, l.categoryName, l.group, l.city].some((v) => v.toLowerCase().includes(text))
+    })
+  }, [q, group, type, categoryId, instantOnly, min, max])
+
   return (
-    <Screen title="Explore" back={false} pad={false}>
-      <div className="space-y-3 bg-white px-4 pb-3 pt-3 shadow-sm">
+    <Screen title="Explore" back={false} pad={false} headerless>
+      <div className="mx-auto w-full max-w-5xl space-y-4 px-4 py-6">
+      <div>
+        <h1 className="text-2xl font-bold text-ink-900">{group || 'Explore'}</h1>
+        <p className="mt-1 text-sm text-ink-500">{group === 'New vendors' ? 'Recently joined, verified vendors.' : group ? `Products and services in ${group.toLowerCase()}.` : 'Search products and services from verified vendors.'}</p>
+      </div>
+      <div className="space-y-3 rounded-2xl bg-white p-4 shadow-sm ring-1 ring-ink-100">
         <SearchBar value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search vendors, products, services" />
         <Segmented value={type} onChange={setType} options={[{ id: 'all', label: 'All' }, { id: 'product', label: 'Products' }, { id: 'service', label: 'Services' }]} />
-        {categories.data?.categories?.length > 0 && (
-          <Chips value={categoryId} onChange={setCategoryId} options={[{ id: 'all', label: 'All categories' }, ...categories.data.categories.map((c) => ({ id: c.categoryId, label: c.name }))]} />
+        {chipOptions.length > 0 && (
+          <Chips value={categoryId} onChange={setCategoryId} options={[{ id: 'all', label: 'All categories' }, ...chipOptions]} />
         )}
         <div className="flex items-end gap-2">
           <Input label="Min price" inputMode="numeric" value={min} onChange={(e) => setMin(e.target.value.replace(/\D/g, ''))} />
@@ -192,18 +225,34 @@ export function RemoteExplore({ params = {} }) {
         </div>
         <Toggle label="Instant booking only" desc="Listings you can book without waiting for a reply" on={instantOnly} onChange={setInstantOnly} />
       </div>
-      <div className="space-y-3 p-4">
+      <div className="space-y-3">
         <UniversalPanel q={q} country={country} cityId={cityId} signedIn={Boolean(app.me?.loggedIn)} onCategory={setCategoryId} />
-        {q.trim().length >= 2 && <p className="pt-1 text-xs font-bold uppercase tracking-wide text-ink-500">Products and services</p>}
-        {state.error && <ErrorBox message={state.error} onRetry={() => search()} />}
+        <p className="pt-1 text-xs font-bold uppercase tracking-wide text-ink-500">Products and services{(useSamples ? sampleItems.length : visibleItems.length) > 0 && ` (${useSamples ? sampleItems.length : visibleItems.length})`}</p>
+        {!useSamples && state.error && <ErrorBox message={state.error} onRetry={() => search()} />}
         {!state.error && !state.loading && !state.marketLive && (
           <Banner tone="amber" title="Not live in this area yet">VendorVerse is not open for search in {locale.city || 'this area'} yet, so nothing is shown. Nothing here is hidden from you.</Banner>
         )}
         {!state.error && state.loading && state.items.length === 0 && <Loading />}
-        {!state.loading && !state.error && state.marketLive && state.items.length === 0 && (
+        {useSamples && sampleItems.map((l) => (
+          <Card key={l.id}>
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="truncate text-[15px] font-bold text-ink-900">{l.title}</p>
+                <p className="truncate text-xs text-ink-500">{l.vendor.name} · {l.categoryName} · {l.city}</p>
+              </div>
+              <div className="flex shrink-0 gap-1.5">{l.instantBooking && <Badge tone="teal"><Zap size={11} /> Instant</Badge>}<Badge tone="gray">Sample</Badge></div>
+            </div>
+            <p className="mt-2 text-sm font-semibold text-ink-800">{priceLabel(l.price)}</p>
+            <p className="mt-1 text-xs text-ink-500">{l.listingType === 'product' ? 'Product' : 'Service'}{l.isNew ? ' · New vendor' : ''}</p>
+          </Card>
+        ))}
+        {useSamples && sampleItems.length === 0 && (
+          <EmptyState icon={Search} title="No matches" body="Try different words or remove a filter." action={<Button size="sm" onClick={() => nav.go('c_rfq_new')}>Request a quote</Button>} />
+        )}
+        {!useSamples && !state.loading && !state.error && state.marketLive && visibleItems.length === 0 && (
           <EmptyState icon={Search} title="No matches" body="Try different words or remove a filter. Results never include vendors that do not serve your area." action={<Button size="sm" onClick={() => nav.go('c_rfq_new')}>Request a quote</Button>} />
         )}
-        {state.items.map((l) => (
+        {visibleItems.map((l) => (
           <Card key={l.id} onClick={() => nav.go('c_listing', { id: l.id })}>
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
@@ -218,6 +267,7 @@ export function RemoteExplore({ params = {} }) {
         ))}
         {state.nextCursor && !state.loading && <Button full variant="secondary" onClick={() => search(state.nextCursor)}>Show more</Button>}
         {state.nextCursor && state.loading && <Loading />}
+      </div>
       </div>
     </Screen>
   )

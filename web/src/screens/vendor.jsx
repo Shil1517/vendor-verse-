@@ -818,7 +818,7 @@ export function VendorWorkspace({ children, variant = 'vendor', header }) {
                   </button>
                 ))}
               </nav>}
-              <label className="vx-search"><Search size={16} /><input placeholder="Search listings, quote requests, messagesâ€¦" aria-label="Search" /></label>
+              <label className="vx-search"><Search size={16} /><input placeholder="Search listings, quotes, messages…" aria-label="Search" /></label>
               <ThemeToggle className="vx-theme-toggle" />
               <div className="vx-ico"><NotifBell role="vendor" /></div>
               <button type="button" className="vx-locale" onClick={() => setLang(lang === 'en' ? 'hi' : 'en')} aria-label="Switch language">{lang === 'en' ? 'EN | हिन्दी' : 'हि | EN'} <ChevronDown size={12} /></button>
@@ -836,10 +836,9 @@ function VendorTrendChart({ data }) {
   const max = Math.max(10, Math.ceil(Math.max(...data.map((point) => point.value)) / 10) * 10)
   const x = (index) => left + index * (width - left - right) / Math.max(1, data.length - 1)
   const y = (value) => topPad + (1 - value / max) * (height - topPad - bottom)
-  const barWidth = Math.min(34, (width - left - right) / Math.max(1, data.length) * .42)
   const line = data.map((point, index) => `${index ? 'L' : 'M'}${x(index)},${y(point.value)}`).join(' ')
   const area = `${line} L${x(data.length - 1)},${height - bottom} L${x(0)},${height - bottom} Z`
-  return <svg className="vv-vendor-wave-chart" viewBox={`0 0 ${width} ${height}`} role="img" aria-label="Customer enquiries trend"><defs><linearGradient id="vv-vendor-chart-fill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#12b48f" stopOpacity=".38"/><stop offset="1" stopColor="#12b48f" stopOpacity="0"/></linearGradient></defs>{[0,.33,.66,1].map((fraction) => <g key={fraction}><line x1={left} x2={width-right} y1={y(max*fraction)} y2={y(max*fraction)}/><text x="0" y={y(max*fraction)+3}>{Math.round(max*fraction)}</text></g>)}<path className="vv-vendor-chart-area" d={area}/>{data.map((point,index)=><rect key={`bar-${point.label}`} className="vv-vendor-chart-column" x={x(index)-barWidth/2} y={y(point.value)} width={barWidth} height={height-bottom-y(point.value)} rx={barWidth/2} aria-hidden="true"/>)}<path className="vv-vendor-chart-line" d={line}/><path className="vv-vendor-chart-sweep" d={line} pathLength="1" aria-hidden="true"/>{data.map((point,index)=><g className="vv-vendor-chart-point" key={point.label}><circle className="hit" cx={x(index)} cy={y(point.value)} r="15"/><circle className="dot" cx={x(index)} cy={y(point.value)} r="4"/><text x={x(index)} y={height-6} textAnchor="middle">{point.label}</text><title>{point.label}: {point.value}</title></g>)}</svg>
+  return <svg className="vv-vendor-wave-chart" viewBox={`0 0 ${width} ${height}`} role="img" aria-label="Customer enquiries trend"><defs><linearGradient id="vv-vendor-chart-fill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#12b48f" stopOpacity=".38"/><stop offset="1" stopColor="#12b48f" stopOpacity="0"/></linearGradient></defs>{[0,.33,.66,1].map((fraction) => <g key={fraction}><line x1={left} x2={width-right} y1={y(max*fraction)} y2={y(max*fraction)}/><text x="0" y={y(max*fraction)+3}>{Math.round(max*fraction)}</text></g>)}<path className="vv-vendor-chart-area" d={area}/><path className="vv-vendor-chart-line" d={line}/><path className="vv-vendor-chart-sweep" d={line} pathLength="1" aria-hidden="true"/>{data.map((point,index)=><g className="vv-vendor-chart-point" key={point.label}><circle className="hit" cx={x(index)} cy={y(point.value)} r="15"/><circle className="dot" cx={x(index)} cy={y(point.value)} r="4"/><text x={x(index)} y={height-6} textAnchor="middle">{point.label}</text><title>{point.label}: {point.value}</title></g>)}</svg>
 }
 
 /* ================= BUSINESS SUPPLIER ONBOARDING ================= */
@@ -1010,7 +1009,7 @@ export function VendorRegister({ params = {} }) {
   const { me, setMe, vendors, setVendors, notify, toast, stamp } = useApp()
   const existing = me.role === 'vendor' ? vendors.find((v) => v.id === me.vendorId) : null
   const [step, setStep] = useState(0)
-  const [f, setF] = useState({ country: params.country || 'IN', name: params.name || me.biz || existing?.name || '', owner: me.name || '', vendorType: params.vendorType || existing?.vendorType || 'service_provider', cat: params.cat || 'elec', gstin: '', pan: '', email: '', years: '2020', areas: ['Jaipur'], branches: ['Main outlet â€” Jaipur'], moq: '', certifications: '' })
+  const [f, setF] = useState({ country: params.country || 'IN', name: params.name || me.biz || existing?.name || '', owner: me.name || '', vendorType: params.vendorType || existing?.vendorType || 'service_provider', cat: params.cat || 'elec', gstin: '', pan: '', email: '', years: '2020', areas: ['Jaipur'], branches: ['Main outlet — Jaipur'], moq: '', certifications: '' })
   // D-023: one or more vendor roles; the first is the primary role the backend stores as business type
   const [roles, setRoles] = useState(params.businessType ? [params.businessType, ...(params.roleCodes || [])] : [existing?.businessType || (f.vendorType === 'manufacturer_supplier' ? 'MANUFACTURER' : 'SERVICE_PROVIDER')])
   const goodsRole = roles.some((r) => VENDOR_ROLES[r]?.offer === 'products')
@@ -1124,7 +1123,7 @@ export function VendorVerify() {
   if (!v) return <VendorWorkspace><Screen title="Verification"><EmptyState icon={ShieldCheck} title="No application yet" action={<Button onClick={() => nav.go('v_register')}>Start registration</Button>} /></Screen></VendorWorkspace>
   if (authService.isRemote) return <VendorWorkspace><RemoteVendorVerification vendor={v} /></VendorWorkspace>
   const meta = {
-    submitted: ['blue', 'Under review', 'We usually respond within 1â€“2 business days.'],
+    submitted: ['blue', 'Under review', 'We usually respond within 1–2 business days.'],
     info: ['amber', 'More information needed', 'Please correct the items below and resubmit.'],
     rejected: ['red', 'Application rejected', 'You can correct the issues and resubmit.'],
     approved: ['green', 'Verified vendor', 'Your business is shown as Verified to customers.'],
@@ -1157,11 +1156,11 @@ export function VendorVerify() {
           })}
         </div>
       </Section>
-      <Section title="Status history"><Card><Timeline steps={v.history.map((h, i) => ({ label: { submitted: 'Submitted for review', info: 'More information requested', approved: 'Approved', rejected: 'Rejected' }[h.s] || h.s, at: `${h.at} Â· ${h.by}`, note: h.note, done: i < v.history.length - 1 || h.s === 'approved', current: i === v.history.length - 1 && h.s !== 'approved' }))} /></Card></Section>
-      <Section title="Subscription plans"><div className="grid gap-3">{settings.plans.map((p) => <Card key={p.id} className={cx('relative overflow-hidden', p.name === 'Growth' && 'ring-2 ring-brand-500')}><div className="flex items-start justify-between gap-3"><div><p className="text-lg font-extrabold">{p.name}</p><p className="mt-1 text-sm font-bold text-amber-700">Price open (CFG-02) Â· sample values</p></div>{p.name === 'Growth' && <Badge tone="teal">Popular</Badge>}</div><p className="mt-3 text-sm text-ink-500">{p.listings} listings Â· {p.leads} enquiries/month</p><Button full className="mt-4" variant={v.plan === p.name ? 'secondary' : 'primary'} disabled={v.plan === p.name} onClick={() => nav.go('v_checkout', { plan: p.name })}>{v.plan === p.name ? 'Current plan' : `Choose ${p.name}`}</Button></Card>)}</div></Section>
-      {paying && <div className="fixed inset-0 z-50 grid place-items-center bg-ink-950/60 p-4"><Card className="w-full max-w-sm !p-0 overflow-hidden"><div className="p-6"><div className="flex items-center justify-between"><div><p className="text-xs font-bold uppercase tracking-wider text-brand-700">Secure checkout demo</p><p className="mt-1 text-xl font-black">{paying.name} plan</p></div><button aria-label="Close payment" onClick={() => setPaying(null)}><X /></button></div><div className="my-5 rounded-2xl bg-gradient-to-br from-violet-700 to-indigo-600 p-5 text-white"><p className="text-sm text-white/70">VendorVerse subscription</p><p className="mt-2 text-3xl font-black">â‚¹{paying.price}<span className="text-sm font-semibold text-white/70"> / month</span></p><p className="mt-4 text-xs text-white/70">Demo payment Â· no real money is charged</p></div><Button full disabled={paying.loading} onClick={() => { setPaying({ ...paying, loading: true }); setTimeout(() => { setPaidPlan(paying); setPaying(null) }, 1600) }}>{paying.loading ? <><span className="size-4 animate-spin rounded-full border-2 border-white/40 border-t-white" /> Processing paymentâ€¦</> : <><Wallet size={17} /> Pay securely with PhonePe</>}</Button><p className="mt-3 text-center text-[11px] text-ink-400">UPI Â· Cards Â· Net banking</p></div></Card></div>}
+      <Section title="Status history"><Card><Timeline steps={v.history.map((h, i) => ({ label: { submitted: 'Submitted for review', info: 'More information requested', approved: 'Approved', rejected: 'Rejected' }[h.s] || h.s, at: `${h.at} · ${h.by}`, note: h.note, done: i < v.history.length - 1 || h.s === 'approved', current: i === v.history.length - 1 && h.s !== 'approved' }))} /></Card></Section>
+      <Section title="Subscription plans"><div className="grid gap-3">{settings.plans.map((p) => <Card key={p.id} className={cx('relative overflow-hidden', p.name === 'Growth' && 'ring-2 ring-brand-500')}><div className="flex items-start justify-between gap-3"><div><p className="text-lg font-extrabold">{p.name}</p><p className="mt-1 text-sm font-bold text-amber-700">Price open (CFG-02) · sample values</p></div>{p.name === 'Growth' && <Badge tone="teal">Popular</Badge>}</div><p className="mt-3 text-sm text-ink-500">{p.listings} listings · {p.leads} enquiries/month</p><Button full className="mt-4" variant={v.plan === p.name ? 'secondary' : 'primary'} disabled={v.plan === p.name} onClick={() => nav.go('v_checkout', { plan: p.name })}>{v.plan === p.name ? 'Current plan' : `Choose ${p.name}`}</Button></Card>)}</div></Section>
+      {paying && <div className="fixed inset-0 z-50 grid place-items-center bg-ink-950/60 p-4"><Card className="w-full max-w-sm !p-0 overflow-hidden"><div className="p-6"><div className="flex items-center justify-between"><div><p className="text-xs font-bold uppercase tracking-wider text-brand-700">Secure checkout demo</p><p className="mt-1 text-xl font-black">{paying.name} plan</p></div><button aria-label="Close payment" onClick={() => setPaying(null)}><X /></button></div><div className="my-5 rounded-2xl bg-gradient-to-br from-violet-700 to-indigo-600 p-5 text-white"><p className="text-sm text-white/70">VendorVerse subscription</p><p className="mt-2 text-3xl font-black">â‚¹{paying.price}<span className="text-sm font-semibold text-white/70"> / month</span></p><p className="mt-4 text-xs text-white/70">Demo payment · no real money is charged</p></div><Button full disabled={paying.loading} onClick={() => { setPaying({ ...paying, loading: true }); setTimeout(() => { setPaidPlan(paying); setPaying(null) }, 1600) }}>{paying.loading ? <><span className="size-4 animate-spin rounded-full border-2 border-white/40 border-t-white" /> Processing payment…</> : <><Wallet size={17} /> Pay securely with PhonePe</>}</Button><p className="mt-3 text-center text-[11px] text-ink-400">UPI · Cards · Net banking</p></div></Card></div>}
       </div>
-      {paidPlan && <div className="fixed inset-0 z-[51] grid place-items-center bg-ink-950/60 p-4"><Card className="w-full max-w-sm text-center"><div className="mx-auto grid size-20 place-items-center rounded-full bg-emerald-100 text-emerald-600"><Check size={40} strokeWidth={3} /></div><p className="mt-5 text-2xl font-black">Payment successful</p><p className="mt-2 text-sm text-ink-500">Your {paidPlan.name} subscription is active.</p><p className="mt-5 rounded-xl bg-ink-50 p-3 text-sm font-bold">â‚¹{paidPlan.price} Â· Demo transaction</p><Button full className="mt-5" onClick={() => setPaidPlan(null)}>Done</Button></Card></div>}
+      {paidPlan && <div className="fixed inset-0 z-[51] grid place-items-center bg-ink-950/60 p-4"><Card className="w-full max-w-sm text-center"><div className="mx-auto grid size-20 place-items-center rounded-full bg-emerald-100 text-emerald-600"><Check size={40} strokeWidth={3} /></div><p className="mt-5 text-2xl font-black">Payment successful</p><p className="mt-2 text-sm text-ink-500">Your {paidPlan.name} subscription is active.</p><p className="mt-5 rounded-xl bg-ink-50 p-3 text-sm font-bold">â‚¹{paidPlan.price} · Demo transaction</p><Button full className="mt-5" onClick={() => setPaidPlan(null)}>Done</Button></Card></div>}
     </Screen>
     </VendorWorkspace>
   )
@@ -1205,7 +1204,7 @@ export function ListingEdit({ params = {} }) {
   const nav = useNav()
   const { me, listings, setListings, patchListing, notify, toast, vendors } = useApp()
   const ex = params.id ? listings.find((l) => l.id === params.id) : null
-  const [f, setF] = useState(ex ? { ...ex, price: String(ex.price), mrp: ex.mrp ? String(ex.mrp) : '', stock: String(ex.stock ?? ''), moq: String(ex.moq ?? 1), lead: String(ex.lead ?? 1), duration: String(ex.duration ?? 60), imgs: 2, specVals: Object.fromEntries((ex.specs || []).map(([k, v]) => [k, v === 'â€”' ? '' : v])) } : { type: 'product', cat: vendors.find((v) => v.id === me.vendorId)?.cat || 'elec', sub: '', title: '', desc: '', price: '', mrp: '', unit: 'piece', stock: '', moq: '1', lead: '1', duration: '60', variants: [], imgs: 0, specVals: {} })
+  const [f, setF] = useState(ex ? { ...ex, price: String(ex.price), mrp: ex.mrp ? String(ex.mrp) : '', stock: String(ex.stock ?? ''), moq: String(ex.moq ?? 1), lead: String(ex.lead ?? 1), duration: String(ex.duration ?? 60), imgs: 2, specVals: Object.fromEntries((ex.specs || []).map(([k, v]) => [k, v === '—' ? '' : v])) } : { type: 'product', cat: vendors.find((v) => v.id === me.vendorId)?.cat || 'elec', sub: '', title: '', desc: '', price: '', mrp: '', unit: 'piece', stock: '', moq: '1', lead: '1', duration: '60', variants: [], imgs: 0, specVals: {} })
   const [vi, setVi] = useState('')
   const [errs, setErrs] = useState({})
   const [del, setDel] = useState(false)
@@ -1220,7 +1219,7 @@ export function ListingEdit({ params = {} }) {
     if (f.imgs < 1) e.imgs = 'Add at least one image'
     setErrs(e)
     if (Object.keys(e).length) return toast('Please fix the highlighted fields', 'warn')
-    const body = { type: f.type, cat: f.cat, sub: f.sub || c.subs[0], title: f.title.trim(), desc: f.desc.trim(), price: +f.price, mrp: f.mrp ? +f.mrp : undefined, unit: f.unit, tone: c.tone, specs: c.fields.map((k) => [k, f.specVals[k] || 'â€”']), ...(f.type === 'product' ? { stock: +f.stock, moq: +f.moq, lead: +f.lead, variants: f.variants } : { duration: +f.duration }) }
+    const body = { type: f.type, cat: f.cat, sub: f.sub || c.subs[0], title: f.title.trim(), desc: f.desc.trim(), price: +f.price, mrp: f.mrp ? +f.mrp : undefined, unit: f.unit, tone: c.tone, specs: c.fields.map((k) => [k, f.specVals[k] || '—']), ...(f.type === 'product' ? { stock: +f.stock, moq: +f.moq, lead: +f.lead, variants: f.variants } : { duration: +f.duration }) }
     if (ex) {
       patchListing(ex.id, { ...body, status: ex.status === 'rejected' ? 'pending' : ex.status, reason: undefined })
       toast(ex.status === 'rejected' ? 'Resubmitted for approval' : 'Listing updated')
@@ -1246,7 +1245,7 @@ export function ListingEdit({ params = {} }) {
         <div className="flex gap-2">{Array.from({ length: f.imgs }).map((_, i) => <div key={i} className="relative grid size-[72px] place-items-center rounded-xl bg-gradient-to-br from-ink-200 to-ink-300 text-ink-500"><ImagePlus size={20} /><button aria-label="Remove image" onClick={() => setF({ ...f, imgs: f.imgs - 1 })} className="absolute -right-1.5 -top-1.5 grid size-5 place-items-center rounded-full bg-ink-900 text-white"><X size={11} /></button></div>)}{f.imgs < 5 && <button onClick={() => { setF({ ...f, imgs: f.imgs + 1 }); setErrs({ ...errs, imgs: '' }) }} className="grid size-[72px] place-items-center rounded-xl border-2 border-dashed border-ink-300 text-ink-400"><Plus size={20} /></button>}</div>
         {errs.imgs && <p className="mt-1.5 text-xs font-medium text-red-600">{errs.imgs}</p>}
       </div>
-      <Input label="Title" required value={f.title} onChange={set('title')} error={errs.title} placeholder="e.g. Havells 1.5 sq mm wire â€“ 90 m" />
+      <Input label="Title" required value={f.title} onChange={set('title')} error={errs.title} placeholder="e.g. Havells 1.5 sq mm wire – 90 m" />
       <div className="flex gap-3">
         <Select label="Category" value={f.cat} onChange={(e) => setF({ ...f, cat: e.target.value, sub: '', specVals: {} })} options={CATS.filter((x) => x.type === f.type).map((x) => ({ value: x.id, label: x.name }))} />
         <Select label="Subcategory" value={f.sub || c.subs[0]} onChange={set('sub')} options={c.subs} />
@@ -1319,7 +1318,7 @@ export function VendorRfq({ params }) {
           <div className="space-y-4">
             <div className="flex gap-3"><Input label="Total amount (â‚¹)" required prefix="â‚¹" inputMode="numeric" value={f.amount} onChange={(e) => { setF({ ...f, amount: e.target.value.replace(/\D/g, '') }); setErrs({ ...errs, amount: '' }) }} error={errs.amount} /><Input label="Delivery (days)" required inputMode="numeric" value={f.lead} onChange={(e) => { setF({ ...f, lead: e.target.value.replace(/\D/g, '') }); setErrs({ ...errs, lead: '' }) }} error={errs.lead} /></div>
             <Input label="Quote valid until" type="date" min={new Date().toISOString().slice(0, 10)} value={f.validity} onChange={(e) => { setF({ ...f, validity: e.target.value }); setErrs({ ...errs, validity: '' }) }} error={errs.validity} />
-            <Input label="Notes to customer" required textarea rows={3} value={f.notes} onChange={(e) => { setF({ ...f, notes: e.target.value }); setErrs({ ...errs, notes: '' }) }} error={errs.notes} placeholder="Brand, warranty, inclusions, payment termsâ€¦" />
+            <Input label="Notes to customer" required textarea rows={3} value={f.notes} onChange={(e) => { setF({ ...f, notes: e.target.value }); setErrs({ ...errs, notes: '' }) }} error={errs.notes} placeholder="Brand, warranty, inclusions, payment terms…" />
           </div>
         </Section>
       )}
@@ -1333,11 +1332,11 @@ export function VendorOrders() {
   const { me, orders, listings, patchOrder, notify, toast, stamp } = useApp()
   const mine = orders.filter((o) => o.vendorId === me.vendorId)
   const next = { placed: ['confirmed', 'Accept order'], confirmed: ['packed', 'Start processing'], packed: ['shipped', 'Mark shipped'], shipped: ['delivered', 'Mark delivered'] }
-  const advance = (o) => { const n = next[o.status]; if (!n) return; patchOrder(o.id, (x) => ({ ...x, status: n[0], history: [...(x.history || []), { s: n[0], at: stamp(), note: n[1] }] })); notify('customer', `Order ${n[0]}`, `${o.id} Â· ${n[1]}`, 'order'); toast(`${o.id} updated`) }
-  const reject = (o) => { patchOrder(o.id, (x) => ({ ...x, status: 'rejected', history: [...(x.history || []), { s: 'rejected', at: stamp(), note: 'Supplier declined the order' }] })); notify('customer', 'Order rejected', `${o.id} Â· Supplier declined the order`, 'order'); toast(`${o.id} rejected`, 'warn') }
+  const advance = (o) => { const n = next[o.status]; if (!n) return; patchOrder(o.id, (x) => ({ ...x, status: n[0], history: [...(x.history || []), { s: n[0], at: stamp(), note: n[1] }] })); notify('customer', `Order ${n[0]}`, `${o.id} · ${n[1]}`, 'order'); toast(`${o.id} updated`) }
+  const reject = (o) => { patchOrder(o.id, (x) => ({ ...x, status: 'rejected', history: [...(x.history || []), { s: 'rejected', at: stamp(), note: 'Supplier declined the order' }] })); notify('customer', 'Order rejected', `${o.id} · Supplier declined the order`, 'order'); toast(`${o.id} rejected`, 'warn') }
   return <VendorWorkspace><Screen title="Purchase orders" back={false}>
     <Banner tone="blue">Supplier orders from direct catalogue purchases and accepted quotations appear here. Progress updates are visible to the buyer.</Banner>
-    <div className="space-y-2.5">{mine.map((o) => { const l = listings.find((x) => x.id === o.listingId); return <Card key={o.id} className="!p-3.5"><div className="flex items-start justify-between gap-2"><div><p className="text-xs font-bold text-ink-500">{o.id} Â· {o.customer}</p><p className="mt-1 text-sm font-bold">{l?.title || 'Supplier order'}</p><p className="mt-1 text-xs text-ink-500">{o.qty} {l?.unit || 'units'} Â· {fmt(o.total || 0)} Â· {o.address}</p></div><StatusBadge s={o.status} /></div>{o.status === 'placed' && <Button size="sm" variant="dangerSoft" className="mt-3 mr-2" onClick={() => reject(o)}>Reject order</Button>}{next[o.status] && <Button size="sm" className="mt-3" onClick={() => advance(o)}>{next[o.status][1]}</Button>}<button className="ml-2 mt-3 text-xs font-bold text-brand-700" onClick={() => nav.go('c_order', { id: o.id })}>View tracking</button></Card> })}{!mine.length && <EmptyState icon={Package} title="No purchase orders yet" body="Orders created by buyers will appear here." />}</div>
+    <div className="space-y-2.5">{mine.map((o) => { const l = listings.find((x) => x.id === o.listingId); return <Card key={o.id} className="!p-3.5"><div className="flex items-start justify-between gap-2"><div><p className="text-xs font-bold text-ink-500">{o.id} · {o.customer}</p><p className="mt-1 text-sm font-bold">{l?.title || 'Supplier order'}</p><p className="mt-1 text-xs text-ink-500">{o.qty} {l?.unit || 'units'} · {fmt(o.total || 0)} · {o.address}</p></div><StatusBadge s={o.status} /></div>{o.status === 'placed' && <Button size="sm" variant="dangerSoft" className="mt-3 mr-2" onClick={() => reject(o)}>Reject order</Button>}{next[o.status] && <Button size="sm" className="mt-3" onClick={() => advance(o)}>{next[o.status][1]}</Button>}<button className="ml-2 mt-3 text-xs font-bold text-brand-700" onClick={() => nav.go('c_order', { id: o.id })}>View tracking</button></Card> })}{!mine.length && <EmptyState icon={Package} title="No purchase orders yet" body="Orders created by buyers will appear here." />}</div>
   </Screen></VendorWorkspace>
 }
 
@@ -1505,12 +1504,12 @@ export function VendorReviews() {
   const mine = reviews.filter((r) => r.target === me.vendorId)
   const [reply, setReply] = useState(null)
   const [txt, setTxt] = useState('')
-  const avg = mine.length ? (mine.reduce((s, r) => s + r.rating, 0) / mine.length).toFixed(1) : 'â€”'
+  const avg = mine.length ? (mine.reduce((s, r) => s + r.rating, 0) / mine.length).toFixed(1) : '—'
   return (
     <VendorWorkspace>
     <Screen title="Reviews" overlay={<Sheet open={!!reply} onClose={() => setReply(null)} title="Reply publicly" footer={<Button full disabled={!txt.trim()} onClick={() => { setReviews((rs) => rs.map((r) => (r.id === reply.id ? { ...r, reply: txt } : r))); setReply(null); setTxt(''); toast('Reply posted') }}>Post reply</Button>}>{reply && <p className="rounded-xl bg-ink-50 p-3 text-sm text-ink-600">â€œ{reply.text}â€</p>}<Input textarea rows={3} placeholder="Thank the customer or address their concern" value={txt} onChange={(e) => setTxt(e.target.value)} /></Sheet>}>
       <div className="vv-vendor-reviews-body">
-      <Card className="flex items-center gap-5"><div className="text-center"><p className="text-4xl font-extrabold">{avg}</p><Rating value={+avg || 0} /></div><div className="flex-1 space-y-1.5">{[5, 4, 3].map((s) => <HBar key={s} label={`${s}â˜…`} value={mine.filter((r) => r.rating === s).length} max={mine.length || 1} color="bg-amber-400" />)}</div></Card>
+      <Card className="flex items-center gap-5"><div className="text-center"><p className="text-4xl font-extrabold">{avg}</p><Rating value={+avg || 0} /></div><div className="flex-1 space-y-1.5">{[5, 4, 3].map((s) => <HBar key={s} label={`${s}★`} value={mine.filter((r) => r.rating === s).length} max={mine.length || 1} color="bg-amber-400" />)}</div></Card>
       {mine.map((r) => (
         <Card key={r.id}><div className="flex items-center justify-between"><div className="flex items-center gap-2.5"><Avatar name={r.by} size={34} /><div><p className="text-sm font-bold">{r.by}</p><p className="text-[11px] text-ink-400">{r.at}</p></div></div><Rating value={r.rating} /></div><p className="mt-2 text-[13px] text-ink-600">{r.text}</p>{r.reply ? <p className="mt-2 rounded-lg bg-brand-50 p-2.5 text-xs text-brand-900"><b>Your reply:</b> {r.reply}</p> : <button onClick={() => setReply(r)} className="mt-2 text-xs font-bold text-brand-700">Reply</button>}</Card>
       ))}
@@ -1576,15 +1575,15 @@ export function VendorProfile() {
       <Dialog open={deleteOpen} onClose={() => setDeleteOpen(false)} title={me.role === 'business' ? 'Delete business workspace?' : 'Delete vendor account?'} actions={<><Button variant="secondary" className="flex-1" onClick={() => setDeleteOpen(false)}>Keep account</Button><Button variant="danger" className="flex-1" onClick={deleteAccount}>Confirm delete</Button></>}><p className="text-sm leading-relaxed text-ink-600">{me.role === 'business' ? 'Your vendor workspace and marketplace listings will remain available. Only the Business Supplier workspace will be removed.' : 'This demo will close the vendor session and record the account as deleted. Production deletion would require backend data-retention and verification rules.'}</p></Dialog>
       <div className="flex justify-center"><Thumb tone={v.tone} icon={Store} size={84} /></div>
       <Input label="Business name" required value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} error={errs.name} />
-      <Input label="GSTIN" value={v.gstin} readOnly hint="Verified by admin â€” contact support to change" />
+      <Input label="GSTIN" value={v.gstin} readOnly hint="Verified by admin — contact support to change" />
       <Input label="Phone" value={f.phone} onChange={(e) => setF({ ...f, phone: e.target.value })} />
       <Input label="Email" value={f.email} onChange={(e) => setF({ ...f, email: e.target.value })} error={errs.email} />
       <Input label="About your business" textarea rows={3} value={f.about} onChange={(e) => setF({ ...f, about: e.target.value })} />
       <div><p className="mb-2 text-[13px] font-semibold text-ink-700">Service areas</p><Chips scroll={false} multi value={f.areas} onChange={(a) => setF({ ...f, areas: a })} options={['Jaipur', 'Delhi NCR', 'Ajmer', 'Sikar', 'Jodhpur', 'Kota']} />{errs.areas && <p className="mt-1.5 text-xs font-medium text-red-600">{errs.areas}</p>}</div>
-      <Section title="Your plan"><Card><div className="flex items-center justify-between"><div><p className="text-sm font-bold">{v.plan || 'No active plan'}</p><p className="text-xs text-ink-500">{v.plan ? `Commission ${settings.plans.find((p) => p.name === v.plan)?.commission ?? settings.vendorCommissionPct}% Â· ${settings.plans.find((p) => p.name === v.plan)?.listings} listings` : 'Choose a subscription below to unlock marketplace growth tools.'}</p></div><Badge tone={v.plan ? 'teal' : 'amber'}>{v.plan ? <><Crown size={11} />Active</> : 'Unsubscribed'}</Badge></div><p className="mt-2 text-xs text-ink-500">Paid plans and subscriptions are managed by VendorVerse admin.</p></Card></Section>
-      <Section title="Compare and upgrade"><div className="grid gap-3">{settings.plans.map((p) => <Card key={p.id} className={cx('relative', p.name === 'Growth' && 'ring-2 ring-brand-500')}><div className="flex items-start justify-between"><div><p className="text-lg font-extrabold">{p.name}</p><p className="text-sm font-bold text-amber-700">Price open (CFG-02) Â· sample values</p></div>{p.name === 'Growth' && <Badge tone="teal">Popular</Badge>}</div><p className="mt-2 text-sm text-ink-500">{p.listings} listings Â· {p.leads} enquiries/month</p><Button full className="mt-3" disabled={v.plan === p.name} onClick={() => nav.go('v_checkout', { plan: p.name })}>{v.plan === p.name ? 'Current plan' : `Add / upgrade to ${p.name}`}</Button></Card>)}</div></Section>
-      {selectedPlan && <div className="fixed inset-0 z-50 grid place-items-center bg-ink-950/60 p-4"><Card className="w-full max-w-sm"><button className="float-right" aria-label="Close payment" onClick={() => setSelectedPlan(null)}><X /></button><p className="text-xs font-bold uppercase tracking-wider text-brand-700">Subscription payment demo</p><h2 className="mt-1 text-xl font-black">{selectedPlan.name} plan</h2><div className="my-5 rounded-2xl bg-gradient-to-br from-violet-700 to-indigo-600 p-5 text-white"><p className="text-3xl font-black">â‚¹{selectedPlan.price}<span className="text-sm text-white/70"> / month</span></p><p className="mt-3 text-xs text-white/70">Demo checkout Â· no real money is charged</p></div><Button full disabled={selectedPlan.loading} onClick={() => { setSelectedPlan({ ...selectedPlan, loading: true }); setTimeout(() => { patchVendor(v.id, { plan: selectedPlan.name }); setPaymentDone(selectedPlan); setSelectedPlan(null) }, 1600) }}>{selectedPlan.loading ? <><span className="size-4 animate-spin rounded-full border-2 border-white/40 border-t-white" /> Processing paymentâ€¦</> : <><Wallet size={17} /> Pay securely with PhonePe</>}</Button><p className="mt-3 text-center text-[11px] text-ink-400">UPI Â· Cards Â· Net banking</p></Card></div>}
-      {paymentDone && <div className="fixed inset-0 z-[51] grid place-items-center bg-ink-950/60 p-4"><Card className="w-full max-w-sm text-center"><div className="mx-auto grid size-20 place-items-center rounded-full bg-emerald-100 text-emerald-600"><Check size={40} strokeWidth={3} /></div><h2 className="mt-5 text-2xl font-black">Payment successful</h2><p className="mt-2 text-sm text-ink-500">{paymentDone.name} is now active on your vendor profile.</p><p className="mt-5 rounded-xl bg-ink-50 p-3 text-sm font-bold">â‚¹{paymentDone.price} Â· Demo transaction</p><Button full className="mt-5" onClick={() => setPaymentDone(null)}>Done</Button></Card></div>}
+      <Section title="Your plan"><Card><div className="flex items-center justify-between"><div><p className="text-sm font-bold">{v.plan || 'No active plan'}</p><p className="text-xs text-ink-500">{v.plan ? `Commission ${settings.plans.find((p) => p.name === v.plan)?.commission ?? settings.vendorCommissionPct}% · ${settings.plans.find((p) => p.name === v.plan)?.listings} listings` : 'Choose a subscription below to unlock marketplace growth tools.'}</p></div><Badge tone={v.plan ? 'teal' : 'amber'}>{v.plan ? <><Crown size={11} />Active</> : 'Unsubscribed'}</Badge></div><p className="mt-2 text-xs text-ink-500">Paid plans and subscriptions are managed by VendorVerse admin.</p></Card></Section>
+      <Section title="Compare and upgrade"><div className="grid gap-3">{settings.plans.map((p) => <Card key={p.id} className={cx('relative', p.name === 'Growth' && 'ring-2 ring-brand-500')}><div className="flex items-start justify-between"><div><p className="text-lg font-extrabold">{p.name}</p><p className="text-sm font-bold text-amber-700">Price open (CFG-02) · sample values</p></div>{p.name === 'Growth' && <Badge tone="teal">Popular</Badge>}</div><p className="mt-2 text-sm text-ink-500">{p.listings} listings · {p.leads} enquiries/month</p><Button full className="mt-3" disabled={v.plan === p.name} onClick={() => nav.go('v_checkout', { plan: p.name })}>{v.plan === p.name ? 'Current plan' : `Add / upgrade to ${p.name}`}</Button></Card>)}</div></Section>
+      {selectedPlan && <div className="fixed inset-0 z-50 grid place-items-center bg-ink-950/60 p-4"><Card className="w-full max-w-sm"><button className="float-right" aria-label="Close payment" onClick={() => setSelectedPlan(null)}><X /></button><p className="text-xs font-bold uppercase tracking-wider text-brand-700">Subscription payment demo</p><h2 className="mt-1 text-xl font-black">{selectedPlan.name} plan</h2><div className="my-5 rounded-2xl bg-gradient-to-br from-violet-700 to-indigo-600 p-5 text-white"><p className="text-3xl font-black">â‚¹{selectedPlan.price}<span className="text-sm text-white/70"> / month</span></p><p className="mt-3 text-xs text-white/70">Demo checkout · no real money is charged</p></div><Button full disabled={selectedPlan.loading} onClick={() => { setSelectedPlan({ ...selectedPlan, loading: true }); setTimeout(() => { patchVendor(v.id, { plan: selectedPlan.name }); setPaymentDone(selectedPlan); setSelectedPlan(null) }, 1600) }}>{selectedPlan.loading ? <><span className="size-4 animate-spin rounded-full border-2 border-white/40 border-t-white" /> Processing payment…</> : <><Wallet size={17} /> Pay securely with PhonePe</>}</Button><p className="mt-3 text-center text-[11px] text-ink-400">UPI · Cards · Net banking</p></Card></div>}
+      {paymentDone && <div className="fixed inset-0 z-[51] grid place-items-center bg-ink-950/60 p-4"><Card className="w-full max-w-sm text-center"><div className="mx-auto grid size-20 place-items-center rounded-full bg-emerald-100 text-emerald-600"><Check size={40} strokeWidth={3} /></div><h2 className="mt-5 text-2xl font-black">Payment successful</h2><p className="mt-2 text-sm text-ink-500">{paymentDone.name} is now active on your vendor profile.</p><p className="mt-5 rounded-xl bg-ink-50 p-3 text-sm font-bold">â‚¹{paymentDone.price} · Demo transaction</p><Button full className="mt-5" onClick={() => setPaymentDone(null)}>Done</Button></Card></div>}
       </div>
     </Screen>
     </VendorWorkspace>
@@ -1656,7 +1655,7 @@ export function VendorDashboard() {
       </header>
       {banner}
 
-      <div className="vx-perf-grid stats-grid">
+      <div className="vx-perf-grid stats-grid vx-kpi-strip">
         {stats.map(({ label, value, icon: Icon, tone, caption, route }) => (
           <button type="button" key={label} className="vx-card vx-perf-stat" onClick={() => nav.go(route)}>
             <span className={`vx-perf-ic ${tone}`}><Icon size={18} /></span>
@@ -1695,40 +1694,33 @@ export function VendorDashboard() {
       </div>
 
       <div className="vx-perf-grid lower-grid">
+        <section className="vx-card vx-perf-card vx-attention vx-dash-attention">
+          <div className="vx-top-row">
+            <div><h3>Needs your attention {todo > 0 && <span className="vx-count">{todo}</span>}</h3><p className="s">Items that may need a response</p></div>
+            <button type="button" className="vx-text-link" onClick={() => nav.go('v_work')}>View work <ChevronRight size={14} /></button>
+          </div>
+          <div className="vx-rows">
+            {th.filter((thread) => thread.unread > 0).map((thread) => <button type="button" className="vx-row" key={thread.id} onClick={() => nav.go('chat', { id: thread.id })}><span className="ri violet"><MessageCircle size={17} /></span><span className="rt"><b>{thread.unread} new from {thread.name}</b><small>{thread.msgs[thread.msgs.length - 1]?.t}</small></span><ChevronRight size={16} /></button>)}
+            {toQuote.map((request) => <button type="button" className="vx-row" key={request.id} onClick={() => nav.go('v_rfq', { id: request.id })}><span className="ri amber"><FileText size={17} /></span><span className="rt"><b>Quote {request.id}</b><small>{request.title}</small></span><ChevronRight size={16} /></button>)}
+            {fix.map((item) => <button type="button" className="vx-row" key={item.id} onClick={() => nav.go('v_listing_edit', { id: item.id })}><span className="ri rose"><AlertTriangle size={17} /></span><span className="rt"><b>Listing {item.status}</b><small>{item.title}</small></span><ChevronRight size={16} /></button>)}
+            {todo === 0 && <div className="vx-empty"><Check size={19} /><span>You are all caught up.</span></div>}
+          </div>
+        </section>
+
         <section className="vx-card vx-perf-card">
           <div className="vx-top-row">
             <div><h3>Top categories</h3><p className="s">Approved listings in your catalogue</p></div>
             <button type="button" className="vx-text-link" onClick={() => nav.go('v_listings')}>View all <ChevronRight size={14} /></button>
           </div>
-          <div className="vx-perf-categories">
-            {topCategories.map((category, index) => {
+          <div className="vx-cat-list">
+            {topCategories.map((category) => {
               const Icon = category.icon
-              return <button type="button" key={category.id} className={`vx-perf-category tone-${index % 5}`} onClick={() => nav.go('v_listings')}><span><Icon size={19} /></span><b>{category.name}</b><small>{category.count} approved {category.count === 1 ? 'listing' : 'listings'}</small></button>
+              return <button type="button" key={category.id} className="vx-cat-row" onClick={() => nav.go('v_listings')}><span className="ci"><Icon size={18} /></span><b>{category.name}</b><em>{category.count}</em></button>
             })}
             {!topCategories.length && <EmptyState icon={Store} title="No approved listings yet" body="Approved products and services will appear by category here." action={<Button size="sm" onClick={() => nav.go('v_listing_edit')}>Add listing</Button>} />}
           </div>
         </section>
-
-        <section className="vx-card vx-perf-card">
-          <div className="vx-top-row"><div><h3>Quick actions</h3><p className="s">Common workspace tasks</p></div></div>
-          <div className="vx-perf-quick">
-            {[[Plus, 'Add listing', 'v_listing_edit'], [MessageSquare, 'Messages', 'messages'], [FileText, 'Respond to RFQ', 'v_work'], [BarChart3, 'Performance', 'v_perf']].map(([Icon, label, route]) => <button type="button" key={label} onClick={() => nav.go(route)}><span><Icon size={18} /></span>{label}</button>)}
-          </div>
-        </section>
       </div>
-
-      <section className="vx-card vx-perf-card vx-attention vx-dash-attention">
-        <div className="vx-top-row">
-          <div><h3>Needs your attention {todo > 0 && <span className="vx-count">{todo}</span>}</h3><p className="s">Items that may need a response</p></div>
-          <button type="button" className="vx-text-link" onClick={() => nav.go('v_work')}>View work <ChevronRight size={14} /></button>
-        </div>
-        <div className="vx-rows">
-          {th.filter((thread) => thread.unread > 0).map((thread) => <button type="button" className="vx-row" key={thread.id} onClick={() => nav.go('chat', { id: thread.id })}><span className="ri violet"><MessageCircle size={17} /></span><span className="rt"><b>{thread.unread} new from {thread.name}</b><small>{thread.msgs[thread.msgs.length - 1]?.t}</small></span><ChevronRight size={16} /></button>)}
-          {toQuote.map((request) => <button type="button" className="vx-row" key={request.id} onClick={() => nav.go('v_rfq', { id: request.id })}><span className="ri amber"><FileText size={17} /></span><span className="rt"><b>Quote {request.id}</b><small>{request.title}</small></span><ChevronRight size={16} /></button>)}
-          {fix.map((item) => <button type="button" className="vx-row" key={item.id} onClick={() => nav.go('v_listing_edit', { id: item.id })}><span className="ri rose"><AlertTriangle size={17} /></span><span className="rt"><b>Listing {item.status}</b><small>{item.title}</small></span><ChevronRight size={16} /></button>)}
-          {todo === 0 && <div className="vx-empty"><Check size={19} /><span>You are all caught up.</span></div>}
-        </div>
-      </section>
     </div></VendorWorkspace>
 }
 
@@ -1756,15 +1748,15 @@ export function VendorQuotes() {
           const q = mine(x)
           return (
             <Card key={x.id} onClick={() => nav.go('v_rfq', { id: x.id })} className="!p-3.5">
-              <div className="flex items-center justify-between"><span className="text-xs font-bold text-ink-500">{x.id} Â· {x.customer}</span>{q ? <StatusBadge s={x.status === 'accepted' ? (q.status === 'accepted' ? 'accepted' : 'closed') : q.history.length > 1 ? 'revised' : 'submitted'} /> : <StatusBadge s="open" />}</div>
+              <div className="flex items-center justify-between"><span className="text-xs font-bold text-ink-500">{x.id} · {x.customer}</span>{q ? <StatusBadge s={x.status === 'accepted' ? (q.status === 'accepted' ? 'accepted' : 'closed') : q.history.length > 1 ? 'revised' : 'submitted'} /> : <StatusBadge s="open" />}</div>
               <p className="mt-1 text-sm font-bold">{x.title}</p>
-              <p className="mt-1 flex items-center gap-2 text-xs text-ink-500"><span>{x.qty}</span>Â·<span>{x.budget}</span>{q && <><span>Â·</span><b className="text-ink-800">Your quote {fmt(q.amount)}</b></>}</p>
+              <p className="mt-1 flex items-center gap-2 text-xs text-ink-500"><span>{x.qty}</span>·<span>{x.budget}</span>{q && <><span>·</span><b className="text-ink-800">Your quote {fmt(q.amount)}</b></>}</p>
             </Card>
           )
         })}
         {!list.length && <EmptyState icon={FileText} title="Nothing here" body="New quote requests matching your category will appear here." />}
       </div>
-      </> : <div className="vv-vendor-quote-grid space-y-2.5">{bookingList.map((b) => { const l = listings.find((x) => x.id === b.listingId); return <Card key={b.id} onClick={() => nav.go('c_booking', { id: b.id })} className="!p-3.5"><div className="flex items-center justify-between gap-2"><span className="text-xs font-bold text-ink-500">{b.id} Â· {b.customer}</span><StatusBadge s={b.status} /></div><p className="mt-1 text-sm font-bold">{l?.title || 'Service booking'}</p><p className="mt-1 text-xs text-ink-500">{b.date} at {b.slot} Â· {b.address}</p><p className="mt-1 text-xs text-ink-500">Indicative amount {fmt(b.total || 0)} Â· payment agreed directly</p></Card> })}{!bookingList.length && <EmptyState icon={CalendarCheck} title="No service bookings here" body="Customer requests for your service listings will appear here." />}</div>}
+      </> : <div className="vv-vendor-quote-grid space-y-2.5">{bookingList.map((b) => { const l = listings.find((x) => x.id === b.listingId); return <Card key={b.id} onClick={() => nav.go('c_booking', { id: b.id })} className="!p-3.5"><div className="flex items-center justify-between gap-2"><span className="text-xs font-bold text-ink-500">{b.id} · {b.customer}</span><StatusBadge s={b.status} /></div><p className="mt-1 text-sm font-bold">{l?.title || 'Service booking'}</p><p className="mt-1 text-xs text-ink-500">{b.date} at {b.slot} · {b.address}</p><p className="mt-1 text-xs text-ink-500">Indicative amount {fmt(b.total || 0)} · payment agreed directly</p></Card> })}{!bookingList.length && <EmptyState icon={CalendarCheck} title="No service bookings here" body="Customer requests for your service listings will appear here." />}</div>}
     </Screen>
     </VendorWorkspace>
   )
@@ -1783,36 +1775,67 @@ export function VendorMore() {
     setMe({ ...me, role: 'business', businessWorkspace: true, businessName: name, vendorOwnerName: me.vendorOwnerName || me.name, name, buyerMode: false })
     nav.reset('v_dash')
   }
+  const go = (route) => () => nav.go(route)
+  const moreSections = [
+    { title: 'Business', items: [
+      { icon: Store, title: 'Public profile & trust', subtitle: 'How customers see you', onClick: go('v_public') },
+      { icon: MapPin, title: 'Service areas & availability', subtitle: 'Where and when you work', onClick: go('v_areas') },
+      { icon: CalendarCheck, title: 'Booking requests', subtitle: 'Service bookings from customers', onClick: go('v_booking') },
+      { icon: FileText, title: 'Contracts', subtitle: 'Proposed and active contracts', onClick: go('v_contract') },
+      { icon: Package, title: 'Purchase orders', subtitle: 'Supplier fulfilment & tracking', onClick: go('v_orders') },
+      { icon: UsersRound, title: 'Leads', subtitle: 'Prospects and follow-ups', onClick: go('v_leads') },
+      { icon: Info, title: 'Business network', subtitle: 'Companies and suppliers', onClick: go('v_biz_network') },
+    ] },
+    { title: 'Trust & compliance', items: [
+      { icon: ShieldCheck, title: 'Verification', subtitle: 'Documents & status', onClick: go('v_verify') },
+      { icon: BadgeCheck, title: 'Vendor roles', subtitle: 'What your business is, verified one by one', onClick: go('v_roles') },
+      { icon: ShieldCheck, title: 'Publication checklist', subtitle: 'Six gates before listings go live', onClick: go('v_listing_gate') },
+      { icon: Star, title: 'Customer reviews', subtitle: 'Ratings and replies', onClick: go('v_reviews') },
+      { icon: AlertTriangle, title: 'Cases & appeals', subtitle: 'Disputes and moderation', onClick: go('v_cases') },
+    ] },
+    { title: 'Growth', items: [
+      { icon: BarChart3, title: 'Performance reports', subtitle: 'Enquiries, replies, quotes', onClick: go('v_perf') },
+      { icon: Crown, title: 'Subscription plan', subtitle: `${v?.plan || 'Free'} plan`, onClick: go('v_sub') },
+      { icon: TrendingUp, title: 'Sponsored visibility', subtitle: 'Promote your listings', onClick: go('v_sponsor') },
+      { icon: Plus, title: 'Suggest a category', subtitle: 'Missing from the list? Tell us', onClick: go('c_cat_suggest') },
+    ] },
+    { title: 'Account & support', items: [
+      { icon: Package, title: 'Switch to Customer mode', subtitle: 'Buying happens in Customer mode, same identity', onClick: () => { setMe({ ...me, role: 'customer', name: me.customerName || me.name, buyerMode: false }); nav.reset('vb_home') } },
+      { icon: Settings, title: 'Notifications & privacy', subtitle: 'Alerts and data controls', onClick: go('c_notif_prefs') },
+      { icon: Settings, title: 'Sessions & devices', subtitle: 'Where you are signed in', onClick: go('c_sessions') },
+      { icon: Info, title: 'Fees explained', subtitle: 'What VendorVerse charges', onClick: go('fees') },
+      { icon: Info, title: 'Help & support', subtitle: 'Report a problem', onClick: go('c_report') },
+    ] },
+  ]
   return (
     <VendorWorkspace>
     <Screen title="More" back={false} pad={false}>
-      <div className="vv-vendor-more-body space-y-4 p-4">
-        <Card onClick={() => nav.go('v_profile')} className="!p-4"><div className="flex items-center gap-3.5"><Thumb tone={v?.tone || 'teal'} icon={Store} size={56} /><div className="min-w-0 flex-1"><p className="truncate text-base font-extrabold">{v?.name || 'Your business'}</p><p className="text-sm text-ink-500">{me.name}</p><div className="mt-1.5">{v?.status === 'approved' ? <Badge tone="green"><ShieldCheck size={11} />Verified</Badge> : <StatusBadge s={v?.status || 'draft'} />}</div></div><ChevronRight size={18} className="text-ink-300" /></div></Card>
-        <Group>
-          <ListRow icon={Package} tone="violet" title="Switch to Customer mode to buy" subtitle="Buying happens in Customer mode — same identity" onClick={() => { setMe({ ...me, role: 'customer', name: me.customerName || me.name, buyerMode: false }); nav.reset('vb_home') }} />
-          <ListRow icon={ShieldCheck} tone="emerald" title="Verification" subtitle="Documents & status" onClick={() => nav.go('v_verify')} />
-          <ListRow icon={BadgeCheck} tone="sky" title="Vendor roles" subtitle="What your business is, verified one by one" onClick={() => nav.go('v_roles')} />
-          <ListRow icon={Package} tone="sky" title="Purchase orders" subtitle="Supplier fulfilment & tracking" onClick={() => nav.go('v_orders')} />
-          <ListRow icon={Star} tone="amber" title="Customer reviews" onClick={() => nav.go('v_reviews')} />
-          <ListRow icon={BarChart3} tone="violet" title="Performance reports" subtitle="Enquiries, replies, quotes" onClick={() => nav.go('v_perf')} />
-          <ListRow icon={Crown} tone="rose" title="Subscription plan" subtitle={`${v?.plan || 'Free'} plan`} onClick={() => nav.go('v_sub')} />
-          <ListRow icon={ShieldCheck} tone="emerald" title="Publication checklist" subtitle="Six gates" onClick={() => nav.go('v_listing_gate')} />
-          <ListRow icon={Store} tone="sky" title="Public profile & trust" onClick={() => nav.go('v_public')} />
-          <ListRow icon={Settings} tone="slate" title="Service areas & availability" onClick={() => nav.go('v_areas')} />
-          <ListRow icon={Settings} tone="slate" title="Contracts" onClick={() => nav.go('v_contract')} />
-          <ListRow icon={Star} tone="amber" title="Cases & appeals" onClick={() => nav.go('v_cases')} />
-          <ListRow icon={Package} tone="violet" title="Sponsored visibility" onClick={() => nav.go('v_sponsor')} />
-          <ListRow icon={Info} tone="slate" title="Business network" onClick={() => nav.go('v_biz_network')} />
-          <ListRow icon={Settings} tone="slate" title="Booking requests" onClick={() => nav.go('v_booking')} />
-          <ListRow icon={Info} tone="slate" title="Leads" onClick={() => nav.go('v_leads')} />
-          <ListRow icon={Package} tone="violet" title="Suggest a category" onClick={() => nav.go('c_cat_suggest')} last />
-        </Group>
-        <Group>
-          <ListRow icon={Settings} tone="slate" title="Notifications & privacy" onClick={() => nav.go('c_notif_prefs')} />
-          <ListRow icon={Settings} tone="slate" title="Sessions & devices" onClick={() => nav.go('c_sessions')} />
-          <ListRow icon={Info} tone="slate" title="Fees explained" onClick={() => nav.go('fees')} />
-          <ListRow icon={Info} tone="slate" title="Help & support" onClick={() => nav.go('c_report')} last />
-        </Group>
+      <div className="vx-more">
+        <button type="button" className="vx-more-profile" onClick={() => nav.go('v_profile')}>
+          <span className="vx-more-logo"><Store size={30} /></span>
+          <span className="vx-more-profile-text">
+            <b>{v?.name || 'Your business'}</b>
+            <span>{me.name}</span>
+            <span className="vx-more-status">{v?.status === 'approved' ? <Badge tone="green"><ShieldCheck size={13} />Verified</Badge> : <StatusBadge s={v?.status || 'draft'} />}</span>
+          </span>
+          <ChevronRight size={22} />
+        </button>
+
+        {moreSections.map((section) => (
+          <section key={section.title} className="vx-more-section">
+            <h3>{section.title}</h3>
+            <div className="vx-more-grid">
+              {section.items.map(({ icon: Icon, title, subtitle, onClick }) => (
+                <button type="button" key={title} className="vx-more-item" onClick={onClick}>
+                  <span className="vx-more-ic"><Icon size={22} /></span>
+                  <span className="vx-more-text"><b>{title}</b>{subtitle && <small>{subtitle}</small>}</span>
+                  <ChevronRight size={18} className="vx-more-chev" />
+                </button>
+              ))}
+            </div>
+          </section>
+        ))}
+
         <Button full variant="dangerSoft" icon={LogOut} onClick={() => { setMe({ role: null, loggedIn: false, guest: false, vendorId: 'v-me', name: '' }); nav.reset('c_home') }}>Log out</Button>
       </div>
       <Dialog open={businessOpen} onClose={() => setBusinessOpen(false)} title="Become a supplier / business" actions={<><Button variant="secondary" className="flex-1" onClick={() => setBusinessOpen(false)}>Cancel</Button><Button className="flex-1" onClick={() => { createBusinessWorkspace(); setBusinessOpen(false) }}>Create & open</Button></>}><p className="text-sm leading-relaxed text-ink-600">Use your existing vendor identity as a Business / Company supplier. Vendors can send bulk RFQs, review quotations and place purchase orders with you.</p><div className="mt-4"><Input label="Business / company name" required value={businessName} onChange={(e) => setBusinessName(e.target.value)} /></div></Dialog>
