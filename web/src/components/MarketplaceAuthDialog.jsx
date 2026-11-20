@@ -9,6 +9,10 @@ const CALLING_CODES = [
   ['+91', 'India'], ['+971', 'UAE'], ['+44', 'UK'], ['+1', 'USA'], ['+81', 'Japan'], ['+46', 'Sweden'],
 ]
 
+/* Lets any screen open the marketplace sign-in / sign-up popup (hosted in WebHeader). */
+export const OPEN_AUTH_EVENT = 'vv:open-auth'
+export const openAuthDialog = (mode = 'signin') => window.dispatchEvent(new CustomEvent(OPEN_AUTH_EVENT, { detail: { mode } }))
+
 export function MarketplaceAuthDialog({ mode, onClose, onChangeMode }) {
   const nav = useNav()
   const { toast } = useApp()
@@ -62,12 +66,13 @@ export function MarketplaceAuthDialog({ mode, onClose, onChangeMode }) {
 
       {mode === 'signin' ? <form onSubmit={submitLogin}>
         <div className="vv-market-auth-roles" role="group" aria-label="Account type"><button type="button" aria-pressed={form.role === 'customer'} className={form.role === 'customer' ? 'is-active' : ''} onClick={() => setForm((value) => ({ ...value, role: 'customer' }))}>Customer</button><button type="button" aria-pressed={form.role === 'vendor'} className={form.role === 'vendor' ? 'is-active' : ''} onClick={() => setForm((value) => ({ ...value, role: 'vendor' }))}>Vendor</button></div>
-        <div className="vv-market-auth-switch" role="group" aria-label="Sign in method"><button type="button" className={loginMethod === 'email' ? 'is-active' : ''} onClick={() => { setLoginMethod('email'); setLoginContact(''); setError('') }}>Email</button><button type="button" className={loginMethod === 'phone' ? 'is-active' : ''} onClick={() => { setLoginMethod('phone'); setLoginContact(''); setError('') }}>Phone</button></div>
+        <div className="vv-market-auth-switch" role="group" aria-label="Sign in method"><button type="button" aria-pressed={loginMethod === 'email'} className={loginMethod === 'email' ? 'is-active' : ''} onClick={() => { setLoginMethod('email'); setLoginContact(''); setError('') }}>Email</button><button type="button" aria-pressed={loginMethod === 'phone'} className={loginMethod === 'phone' ? 'is-active' : ''} onClick={() => { setLoginMethod('phone'); setLoginContact(''); setError('') }}>Phone</button></div>
         {loginMethod === 'email' ? <label className="vv-market-auth-field"><b>Email</b><input type="email" autoComplete="email" autoFocus value={loginContact} onChange={(event) => { setLoginContact(event.target.value); setError('') }} placeholder="you@company.com" /></label> : <label className="vv-market-auth-field"><b>Mobile phone</b><span className="vv-market-auth-phone"><select aria-label="Country calling code" value={countryCode} onChange={(event) => setCountryCode(event.target.value)}>{CALLING_CODES.map(([code, country]) => <option key={code} value={code}>{country} {code}</option>)}</select><input inputMode="numeric" autoComplete="tel-national" maxLength={10} autoFocus value={loginContact} onChange={(event) => { setLoginContact(normalizePhone(event.target.value)); setError('') }} placeholder="98290 00001" /></span></label>}
         {error && <p className="vv-market-auth-error" role="alert">{error}</p>}
         <button className="vv-market-auth-submit" type="submit">Continue with OTP</button>
-        <button className="vv-market-auth-google" type="button" onClick={() => toast('Google sign-in is not configured yet. Continue with an email or phone OTP.')}><GoogleMark/>Sign in with Google</button>
         <p className="vv-market-auth-note">We’ll send a one-time code to verify your account.</p>
+        <div className="vv-market-auth-or" aria-hidden="true"><span>or</span></div>
+        <button className="vv-market-auth-google" type="button" onClick={() => toast('Google sign-in is not configured yet. Continue with an email or phone OTP.')}><GoogleMark/>Sign in with Google</button>
         <div className="vv-market-auth-links"><span>New to VendorVerse? <button type="button" onClick={() => onChangeMode('signup')}>Get started</button></span></div>
       </form> : <form onSubmit={submitSignup}>
         <div className="vv-market-auth-roles"><button type="button" aria-pressed={form.role === 'customer'} className={form.role === 'customer' ? 'is-active' : ''} onClick={() => setForm((value) => ({ ...value, role: 'customer' }))}>Customer</button><button type="button" aria-pressed={form.role === 'vendor'} className={form.role === 'vendor' ? 'is-active' : ''} onClick={() => setForm((value) => ({ ...value, role: 'vendor' }))}>Vendor</button></div>

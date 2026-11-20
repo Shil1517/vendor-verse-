@@ -9,12 +9,12 @@
  * always chosen by the user, and a missing value is labelled, never zero.
  */
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { FileText, Send } from 'lucide-react'
+import { ClipboardList, FileSignature, FileText, Send } from 'lucide-react'
 import { Badge, Banner, Button, Card, Checkbox, Dialog, EmptyState, Input, KV, Screen, Section, Segmented, Select } from '../ui.jsx'
 import { useApp } from '../store.jsx'
 import { useNav } from '../nav.jsx'
 import { authService } from '../services/authService.js'
-import { BookingList, ErrorBox, Loading, fmtWhen, minorToText, useLoad } from './remote-discovery.jsx'
+import { BookingList, BookingRows, ErrorBox, Loading, fmtWhen, minorToText, useLoad } from './remote-discovery.jsx'
 import { ContractRows, WorkOrderRows } from './remote-transactions.jsx'
 
 const RFQ_STATE = {
@@ -48,34 +48,68 @@ function RfqRows({ rfqs, detail, empty }) {
   ))
 }
 
-/** Customer activity hub: my RFQs above my bookings (F-BKG-10). */
+/** One tab of the Activity hub: a count badge makes empty and busy tabs obvious before opening them. */
+function ActivityTabs({ tabs, value, onChange }) {
+  return (
+    <div role="tablist" aria-label="Activity" className="flex gap-1 overflow-x-auto border-b border-ink-100 bg-white px-4 no-scrollbar">
+      {tabs.map((t) => (
+        <button key={t.id} type="button" role="tab" aria-selected={value === t.id} onClick={() => onChange(t.id)} className={`flex shrink-0 items-center gap-2 border-b-2 px-3 py-3 text-sm font-semibold transition-colors ${value === t.id ? 'border-brand-600 text-ink-900' : 'border-transparent text-ink-500 hover:text-ink-800'}`}>
+          {t.label}
+          <span className={`min-w-5 rounded-full px-1.5 py-0.5 text-center text-[11px] font-bold ${value === t.id ? 'bg-brand-600 text-white' : 'bg-ink-100 text-ink-600'}`}>{t.count ?? '–'}</span>
+        </button>
+      ))}
+    </div>
+  )
+}
+
+/** A short empty state with the one action that fills the tab, instead of a full-height block. */
+function ActivityEmpty({ icon: Icon, title, body, action, onAction }) {
+  return (
+    <div className="flex flex-col items-center gap-2 rounded-2xl border border-dashed border-ink-200 bg-white px-6 py-8 text-center">
+      <span className="grid size-10 place-items-center rounded-full bg-ink-100 text-ink-500"><Icon size={20} /></span>
+      <p className="text-[15px] font-bold text-ink-900">{title}</p>
+      <p className="max-w-sm text-sm text-ink-500">{body}</p>
+      {action && <Button size="sm" onClick={onAction}>{action}</Button>}
+    </div>
+  )
+}
+
+/** Customer activity hub (F-BKG-10): bookings first, then RFQs, work orders and contracts, one tab each. */
 export function RemoteActivity() {
-  const rfqs = useLoad(() => authService.listMyRfqs(), [])
   const nav = useNav()
+  const [tab, setTab] = useState('bookings')
   const load = useCallback(() => authService.listMyBookings(), [])
+  const bookings = useLoad(load, [load])
+  const rfqs = useLoad(() => authService.listMyRfqs(), [])
   const work = useLoad(() => authService.listMyWorkOrders(), [])
   const contracts = useLoad(() => authService.listMyContracts(), [])
+  const count = (r, key) => (r.data ? (r.data[key] || []).length : undefined)
+  const tabs = [
+    { id: 'bookings', label: 'Bookings', count: count(bookings, 'bookings') },
+    { id: 'rfqs', label: 'RFQs', count: count(rfqs, 'rfqs') },
+    { id: 'work', label: 'Work orders', count: count(work, 'workOrders') },
+    { id: 'contracts', label: 'Contracts', count: count(contracts, 'contracts') },
+  ]
+  const panel = (r, key, node, empty) => (
+    <div className="space-y-3 p-4">
+      {r.loading && !r.data && <Loading />}
+      {r.error && <ErrorBox message={r.error} onRetry={r.reload} />}
+      {r.data && ((r.data[key] || []).length ? node : empty)}
+    </div>
+  )
   return (
-    <BookingList title="Activity" back={false} load={load} detail="c_booking" empty="When you book a service it shows up here.">
-      <div className="space-y-3 px-4 pt-4">
-        <Section title="My RFQs" action="New RFQ" onAction={() => nav.go('c_rfq_new')}>
-          {rfqs.loading && !rfqs.data && <Loading />}
-          {rfqs.error && <ErrorBox message={rfqs.error} onRetry={rfqs.reload} />}
-          {rfqs.data && <RfqRows rfqs={rfqs.data.rfqs} detail="c_rfq" empty="Ask vendors for quotes and compare them here." />}
-        </Section>
-        <Section title="Work orders">
-          {work.loading && !work.data && <Loading />}
-          {work.error && <ErrorBox message={work.error} onRetry={work.reload} />}
-          {work.data && <WorkOrderRows items={work.data.workOrders} detail="c_work_order" empty="Accepted quotes that become work orders appear here." />}
-        </Section>
-        <Section title="Contracts">
-          {contracts.loading && !contracts.data && <Loading />}
-          {contracts.error && <ErrorBox message={contracts.error} onRetry={contracts.reload} />}
-          {contracts.data && <ContractRows items={contracts.data.contracts} detail="c_contract" empty="Contracts you propose or accept appear here." />}
-        </Section>
-        <p className="text-xs font-bold uppercase tracking-wide text-ink-500">Bookings</p>
-      </div>
-    </BookingList>
+    <Screen title="Activity" back={false} pad={false}>
+      <ActivityTabs tabs={tabs} value={tab} onChange={setTab} />
+      {tab === 'bookings' && <BookingRows state={bookings} detail="c_booking" empty="When you book a service it shows up here." />}
+      {tab === 'rfqs' && (
+        <>
+          <div className="flex items-center justify-between px-4 pt-4"><p className="text-sm text-ink-600">Requests you sent to vendors for quotes.</p><Button size="sm" variant="secondary" onClick={() => nav.go('c_rfq_new')}>New RFQ</Button></div>
+          {panel(rfqs, 'rfqs', rfqs.data && <RfqRows rfqs={rfqs.data.rfqs} detail="c_rfq" />, <ActivityEmpty icon={FileText} title="No RFQs yet" body="Ask vendors for quotes and compare them here." />)}
+        </>
+      )}
+      {tab === 'work' && panel(work, 'workOrders', work.data && <WorkOrderRows items={work.data.workOrders} detail="c_work_order" />, <ActivityEmpty icon={ClipboardList} title="No work orders" body="Accepted quotes that become work orders appear here." />)}
+      {tab === 'contracts' && panel(contracts, 'contracts', contracts.data && <ContractRows items={contracts.data.contracts} detail="c_contract" />, <ActivityEmpty icon={FileSignature} title="No contracts" body="Contracts you propose or accept appear here." />)}
+    </Screen>
   )
 }
 

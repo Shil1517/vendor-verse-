@@ -8,9 +8,9 @@ import { HOME, TABS, ROLES, ADMIN_SIDEBAR } from './roles.js'
 import { SCREENS, GROUPS } from './registry.jsx'
 import { pathForScreen, screenForLocation } from './screen-routes.js'
 import { Logo } from './screens/auth.jsx'
-import { VendorWorkspace } from './screens/vendor.jsx'
+import { VendorWorkspace, CUSTOMER_WORKSPACE_IDS } from './screens/vendor.jsx'
 import { ThemeToggle } from './components/ThemeToggle.jsx'
-import { MarketplaceAuthDialog } from './components/MarketplaceAuthDialog.jsx'
+import { MarketplaceAuthDialog, OPEN_AUTH_EVENT } from './components/MarketplaceAuthDialog.jsx'
 import { LocationDialog } from './components/LocationDialog.jsx'
 import { FRS, NFR, MVP, PHASE2, ACCEPTANCE, DECISIONS, ROLE_TABLE } from './specs.js'
 import { cx } from './ui.jsx'
@@ -102,7 +102,8 @@ function ScreenHost({ onMenu }) {
   const customerPortalRoute = me.role === 'customer' && ['c_profile', 'c_profile_edit', 'c_dash', 'c_activity', 'c_saved', 'c_cases', 'c_case', 'c_orders', 'c_reviews', 'c_settings'].includes(nav.id)
   const businessWorkspaceRoute = me.role === 'business' && ['b_home', 'b_company', 'b_services', 'b_messages', 'b_more'].includes(nav.id)
   const vendorWorkspaceRoute = ['vendor', 'business'].includes(me.role) && (reg.role === 'vendor' || ['messages', 'chat'].includes(nav.id))
-  const workspaceRoute = vendorWorkspaceRoute || businessWorkspaceRoute
+  const customerWorkspaceRoute = me.role === 'customer' && CUSTOMER_WORKSPACE_IDS.includes(nav.id)
+  const workspaceRoute = vendorWorkspaceRoute || businessWorkspaceRoute || customerWorkspaceRoute
   const vendorMessagesRoute = nav.id === 'messages' && (me.role === 'vendor' || me.role === 'business')
   const agentWorkspaceRoute = me.role === 'agent' && (reg.role === 'agent' || nav.id === 'notifications')
   const adminWorkspaceRoute = ['ad_dash', 'ad_approvals', 'ad_users', 'ad_reports', 'ad_more'].includes(nav.id)
@@ -110,7 +111,7 @@ function ScreenHost({ onMenu }) {
   const formRoute = FORM_IDS.includes(nav.id) || (!customerRoute && !workspaceRoute && !agentWorkspaceRoute && !adminWorkspaceRoute && !['auth'].includes(reg.role) && !['v_explore', 'vb_explore', 'c_explore_suppliers', 'messages', 'chat', 'ad_vendors', 'ad_listings', 'ad_cases', 'ad_agents', 'ad_categories', 'ad_audit', 'ad_customers', 'ad_analytics', 'ad_coupons'].includes(nav.id))
   return (
     <div key={nav.depth + nav.id} className={cx('h-full min-w-0', formRoute && 'vv-form-route', nav.id === 'v_register' && 'vv-vendor-register-route', nav.dir === 'push' ? 'animate-slide-in' : 'animate-fade-in', customerRoute && 'vv-customer-route', customerPortalRoute && 'vv-customer-portal', ['c_explore', 'v_explore'].includes(nav.id) && 'vv-explore-route', nav.id === 'v_dash' && 'vv-vendor-dashboard-route', workspaceRoute && 'vv-vendor-workspace-route', businessWorkspaceRoute && 'vv-business-workspace-route', agentWorkspaceRoute && 'vv-agent-route', adminWorkspaceRoute && 'vv-admin-route', ['v_profile', 'v_reviews', 'v_verify', 'v_perf'].includes(nav.id) && 'vv-vendor-detail-route', vendorMessagesRoute && 'vv-vendor-message-route')}>
-      {workspaceRoute ? <VendorWorkspace variant={businessWorkspaceRoute ? 'business' : 'vendor'} header={businessWorkspaceRoute ? ({ onWorkspaceToggle, mobile, mobileOpen, collapsed }) => <WebHeader onMenu={onMenu} hideTabs workspaceHeader blueBrand workspaceToggle={onWorkspaceToggle} workspaceMobile={mobile} workspaceMobileOpen={mobileOpen} workspaceCollapsed={collapsed} /> : undefined}><C params={nav.params || {}} /></VendorWorkspace> : <C params={nav.params || {}} />}
+      {workspaceRoute ? <VendorWorkspace variant={businessWorkspaceRoute ? 'business' : customerWorkspaceRoute ? 'customer' : 'vendor'} header={businessWorkspaceRoute ? ({ onWorkspaceToggle, mobile, mobileOpen, collapsed }) => <WebHeader onMenu={onMenu} hideTabs workspaceHeader blueBrand workspaceToggle={onWorkspaceToggle} workspaceMobile={mobile} workspaceMobileOpen={mobileOpen} workspaceCollapsed={collapsed} /> : undefined}><C params={nav.params || {}} /></VendorWorkspace> : <C params={nav.params || {}} />}
     </div>
   )
 }
@@ -229,6 +230,11 @@ function WebHeader({ onMenu, hideTabs, workspaceHeader = false, workspaceTheme =
   const [locationQuery, setLocationQuery] = useState('')
   const [headerLanguage, setHeaderLanguage] = useState(lang)
   const [authDialog, setAuthDialog] = useState(null)
+  useEffect(() => {
+    const open = (event) => setAuthDialog(event.detail?.mode === 'signup' ? 'signup' : 'signin')
+    window.addEventListener(OPEN_AUTH_EVENT, open)
+    return () => window.removeEventListener(OPEN_AUTH_EVENT, open)
+  }, [])
   const screen = SCREENS[nav.id] || SCREENS.welcome
   const tabs = TABS[me.role || 'customer'] || TABS.customer
   const activeTab = nav.stack.slice().reverse().map((entry) => tabs.find((tab) => tab.id === entry.id)).find(Boolean)?.id || nav.id
@@ -343,6 +349,7 @@ function Shell() {
   const showBusinessWorkspace = me.role === 'business' && ['b_home', 'b_company', 'b_services', 'b_messages', 'b_more'].includes(nav.id)
   const showVendorWorkspace = (['vendor', 'business'].includes(me.role) && ((SCREENS[nav.id] || {}).role === 'vendor' || ['messages', 'chat'].includes(nav.id))) || showBusinessWorkspace
   const customerPortalRoute = me.role === 'customer' && ['c_profile', 'c_profile_edit', 'c_dash', 'c_activity', 'c_saved', 'c_cases', 'c_case', 'c_orders', 'c_reviews', 'c_settings'].includes(nav.id)
+  const showCustomerWorkspace = me.role === 'customer' && CUSTOMER_WORKSPACE_IDS.includes(nav.id)
   const agentLogout = () => {
     setMe({ role: null, loggedIn: false, guest: false, vendorId: 'v-me', name: '' })
     nav.reset('c_home')
@@ -393,11 +400,11 @@ function Shell() {
   }, [nav.reset])
 
   return (
-    <div className={cx('flex h-full min-h-0 bg-white', showAgentSidebar ? 'vv-agent-shell' : showAdminSidebar ? 'vv-admin-shell' : 'flex-col', showAgentSidebar && agentSidebarCollapsed && 'is-agent-sidebar-collapsed', showVendorWorkspace && 'vv-global-vendor-shell', showBusinessWorkspace && 'vv-business-shell')}>
+    <div className={cx('flex h-full min-h-0 bg-white', showAgentSidebar ? 'vv-agent-shell' : showAdminSidebar ? 'vv-admin-shell' : 'flex-col', showAgentSidebar && agentSidebarCollapsed && 'is-agent-sidebar-collapsed', (showVendorWorkspace || showCustomerWorkspace) && 'vv-global-vendor-shell', showBusinessWorkspace && 'vv-business-shell')}>
       {showAgentSidebar && <AgentSidebar collapsed={agentSidebarCollapsed} onToggle={() => setAgentSidebarCollapsed((value) => !value)} onNavigate={(id) => nav.reset(id)} onLogout={agentLogout} me={me} t={t} activeId={nav.id} />}
       {showAdminSidebar && <AdminSidebar collapsed={adminSidebarCollapsed} onToggle={() => setAdminSidebarCollapsed((value) => !value)} onNavigate={jump} onLogout={adminLogout} me={me} t={t} activeId={nav.id} />}
       <div className={cx('flex min-h-0 min-w-0 flex-1 flex-col', showAgentSidebar && 'vv-agent-main', showAdminSidebar && 'vv-admin-main')}>
-        {!showVendorWorkspace && (!customerPortalRoute || ['c_profile', 'c_profile_edit', 'c_dash', 'c_activity', 'c_saved', 'c_orders'].includes(nav.id)) && <WebHeader onMenu={() => setDrawer(true)} hideTabs={showAgentSidebar || showAdminSidebar} blueBrand={showAgentSidebar} workspaceTheme={showAgentSidebar} marketplaceCategories={!['c_profile', 'c_profile_edit', 'c_dash', 'c_activity', 'c_saved', 'c_orders', 'v_register'].includes(nav.id)} marketplaceAnnouncement={!['c_profile', 'c_profile_edit', 'c_dash', 'c_activity', 'c_saved', 'c_orders', 'v_register'].includes(nav.id)} />}
+        {!showVendorWorkspace && !showCustomerWorkspace && (!customerPortalRoute || ['c_profile', 'c_profile_edit', 'c_dash', 'c_activity', 'c_saved', 'c_orders'].includes(nav.id)) && <WebHeader onMenu={() => setDrawer(true)} hideTabs={showAgentSidebar || showAdminSidebar} blueBrand={showAgentSidebar} workspaceTheme={showAgentSidebar} marketplaceCategories={!['c_profile', 'c_profile_edit', 'c_dash', 'c_activity', 'c_saved', 'c_orders', 'v_register'].includes(nav.id)} marketplaceAnnouncement={!['c_profile', 'c_profile_edit', 'c_dash', 'c_activity', 'c_saved', 'c_orders', 'v_register'].includes(nav.id)} />}
         <main className={cx('relative flex min-h-0 flex-1 flex-col bg-white', showAgentSidebar && 'vv-agent-main-content')}>
           <Phone frame={false} scale={1} web={desktop} onMenu={() => setDrawer(true)} />
         </main>

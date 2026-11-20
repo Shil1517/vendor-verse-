@@ -4,6 +4,7 @@ import {
   Package, CalendarCheck, FileText, IndianRupee, Plus, AlertTriangle, ChevronRight, Store, ShieldCheck, Clock, MessageCircle, Truck, Check, X, Briefcase, Building2,
   Upload, Wallet, BarChart3, Star, Settings, LogOut, MapPin, Boxes, CalendarClock, Crown, Download, Trash2, ImagePlus, Phone, TrendingUp, BadgeCheck, Minus, Info,
   LayoutDashboard, PanelLeftClose, PanelLeftOpen, Search, ChevronLeft, ChevronDown, Sun, Moon, UsersRound, MessageSquare, PackageCheck, UserRound,
+  Compass, Heart, Home, ClipboardList, ShieldAlert,
 } from 'lucide-react'
 import { useApp } from '../store.jsx'
 import { useNav } from '../nav.jsx'
@@ -720,6 +721,57 @@ function VendorSidebar({ active, vendor, collapsed, onNavigate }) {
   )
 }
 
+/* Customer workspace: the same shell as the vendor one, with the customer's own pages in the sidebar (web). */
+export const CUSTOMER_NAV = [
+  ['Overview', [[LayoutDashboard, 'Dashboard', 'c_dash'], [ClipboardList, 'Activity', 'c_activity']]],
+  ['Marketplace', [[Home, 'Marketplace home', 'c_home'], [Compass, 'Explore', 'c_explore'], [Heart, 'Saved & compare', 'c_saved'], [Package, 'Purchase orders', 'c_orders']]],
+  ['Communication & trust', [[MessageCircle, 'Messages', 'messages'], [Star, 'My reviews', 'c_reviews'], [ShieldAlert, 'Cases', 'c_cases']]],
+  ['Account & preferences', [[UserRound, 'My account', 'c_profile'], [Settings, 'Settings & privacy', 'c_settings']]],
+]
+/** Detail and edit pages keep their parent highlighted in the sidebar. */
+const CUSTOMER_PARENT = { c_profile_edit: 'c_profile', c_case: 'c_cases', chat: 'messages' }
+export const CUSTOMER_WORKSPACE_IDS = [...CUSTOMER_NAV.flatMap(([, items]) => items.map(([, , id]) => id)), ...Object.keys(CUSTOMER_PARENT)].filter((id) => !['c_home', 'c_explore'].includes(id))
+
+function CustomerSidebar({ active, collapsed, onNavigate }) {
+  const nav = useNav()
+  const { setMe, threads } = useApp()
+  const unread = (threads?.customer || []).reduce((sum, thread) => sum + thread.unread, 0)
+  const current = CUSTOMER_PARENT[active] || active
+  const navRef = useRef(null)
+  const [pill, setPill] = useState(null)
+
+  useLayoutEffect(() => {
+    const activeElement = navRef.current?.querySelector('.is-active')
+    setPill(activeElement ? { y: activeElement.offsetTop, h: activeElement.offsetHeight } : null)
+  }, [current, collapsed])
+
+  const logout = () => {
+    setMe({ role: null, loggedIn: false, guest: false, vendorId: 'v-me', name: '' })
+    nav.reset('c_home')
+  }
+
+  return (
+    <aside className="vx-side">
+      <div className="vx-brand"><span className="vx-logo">V</span><div className="vx-bt"><b>VendorVerse</b><small>Customer workspace</small></div></div>
+      <nav id="customer-workspace-navigation" className="vx-nav" ref={navRef} aria-label="Customer workspace">
+        <span className="vx-pill" aria-hidden="true" style={pill ? { transform: `translateY(${pill.y}px)`, height: pill.h, opacity: 1 } : undefined} />
+        {CUSTOMER_NAV.map(([group, items]) => (
+          <Fragment key={group}>
+            <div className="vx-group">{group}</div>
+            {items.map(([I, text, id]) => (
+              <button type="button" key={id} title={collapsed ? text : undefined} aria-label={collapsed ? id === 'messages' && unread > 0 ? `${text}, ${unread} unread` : text : undefined} aria-current={current === id ? 'page' : undefined} className={cx('vx-nav-item', current === id && 'is-active')} onClick={() => { nav.go(id); onNavigate?.() }}>
+                <I size={17} /><span className="vx-lbl">{text}</span>
+                {id === 'messages' && unread > 0 && <span className="vx-badge">{unread}</span>}
+              </button>
+            ))}
+          </Fragment>
+        ))}
+      </nav>
+      <button type="button" className="vx-nav-item vx-logout" title={collapsed ? 'Log out' : undefined} onClick={logout}><LogOut size={17} /><span className="vx-lbl">Log out</span></button>
+    </aside>
+  )
+}
+
 function BusinessSidebar({ active, collapsed, onNavigate }) {
   const nav = useNav()
   const { me, setMe, threads } = useApp()
@@ -773,8 +825,9 @@ export function VendorWorkspace({ children, variant = 'vendor', header }) {
   const topNavLabel = (text) => (businessSupplier && text === 'Quote requests' ? 'Vendor RFQs' : businessSupplier && text.startsWith('Reviews') ? 'Buyer reviews' : text)
   const vendorRecord = useMyVendor()
   const vendor = variant === 'vendor' ? vendorRecord : null
+  const customer = variant === 'customer'
   const { theme } = useTheme()
-  const collapseAt = variant === 'vendor' ? 760 : 1100
+  const collapseAt = variant === 'business' ? 1100 : 760
   const [collapsed, setCollapsed] = useState(() => window.innerWidth <= collapseAt)
   const [mobile, setMobile] = useState(() => window.innerWidth <= 680)
   const [mobileOpen, setMobileOpen] = useState(false)
@@ -799,12 +852,14 @@ export function VendorWorkspace({ children, variant = 'vendor', header }) {
         {mobile && <button type="button" className="vx-mobile-scrim" aria-label="Close workspace menu" onClick={() => setMobileOpen(false)} />}
         {variant === 'business'
           ? <BusinessSidebar active={nav.id} collapsed={collapsed} onNavigate={() => setMobileOpen(false)} />
-          : <VendorSidebar active={nav.id} vendor={vendor} collapsed={collapsed} onNavigate={() => setMobileOpen(false)} />}
+          : customer
+            ? <CustomerSidebar active={nav.id} collapsed={collapsed} onNavigate={() => setMobileOpen(false)} />
+            : <VendorSidebar active={nav.id} vendor={vendor} collapsed={collapsed} onNavigate={() => setMobileOpen(false)} />}
         <section className="vx-main">
           {variant === 'business' && header
             ? header({ onWorkspaceToggle: toggleWorkspace, mobile, mobileOpen, collapsed })
             : <header className="vx-top">
-              <button type="button" className="vx-toggle" aria-controls="vendor-workspace-navigation" aria-label={mobile ? mobileOpen ? 'Close workspace menu' : 'Open workspace menu' : collapsed ? 'Expand sidebar' : 'Collapse sidebar'} aria-expanded={mobile ? !mobileOpen : !collapsed} onClick={toggleWorkspace}>
+              <button type="button" className="vx-toggle" aria-controls={customer ? 'customer-workspace-navigation' : 'vendor-workspace-navigation'} aria-label={mobile ? mobileOpen ? 'Close workspace menu' : 'Open workspace menu' : collapsed ? 'Expand sidebar' : 'Collapse sidebar'} aria-expanded={mobile ? !mobileOpen : !collapsed} onClick={toggleWorkspace}>
                 {mobile ? mobileOpen ? <PanelLeftClose size={17} /> : <PanelLeftOpen size={17} /> : <ChevronLeft size={15} />}
               </button>
               {variant === 'vendor' && <nav className="vx-top-nav" aria-label="Vendor workspace shortcuts">
@@ -814,11 +869,11 @@ export function VendorWorkspace({ children, variant = 'vendor', header }) {
                   </button>
                 ))}
               </nav>}
-              <label className="vx-search"><Search size={16} /><input placeholder="Search listings, quotes, messages…" aria-label="Search" /></label>
+              <label className="vx-search"><Search size={16} /><input placeholder={customer ? 'Search services, vendors, products…' : 'Search listings, quotes, messages…'} aria-label="Search" /></label>
               <ThemeToggle className="vx-theme-toggle" />
-              <div className="vx-ico"><NotifBell role="vendor" /></div>
+              <div className="vx-ico"><NotifBell role={customer ? 'customer' : 'vendor'} /></div>
               <button type="button" className="vx-locale" onClick={() => setLang(lang === 'en' ? 'hi' : 'en')} aria-label="Switch language">{lang === 'en' ? 'EN | हिन्दी' : 'हि | EN'} <ChevronDown size={12} /></button>
-              <div className="vx-me"><div className="vx-av">{(me.name || 'V').split(/\s+/).map((part) => part[0]).slice(0, 2).join('').toUpperCase()}</div><div><b>{me.name || 'Vendor'}</b><small>Owner</small></div></div>
+              <div className="vx-me"><div className="vx-av">{(me.name || 'V').split(/\s+/).map((part) => part[0]).slice(0, 2).join('').toUpperCase()}</div><div><b>{me.name || (customer ? 'Customer' : 'Vendor')}</b><small>{customer ? 'Customer' : 'Owner'}</small></div></div>
             </header>}
           <main className="vx-panel">{children}</main>
         </section>
