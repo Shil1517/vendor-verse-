@@ -79,7 +79,10 @@ export function useLoad(load, deps = []) {
   return { ...state, reload: run }
 }
 
-export const Loading = () => <p className="p-6 text-center text-sm text-ink-500">Loading…</p>
+export const Loading = () => <div className="vv-loading-state" role="status" aria-live="polite">
+  <span className="vv-loading-spinner" aria-hidden="true" />
+  <span>Loading results…</span>
+</div>
 export const ErrorBox = ({ message, onRetry }) => <Banner tone="red" title="Could not load" action={onRetry && <Button size="sm" variant="secondary" onClick={onRetry}>Try again</Button>}>{message}</Banner>
 
 /* ================= SEARCH (F-DSC-02, F-DSC-03, F-DSC-04) ================= */
@@ -261,7 +264,7 @@ export function RemoteExplore({ params = {} }) {
   return (
     <Screen title="Explore" back={false} pad={false} headerless>
       <div className="mx-auto w-full max-w-[1560px] space-y-5 px-3 pb-6 pt-3 md:pb-8 md:pt-4">
-      <div className="grid items-start gap-5 md:grid-cols-[minmax(240px,280px)_minmax(0,1fr)]">
+      <div className="grid items-start gap-5 md:grid-cols-[minmax(320px,360px)_minmax(0,1fr)]">
       <aside className="vv-explore-filter md:sticky md:top-4">
       <div className="overflow-hidden rounded-3xl bg-white shadow-[0_18px_55px_-30px_rgba(15,23,42,0.45)] ring-1 ring-ink-100">
         <div className="flex items-center justify-between border-b border-ink-100 bg-gradient-to-br from-ink-50 via-white to-brand-50/40 px-5 py-4 md:px-6">
