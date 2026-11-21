@@ -7,7 +7,7 @@ import {
   Compass, Heart, Home, ClipboardList, ShieldAlert,
 } from 'lucide-react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faGaugeHigh, faHeart, faClipboardList, faBoxOpen, faFileSignature, faStar, faShieldHalved, faGear, faRightFromBracket } from '@fortawesome/free-solid-svg-icons'
+import { faGaugeHigh, faHeart, faClipboardList, faBoxOpen, faFileSignature, faComments, faStar, faShieldHalved, faGear, faRightFromBracket } from '@fortawesome/free-solid-svg-icons'
 import { useApp } from '../store.jsx'
 import { useNav } from '../nav.jsx'
 import { authService } from '../services/authService.js'
@@ -700,7 +700,7 @@ function VendorSidebar({ active, vendor, collapsed, onNavigate }) {
   const nav = useNav()
   const { setMe, me, threads, listings, settings } = useApp()
   const businessSupplier = me.role === 'business'
-  const unread = (threads?.vendor || []).reduce((sum, thread) => sum + thread.unread, 0)
+  const unread = authService.isRemote ? 0 : (threads?.vendor || []).reduce((sum, thread) => sum + thread.unread, 0)
   const plan = settings?.plans?.find((item) => item.name === vendor?.plan)
   const used = listings.filter((item) => item.vendorId === me.vendorId).length
   const limit = Number(plan?.listings) || 0
@@ -748,19 +748,19 @@ function VendorSidebar({ active, vendor, collapsed, onNavigate }) {
 /* Customer workspace: the same shell as the vendor one, with the customer's own pages in the sidebar (web). */
 export const CUSTOMER_NAV = [
   ['Overview', [[faGaugeHigh, 'Dashboard', 'c_dash']]],
-  ['Deals & orders', [[faHeart, 'Saved & compare', 'c_saved'], [faClipboardList, 'Quote requests', 'c_activity'], [faBoxOpen, 'Purchase orders', 'c_orders'], [faFileSignature, 'Contracts', 'c_contract']]],
+  ['Deals & orders', [[faHeart, 'Saved & compare', 'c_saved'], [faComments, 'Messages', 'messages'], [faClipboardList, 'Quote requests', 'c_activity'], [faBoxOpen, 'Purchase orders', 'c_orders'], [faFileSignature, 'Contracts', 'c_contract']]],
   ['Support & trust', [[faStar, 'Rate a vendor', 'c_review'], [faShieldHalved, 'Cases', 'c_cases']]],
   ['Account', [[faGear, 'Account settings', 'c_settings']]],
 ]
 /** Pages that stay inside the customer workspace but have no sidebar entry of their own highlight their parent. */
-const CUSTOMER_PARENT = { c_profile: 'c_settings', c_profile_edit: 'c_settings', c_reviews: 'c_review', c_case: 'c_cases' }
+const CUSTOMER_PARENT = { c_profile: 'c_settings', c_profile_edit: 'c_settings', c_reviews: 'c_review', c_case: 'c_cases', chat: 'messages' }
 /** Every customer page that renders inside the workspace shell (sidebar entries, their children, and pages reached from the dashboard). */
 export const CUSTOMER_WORKSPACE_IDS = [...CUSTOMER_NAV.flatMap(([, items]) => items.map(([, , id]) => id)), ...Object.keys(CUSTOMER_PARENT), 'messages', 'chat']
 
 function CustomerSidebar({ active, collapsed, onNavigate }) {
   const nav = useNav()
   const { setMe, threads } = useApp()
-  const unread = (threads?.customer || []).reduce((sum, thread) => sum + thread.unread, 0)
+  const unread = authService.isRemote ? 0 : (threads?.customer || []).reduce((sum, thread) => sum + thread.unread, 0)
   const current = CUSTOMER_PARENT[active] || active
   const [contractsOpen, setContractsOpen] = useState(active === 'c_contract' || (active === 'c_activity' && nav.params?.tab === 'contracts'))
   const [contracts, setContracts] = useState(null)
