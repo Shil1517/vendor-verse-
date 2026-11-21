@@ -1645,6 +1645,27 @@ html[data-theme='light'] .vv-vendor-workspace.vx-shell {
   --color-ink-700: #3b4350;
   --color-ink-800: #1f2a3a;
   --color-ink-900: #0e1b2c;
+  /* Informational banners and badges use Tailwind sky/blue: use the same warm gold scale. */
+  --color-sky-50: #f7f4ee;
+  --color-blue-50: #f7f4ee;
+  --color-sky-100: #efeae0;
+  --color-blue-100: #efeae0;
+  --color-sky-200: #e4d6b8;
+  --color-blue-200: #e4d6b8;
+  --color-sky-300: #d3bb84;
+  --color-blue-300: #d3bb84;
+  --color-sky-400: #b98f3e;
+  --color-blue-400: #b98f3e;
+  --color-sky-500: #a67a2c;
+  --color-blue-500: #a67a2c;
+  --color-sky-600: #8a6420;
+  --color-blue-600: #8a6420;
+  --color-sky-700: #6f5018;
+  --color-blue-700: #6f5018;
+  --color-sky-800: #583f13;
+  --color-blue-800: #583f13;
+  --color-sky-900: #3f2d0d;
+  --color-blue-900: #3f2d0d;
 }
 
 html[data-theme='light'] .vv-global-vendor-shell { background: #f5f5f4; }
