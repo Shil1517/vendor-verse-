@@ -107,8 +107,8 @@
     grid-template-columns: clamp(190px, 15vw, 210px) minmax(0, 1fr);
   }
   .vv-result-card-image {
-    align-self: stretch;
-    min-height: 176px;
+    align-self: start;
+    height: 250px;
     margin: 16px 0 16px 16px;
     aspect-ratio: auto;
   }

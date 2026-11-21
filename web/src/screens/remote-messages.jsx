@@ -1,11 +1,16 @@
 import { useEffect, useState } from 'react'
-import { MessageCircle, Send, Store } from 'lucide-react'
-import { Banner, Button, Card, EmptyState, Input, KV, Screen, Section } from '../ui.jsx'
+import { ArrowUpRight, Globe2, MessageCircle, Send, Store } from 'lucide-react'
+import { Banner, Button, Card, EmptyState, Screen } from '../ui.jsx'
 import { useApp } from '../store.jsx'
 import { useNav } from '../nav.jsx'
 import { authService } from '../services/authService.js'
 import { openAuthDialog } from '../components/MarketplaceAuthDialog.jsx'
-import { ErrorBox, Loading, fmtWhen, useLoad } from './remote-discovery.jsx'
+import { ErrorBox, Loading, fmtWhen, priceLabel, useLoad } from './remote-discovery.jsx'
+import './remote-vendor-profile.css'
+
+const displayName = (code, type) => {
+  try { return new Intl.DisplayNames(['en'], { type }).of(code) || code } catch { return code }
+}
 
 export function RemoteVendorProfile({ params = {} }) {
   const nav = useNav()
@@ -18,6 +23,10 @@ export function RemoteVendorProfile({ params = {} }) {
   if (vendor.error) return <Screen title="Vendor profile"><ErrorBox message={vendor.error} onRetry={vendor.reload} /></Screen>
   const v = vendor.data.vendor
   const l = listing.data?.listing
+  const featuredListing = l?.vendor?.id === v.id ? l : null
+  const country = v.registrationCountry ? displayName(v.registrationCountry, 'region') : null
+  const languages = v.languages?.map((code) => displayName(code, 'language')).join(', ')
+  const roles = v.roles?.map((role) => role.label).filter(Boolean) || []
   const message = async () => {
     if (!me.loggedIn) return openAuthDialog('signin')
     setBusy(true)
@@ -27,17 +36,52 @@ export function RemoteVendorProfile({ params = {} }) {
     if (!r.ok) return setFailure(r.message || 'Could not open a conversation.')
     nav.go('chat', { id: r.conversation.id })
   }
-  return <Screen title="Vendor profile" subtitle={v.name} footer={<Button full icon={MessageCircle} disabled={busy} onClick={message}>{busy ? 'Opening…' : 'Message vendor'}</Button>}>
-    {failure && <Banner tone="red" title="Could not message vendor">{failure}</Banner>}
-    <Card><h1 className="text-xl font-bold text-ink-900">{v.name}</h1><p className="mt-1 text-sm text-ink-500">{v.roles?.map((role) => role.label).join(' · ') || 'Verified vendor'}</p></Card>
-    {v.description && <Card><p className="text-sm text-ink-700">{v.description}</p></Card>}
-    <Card><KV rows={[
-      ['Country', v.registrationCountry || 'Not provided'],
-      ['Established', v.yearEstablished || 'Not provided'],
-      ['Languages', v.languages?.join(', ') || 'Not provided'],
-    ]} /></Card>
-    {listing.loading && params.listingId && <Loading />}
-    {l && l.vendor?.id === v.id && <Section title="Listing"><Card onClick={() => nav.go('c_listing', { id: l.id })}><p className="text-sm font-bold">{l.title}</p><p className="text-xs text-ink-500">Open listing</p></Card></Section>}
+  return <Screen title="Vendor profile" subtitle={v.name} pad={false} scrollClass="vv-remote-vendor-scroll">
+    <div className="vv-remote-vendor-page">
+      <div className="vv-remote-vendor-inner">
+        <section className="vv-remote-vendor-hero" aria-labelledby="vendor-name">
+          <span className="vv-remote-vendor-eyebrow">Vendor profile</span>
+          <div className="vv-remote-vendor-avatar" aria-hidden="true">{v.name?.trim().charAt(0).toUpperCase() || 'V'}</div>
+          <h1 id="vendor-name">{v.name}</h1>
+          <p className="vv-remote-vendor-role">{roles.join(' · ') || 'Marketplace vendor'}</p>
+          {v.description && <p className="vv-remote-vendor-description">{v.description}</p>}
+          <div className="vv-remote-vendor-action">
+            {failure && <Banner tone="red" title="Could not message vendor">{failure}</Banner>}
+            <button type="button" className="vv-remote-vendor-message" disabled={busy} onClick={message}>
+              <MessageCircle size={19} aria-hidden="true" />{busy ? 'Opening…' : 'Message vendor'}
+            </button>
+            <p>Ask a question or discuss your requirements directly.</p>
+          </div>
+        </section>
+
+        <div className="vv-remote-vendor-content">
+          <section className="vv-remote-vendor-offerings" aria-labelledby="vendor-offerings-title">
+            <div className="vv-remote-vendor-section-heading"><span>Explore</span><h2 id="vendor-offerings-title">What this vendor offers</h2></div>
+            {listing.loading && params.listingId && <Loading />}
+            {featuredListing && <button type="button" className="vv-remote-vendor-listing" onClick={() => nav.go('c_listing', { id: featuredListing.id })}>
+              <span className="vv-remote-vendor-listing-icon"><Store size={25} aria-hidden="true" /></span>
+              <span className="vv-remote-vendor-listing-copy">
+                <span className="vv-remote-vendor-listing-type">{featuredListing.listingType === 'product' ? 'Product' : 'Service'}{featuredListing.categoryName ? ` · ${featuredListing.categoryName}` : ''}</span>
+                <strong>{featuredListing.title}</strong>
+                <span className="vv-remote-vendor-listing-price">{priceLabel(featuredListing.price)}</span>
+              </span>
+              <ArrowUpRight className="vv-remote-vendor-listing-arrow" size={20} aria-hidden="true" />
+            </button>}
+            {!params.listingId && <p className="vv-remote-vendor-empty">Browse this vendor's profile or send a message to ask about their products and services.</p>}
+          </section>
+
+          <aside className="vv-remote-vendor-about" aria-labelledby="vendor-about-title">
+            <div className="vv-remote-vendor-section-heading"><span>Details</span><h2 id="vendor-about-title">About this vendor</h2></div>
+            <div className="vv-remote-vendor-facts">
+              {country && <div><span>Based in</span><strong><Globe2 size={16} aria-hidden="true" />{country}</strong></div>}
+              {v.yearEstablished && <div><span>Established</span><strong>{v.yearEstablished}</strong></div>}
+              {languages && <div><span>Languages</span><strong>{languages}</strong></div>}
+              {!country && !v.yearEstablished && !languages && <p>Business details will appear here when provided by the vendor.</p>}
+            </div>
+          </aside>
+        </div>
+      </div>
+    </div>
   </Screen>
 }
 

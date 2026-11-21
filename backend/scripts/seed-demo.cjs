@@ -169,6 +169,7 @@ async function main() {
   const url = process.env.DATABASE_URL;
   if (!url) throw new Error("DATABASE_URL is required");
   const client = new Client({ connectionString: url, ssl: process.env.DATABASE_SSL === "true" ? { rejectUnauthorized: false } : false });
+  client.on("error", (error) => console.error(`PostgreSQL connection lost: ${error.message}`));
   await client.connect();
   const q = (sql, params) => client.query(sql, params);
   try {
