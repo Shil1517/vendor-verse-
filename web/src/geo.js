@@ -36,7 +36,7 @@ export const WORLD = [
   ['BD', 'Bangladesh', '🇧🇩', 'BDT', ['বাংলা', 'English'], 'Dhaka:Dhaka;Chattogram:Chattogram;Khulna:Khulna'],
   ['LK', 'Sri Lanka', '🇱🇰', 'LKR', ['සිංහල', 'English'], 'Western:Colombo;Central:Kandy;Southern:Galle'],
   ['NP', 'Nepal', '🇳🇵', 'NPR', ['नेपाली', 'English'], 'Bagmati:Kathmandu;Gandaki:Pokhara;Lumbini:Bhairahawa'],
-  ['PK', 'Pakistan', '🇵🇰', 'PKR', ['اردو', 'English'], 'Punjab:Lahore;Sindh:Karachi;Islamabad Capital:Islamabad'],
+  ['PK', 'Pakistan', '🇵🇰', 'PKR', ['English'], 'Punjab:Lahore;Sindh:Karachi;Islamabad Capital:Islamabad'],
 ]
 
 const C = (n, s = 'soon', extra = {}) => ({ n, s, ...extra })

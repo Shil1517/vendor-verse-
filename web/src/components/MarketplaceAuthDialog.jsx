@@ -17,10 +17,11 @@ export function MarketplaceAuthDialog({ mode, onClose, onChangeMode }) {
   const nav = useNav()
   const { toast } = useApp()
   const dialogRef = useRef(null)
-  const [loginMethod, setLoginMethod] = useState('email')
+  const [loginMethod, setLoginMethod] = useState('phone')
+  const [selectedRole, setSelectedRole] = useState('customer')
   const [countryCode, setCountryCode] = useState('+91')
   const [loginContact, setLoginContact] = useState('')
-  const [form, setForm] = useState({ name: '', phone: '', email: '', biz: '', role: 'customer', agree: false })
+  const [form, setForm] = useState({ name: '', phone: '', email: '', biz: '', agree: false })
   const [error, setError] = useState('')
   const [otpParams, setOtpParams] = useState(null)
 
@@ -41,7 +42,7 @@ export function MarketplaceAuthDialog({ mode, onClose, onChangeMode }) {
     const valid = loginMethod === 'email' ? isEmail(loginContact) : isPhone(phone)
     if (!valid) { setError(loginMethod === 'email' ? 'Enter a valid email address.' : 'Enter a valid 10-digit mobile number.'); return }
     const contact = loginMethod === 'email' ? loginContact.trim() : `${countryCode} ${phone}`
-    setOtpParams({ contact, role: form.role, method: loginMethod })
+    setOtpParams({ contact, role: selectedRole, method: loginMethod })
   }
   const submitSignup = (event) => {
     event.preventDefault()
@@ -49,12 +50,12 @@ export function MarketplaceAuthDialog({ mode, onClose, onChangeMode }) {
     if (form.name.trim().length < 3) { setError('Enter your full name.'); return }
     if (!isPhone(phone)) { setError('Enter a valid 10-digit mobile number.'); return }
     if (!isEmail(form.email)) { setError('Enter a valid email address.'); return }
-    if (form.role === 'vendor' && form.biz.trim().length < 3) { setError('Enter your business name.'); return }
+    if (selectedRole === 'vendor' && form.biz.trim().length < 3) { setError('Enter your business name.'); return }
     if (!form.agree) { setError('Please accept the Terms and Privacy Policy.'); return }
-    setOtpParams({ contact: `${countryCode} ${phone}`, role: form.role, mode: 'register', name: form.name.trim(), email: form.email.trim(), biz: form.biz.trim() })
+    setOtpParams({ contact: `${countryCode} ${phone}`, role: selectedRole, mode: 'register', name: form.name.trim(), email: form.email.trim(), biz: form.biz.trim() })
   }
 
-  return <dialog ref={dialogRef} className={`vv-market-auth-dialog${otpParams ? ' vv-market-auth-dialog-otp' : ''}`} aria-labelledby="vv-market-auth-title" onCancel={(event) => { event.preventDefault(); onClose() }} onClick={(event) => { if (event.target === event.currentTarget) onClose() }}>
+  return <dialog ref={dialogRef} className={`vv-market-auth-dialog${otpParams ? ' vv-market-auth-dialog-otp' : ''}${!otpParams ? ' vv-market-auth-compact' : ''}`} aria-labelledby="vv-market-auth-title" onCancel={(event) => { event.preventDefault(); onClose() }} onClick={(event) => { if (event.target === event.currentTarget) onClose() }}>
     {otpParams ? <div className="vv-market-auth-otp-shell">
       <button className="vv-market-auth-close" type="button" aria-label="Close" onClick={onClose}><X size={19}/></button>
       <div className="vv-market-auth-wordmark">VENDOR<span>VERSE</span></div>
@@ -65,7 +66,7 @@ export function MarketplaceAuthDialog({ mode, onClose, onChangeMode }) {
       <h2 id="vv-market-auth-title">{mode === 'signin' ? 'Welcome back' : 'Get started with VendorVerse'}</h2>
 
       {mode === 'signin' ? <form onSubmit={submitLogin}>
-        <div className="vv-market-auth-roles" role="group" aria-label="Account type"><button type="button" aria-pressed={form.role === 'customer'} className={form.role === 'customer' ? 'is-active' : ''} onClick={() => setForm((value) => ({ ...value, role: 'customer' }))}>Customer</button><button type="button" aria-pressed={form.role === 'vendor'} className={form.role === 'vendor' ? 'is-active' : ''} onClick={() => setForm((value) => ({ ...value, role: 'vendor' }))}>Vendor</button></div>
+        <div className="vv-market-auth-roles" role="group" aria-label="Account type"><button type="button" aria-pressed={selectedRole === 'customer'} className={selectedRole === 'customer' ? 'is-active' : ''} onClick={() => { setSelectedRole('customer'); setError('') }}>Customer</button><button type="button" aria-pressed={selectedRole === 'vendor'} className={selectedRole === 'vendor' ? 'is-active' : ''} onClick={() => { setSelectedRole('vendor'); setError('') }}>Vendor</button></div>
         <div className="vv-market-auth-switch" role="group" aria-label="Sign in method"><button type="button" aria-pressed={loginMethod === 'email'} className={loginMethod === 'email' ? 'is-active' : ''} onClick={() => { setLoginMethod('email'); setLoginContact(''); setError('') }}>Email</button><button type="button" aria-pressed={loginMethod === 'phone'} className={loginMethod === 'phone' ? 'is-active' : ''} onClick={() => { setLoginMethod('phone'); setLoginContact(''); setError('') }}>Phone</button></div>
         {loginMethod === 'email' ? <label className="vv-market-auth-field"><b>Email</b><input type="email" autoComplete="email" autoFocus value={loginContact} onChange={(event) => { setLoginContact(event.target.value); setError('') }} placeholder="you@company.com" /></label> : <label className="vv-market-auth-field"><b>Mobile phone</b><span className="vv-market-auth-phone"><select aria-label="Country calling code" value={countryCode} onChange={(event) => setCountryCode(event.target.value)}>{CALLING_CODES.map(([code, country]) => <option key={code} value={code}>{country} {code}</option>)}</select><input inputMode="numeric" autoComplete="tel-national" maxLength={10} autoFocus value={loginContact} onChange={(event) => { setLoginContact(normalizePhone(event.target.value)); setError('') }} placeholder="98290 00001" /></span></label>}
         {error && <p className="vv-market-auth-error" role="alert">{error}</p>}
@@ -75,16 +76,16 @@ export function MarketplaceAuthDialog({ mode, onClose, onChangeMode }) {
         <button className="vv-market-auth-google" type="button" onClick={() => toast('Google sign-in is not configured yet. Continue with an email or phone OTP.')}><GoogleMark/>Sign in with Google</button>
         <div className="vv-market-auth-links"><span>New to VendorVerse? <button type="button" onClick={() => onChangeMode('signup')}>Get started</button></span></div>
       </form> : <form onSubmit={submitSignup}>
-        <div className="vv-market-auth-roles"><button type="button" aria-pressed={form.role === 'customer'} className={form.role === 'customer' ? 'is-active' : ''} onClick={() => setForm((value) => ({ ...value, role: 'customer' }))}>Customer</button><button type="button" aria-pressed={form.role === 'vendor'} className={form.role === 'vendor' ? 'is-active' : ''} onClick={() => setForm((value) => ({ ...value, role: 'vendor' }))}>Vendor</button></div>
+        <div className="vv-market-auth-roles" role="group" aria-label="Account type"><button type="button" aria-pressed={selectedRole === 'customer'} className={selectedRole === 'customer' ? 'is-active' : ''} onClick={() => { setSelectedRole('customer'); setError('') }}>Customer</button><button type="button" aria-pressed={selectedRole === 'vendor'} className={selectedRole === 'vendor' ? 'is-active' : ''} onClick={() => { setSelectedRole('vendor'); setError('') }}>Vendor</button></div>
         <label className="vv-market-auth-field"><b>Full name</b><input autoComplete="name" autoFocus value={form.name} onChange={update('name')} placeholder="Your name" /></label>
-        {form.role === 'vendor' && <label className="vv-market-auth-field"><b>Business name</b><input autoComplete="organization" value={form.biz} onChange={update('biz')} placeholder="Registered business name" /></label>}
+        {selectedRole === 'vendor' && <label className="vv-market-auth-field"><b>Business name</b><input autoComplete="organization" value={form.biz} onChange={update('biz')} placeholder="Registered business name" /></label>}
         <label className="vv-market-auth-field"><b>Email</b><input type="email" autoComplete="email" value={form.email} onChange={update('email')} placeholder="you@company.com" /></label>
         <label className="vv-market-auth-field"><b>Mobile phone</b><span className="vv-market-auth-phone"><select aria-label="Country calling code" value={countryCode} onChange={(event) => setCountryCode(event.target.value)}>{CALLING_CODES.map(([code, country]) => <option key={code} value={code}>{country} {code}</option>)}</select><input inputMode="numeric" autoComplete="tel-national" maxLength={10} value={form.phone} onChange={(event) => setForm((current) => ({ ...current, phone: normalizePhone(event.target.value) }))} placeholder="98290 00001" /></span></label>
         <label className="vv-market-auth-consent"><input type="checkbox" checked={form.agree} onChange={update('agree')}/><span>By proceeding, you agree to our <b>Terms</b> and <b>Privacy Policy</b>.</span></label>
         {error && <p className="vv-market-auth-error" role="alert">{error}</p>}
-        <button className="vv-market-auth-submit" type="submit">Create {form.role} account</button>
+        <button className="vv-market-auth-submit" type="submit">Create {selectedRole} account</button>
         <button className="vv-market-auth-google" type="button" onClick={() => toast('Google sign-up is not configured yet. Continue with an email or phone OTP.')}><GoogleMark/>Sign up with Google</button>
-        <p className="vv-market-auth-note">We’ll verify your phone number with a one-time code.</p>
+        <p className="vv-market-auth-note">We’ll verify your phone and email with separate one-time codes.</p>
         <div className="vv-market-auth-links"><span>Have an account? <button type="button" onClick={() => onChangeMode('signin')}>Sign in</button></span></div>
       </form>}
     </div>}

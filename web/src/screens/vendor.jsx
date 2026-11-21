@@ -6,6 +6,8 @@ import {
   LayoutDashboard, PanelLeftClose, PanelLeftOpen, Search, ChevronLeft, ChevronDown, Sun, Moon, UsersRound, MessageSquare, PackageCheck, UserRound,
   Compass, Heart, Home, ClipboardList, ShieldAlert,
 } from 'lucide-react'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { faGaugeHigh, faHeart, faClipboardList, faBoxOpen, faFileSignature, faComments, faStar, faShieldHalved, faGear, faRightFromBracket } from '@fortawesome/free-solid-svg-icons'
 import { useApp } from '../store.jsx'
 import { useNav } from '../nav.jsx'
 import { authService } from '../services/authService.js'
@@ -15,7 +17,6 @@ import {
   Pill, IconBtn, StatusBadge, ListRow, Group, Timeline, Avatar, DocTile, Stepper, BarChart, HBar, Spark, Checkbox, Meta, SOFT, DemoPhonePePayment,
 } from '../ui.jsx'
 import { NotifBell } from './shared.jsx'
-import { ThemeToggle } from '../components/ThemeToggle.jsx'
 import { useTheme } from '../hooks/useTheme.jsx'
 import { useCompany } from './biz-screens.jsx'
 import { companyDone } from '../bizdata.js'
@@ -48,6 +49,11 @@ const VX_CSS = `@import url('https://fonts.googleapis.com/css2?family=Plus+Jakar
 .vx-pill { position:absolute; left:0; right:0; top:0; z-index:0; border-radius:14px; opacity:0; pointer-events:none; background:var(--grad); box-shadow:0 10px 24px rgba(18,180,143,.35); transition:transform .55s var(--ease), height .45s var(--ease), opacity .3s; }
 .vx-nav-item { position:relative; z-index:1; display:flex; align-items:center; gap:11px; width:100%; padding:10px 12px; border-radius:14px; border:0; background:none; text-align:left; white-space:nowrap; font-size:12.5px; font-weight:600; color:var(--soft); transition:background .2s, color .25s, padding .5s var(--ease), gap .5s var(--ease); }
 .vx-nav-item:hover { background:rgba(18,180,143,.09); color:var(--ink); }
+.vv-customer-contract-menu { margin:-3px 0 5px 36px; border-left:1px solid rgba(138,100,32,.2); padding:2px 0 2px 8px; }
+.vv-customer-contract-item { display:block; width:100%; overflow:hidden; padding:7px 8px; border:0; border-radius:9px; background:none; color:#6b562c; text-align:left; font-size:10.5px; font-weight:600; text-overflow:ellipsis; white-space:nowrap; }
+.vv-customer-contract-item:hover { background:rgba(138,100,32,.09); color:#3b2b12; }
+.vv-customer-contract-muted { padding:7px 8px; color:#8d8068; font-size:10.5px; }
+.vx-shell.is-collapsed .vv-customer-contract-menu { display:none; }
 .vx-nav-item svg { flex:none; opacity:.8; transition:transform .3s var(--ease), color .3s; }
 .vx-nav-item:hover svg { transform: scale(1.15); }
 .vx-nav-item.is-active, .vx-nav-item.is-active:hover { background:none; color:#fff; }
@@ -663,6 +669,24 @@ const VX_CSS = `@import url('https://fonts.googleapis.com/css2?family=Plus+Jakar
     padding:16px 12px 24px;
   }
 }
+.vv-customer-route > .vv-vendor-workspace.vx-shell:not([data-theme='dark']) {
+  --mint:#8a6420;
+  --sky:#b98f3e;
+  --grad:linear-gradient(135deg,#8a6420,#b98f3e);
+  --shellbg:#fbfaf7;
+  background:#fbfaf7;
+}
+.vv-customer-route .vv-vendor-workspace.vx-shell:not([data-theme='dark']) .vx-nav-item.is-active,
+.vv-customer-route .vv-vendor-workspace.vx-shell:not([data-theme='dark']) .vx-nav-item.is-active:hover {
+  background:#f3ead6;
+  color:#6f5018;
+}
+.vv-customer-route .vv-vendor-workspace.vx-shell:not([data-theme='dark']) .vx-nav-item.is-active svg { color:#8a6420; }
+.vv-customer-route .vv-vendor-workspace.vx-shell:not([data-theme='dark']) .vx-search:focus-within {
+  border-color:#8a6420;
+  box-shadow:0 0 0 2px rgba(138,100,32,.14);
+}
+.vv-customer-route .vv-vendor-workspace.vx-shell:not([data-theme='dark']) .vx-panel { background:#fbfaf7; }
 `
 
 const VENDOR_NAV = [
@@ -676,7 +700,7 @@ function VendorSidebar({ active, vendor, collapsed, onNavigate }) {
   const nav = useNav()
   const { setMe, me, threads, listings, settings } = useApp()
   const businessSupplier = me.role === 'business'
-  const unread = (threads?.vendor || []).reduce((sum, thread) => sum + thread.unread, 0)
+  const unread = authService.isRemote ? 0 : (threads?.vendor || []).reduce((sum, thread) => sum + thread.unread, 0)
   const plan = settings?.plans?.find((item) => item.name === vendor?.plan)
   const used = listings.filter((item) => item.vendorId === me.vendorId).length
   const limit = Number(plan?.listings) || 0
@@ -723,21 +747,24 @@ function VendorSidebar({ active, vendor, collapsed, onNavigate }) {
 
 /* Customer workspace: the same shell as the vendor one, with the customer's own pages in the sidebar (web). */
 export const CUSTOMER_NAV = [
-  ['Overview', [[LayoutDashboard, 'Dashboard', 'c_dash']]],
-  ['Deals & orders', [[Heart, 'Saved & compare', 'c_saved'], [ClipboardList, 'Quote requests', 'c_activity'], [Package, 'Purchase orders', 'c_orders'], [FileText, 'Contracts', 'c_contract']]],
-  ['Support & trust', [[Star, 'Rate a vendor', 'c_review'], [ShieldAlert, 'Cases', 'c_cases']]],
-  ['Account', [[Settings, 'Account settings', 'c_settings']]],
+  ['Overview', [[faGaugeHigh, 'Dashboard', 'c_dash']]],
+  ['Deals & orders', [[faHeart, 'Saved & compare', 'c_saved'], [faComments, 'Messages', 'messages'], [faClipboardList, 'Quote requests', 'c_activity'], [faBoxOpen, 'Purchase orders', 'c_orders'], [faFileSignature, 'Contracts', 'c_contract']]],
+  ['Support & trust', [[faStar, 'Rate a vendor', 'c_review'], [faShieldHalved, 'Cases', 'c_cases']]],
+  ['Account', [[faGear, 'Account settings', 'c_settings']]],
 ]
 /** Pages that stay inside the customer workspace but have no sidebar entry of their own highlight their parent. */
-const CUSTOMER_PARENT = { c_profile: 'c_settings', c_profile_edit: 'c_settings', c_reviews: 'c_review', c_case: 'c_cases' }
+const CUSTOMER_PARENT = { c_profile: 'c_settings', c_profile_edit: 'c_settings', c_reviews: 'c_review', c_case: 'c_cases', chat: 'messages' }
 /** Every customer page that renders inside the workspace shell (sidebar entries, their children, and pages reached from the dashboard). */
 export const CUSTOMER_WORKSPACE_IDS = [...CUSTOMER_NAV.flatMap(([, items]) => items.map(([, , id]) => id)), ...Object.keys(CUSTOMER_PARENT), 'messages', 'chat']
 
 function CustomerSidebar({ active, collapsed, onNavigate }) {
   const nav = useNav()
   const { setMe, threads } = useApp()
-  const unread = (threads?.customer || []).reduce((sum, thread) => sum + thread.unread, 0)
+  const unread = authService.isRemote ? 0 : (threads?.customer || []).reduce((sum, thread) => sum + thread.unread, 0)
   const current = CUSTOMER_PARENT[active] || active
+  const [contractsOpen, setContractsOpen] = useState(active === 'c_contract' || (active === 'c_activity' && nav.params?.tab === 'contracts'))
+  const [contracts, setContracts] = useState(null)
+  const [contractsError, setContractsError] = useState('')
   const navRef = useRef(null)
   const [pill, setPill] = useState(null)
 
@@ -745,6 +772,17 @@ function CustomerSidebar({ active, collapsed, onNavigate }) {
     const activeElement = navRef.current?.querySelector('.is-active')
     setPill(activeElement ? { y: activeElement.offsetTop, h: activeElement.offsetHeight } : null)
   }, [current, collapsed])
+
+  useEffect(() => {
+    if (!contractsOpen || contracts) return
+    let cancelled = false
+    authService.listMyContracts().then((result) => {
+      if (cancelled) return
+      if (result.ok) setContracts(result.contracts || [])
+      else setContractsError(result.message || 'Could not load contracts')
+    })
+    return () => { cancelled = true }
+  }, [contractsOpen, contracts])
 
   const logout = () => {
     setMe({ role: null, loggedIn: false, guest: false, vendorId: 'v-me', name: '' })
@@ -759,16 +797,33 @@ function CustomerSidebar({ active, collapsed, onNavigate }) {
         {CUSTOMER_NAV.map(([group, items]) => (
           <Fragment key={group}>
             <div className="vx-group">{group}</div>
-            {items.map(([I, text, id]) => (
-              <button type="button" key={id} title={collapsed ? text : undefined} aria-label={collapsed ? id === 'messages' && unread > 0 ? `${text}, ${unread} unread` : text : undefined} aria-current={current === id ? 'page' : undefined} className={cx('vx-nav-item', current === id && 'is-active')} onClick={() => { nav.go(id); onNavigate?.() }}>
-                <I size={17} /><span className="vx-lbl">{text}</span>
-                {id === 'messages' && unread > 0 && <span className="vx-badge">{unread}</span>}
-              </button>
-            ))}
+            {items.map(([I, text, id]) => {
+              const isContracts = id === 'c_contract'
+              const isContractPage = current === id || (isContracts && active === 'c_activity' && nav.params?.tab === 'contracts')
+              return <Fragment key={id}>
+                <button type="button" title={collapsed ? text : undefined} aria-label={collapsed ? id === 'messages' && unread > 0 ? `${text}, ${unread} unread` : text : undefined} aria-current={isContractPage ? 'page' : undefined} aria-expanded={isContracts ? contractsOpen : undefined} className={cx('vx-nav-item', isContractPage && 'is-active')} onClick={() => {
+                  if (isContracts) {
+                    setContractsOpen((open) => !open)
+                    nav.go('c_activity', { tab: 'contracts' })
+                  } else nav.go(id)
+                  onNavigate?.()
+                }}>
+                  <FontAwesomeIcon icon={I} className="vx-fa-icon" /><span className="vx-lbl">{text}</span>
+                  {isContracts && <ChevronDown size={13} className={cx('ml-auto transition-transform', contractsOpen && 'rotate-180')} />}
+                  {id === 'messages' && unread > 0 && <span className="vx-badge">{unread}</span>}
+                </button>
+                {isContracts && contractsOpen && <div className="vv-customer-contract-menu" aria-label="Contracts">
+                  {contractsError && <div className="vv-customer-contract-muted">{contractsError}</div>}
+                  {!contracts && !contractsError && <div className="vv-customer-contract-muted">Loading…</div>}
+                  {contracts && !contracts.length && <div className="vv-customer-contract-muted">No contracts yet</div>}
+                  {contracts?.map((contract) => <button type="button" className="vv-customer-contract-item" key={contract.id} title={contract.version?.scope?.title || 'Contract'} onClick={() => { nav.go('c_contract', { id: contract.id }); onNavigate?.() }}>{contract.version?.scope?.title || `Contract ${String(contract.id).slice(0, 8)}`}</button>)}
+                </div>}
+              </Fragment>
+            })}
           </Fragment>
         ))}
       </nav>
-      <button type="button" className="vx-nav-item vx-logout" title={collapsed ? 'Log out' : undefined} onClick={logout}><LogOut size={17} /><span className="vx-lbl">Log out</span></button>
+      <button type="button" className="vx-nav-item vx-logout" title={collapsed ? 'Log out' : undefined} onClick={logout}><FontAwesomeIcon icon={faRightFromBracket} className="vx-fa-icon" /><span className="vx-lbl">Log out</span></button>
     </aside>
   )
 }
@@ -829,7 +884,7 @@ export function VendorWorkspace({ children, variant = 'vendor', header }) {
   const customer = variant === 'customer'
   const { theme } = useTheme()
   const collapseAt = variant === 'business' ? 1100 : 760
-  const [collapsed, setCollapsed] = useState(() => window.innerWidth <= collapseAt)
+  const [collapsed, setCollapsed] = useState(() => customer ? false : window.innerWidth <= collapseAt)
   const [mobile, setMobile] = useState(() => window.innerWidth <= 680)
   const [mobileOpen, setMobileOpen] = useState(false)
   useEffect(() => {
@@ -837,7 +892,7 @@ export function VendorWorkspace({ children, variant = 'vendor', header }) {
       const isMobile = window.innerWidth <= 680
       setMobile(isMobile)
       setMobileOpen(false)
-      setCollapsed(window.innerWidth <= collapseAt)
+      setCollapsed(customer ? false : window.innerWidth <= collapseAt)
     }
     window.addEventListener('resize', handleResize)
     return () => window.removeEventListener('resize', handleResize)
@@ -848,7 +903,10 @@ export function VendorWorkspace({ children, variant = 'vendor', header }) {
 
   return (
     <VendorWorkspaceContext.Provider value={true}>
-      <div className={cx('vx-shell vv-vendor-workspace', collapsed && 'is-collapsed', mobileOpen && 'is-mobile-open')} data-theme={theme}>
+      {/* Customer pages use the light editorial portal styles below. Keeping the
+          vendor shell's dark attribute here used to recolour only inputs and
+          labels, producing a broken light/dark hybrid customer workspace. */}
+      <div className={cx('vx-shell vv-vendor-workspace', collapsed && 'is-collapsed', mobileOpen && 'is-mobile-open')} data-theme={customer ? 'light' : theme}>
         <style>{VX_CSS}</style>
         {mobile && <button type="button" className="vx-mobile-scrim" aria-label="Close workspace menu" onClick={() => setMobileOpen(false)} />}
         {variant === 'business'
@@ -860,9 +918,9 @@ export function VendorWorkspace({ children, variant = 'vendor', header }) {
           {variant === 'business' && header
             ? header({ onWorkspaceToggle: toggleWorkspace, mobile, mobileOpen, collapsed })
             : <header className="vx-top">
-              <button type="button" className="vx-toggle" aria-controls={customer ? 'customer-workspace-navigation' : 'vendor-workspace-navigation'} aria-label={mobile ? mobileOpen ? 'Close workspace menu' : 'Open workspace menu' : collapsed ? 'Expand sidebar' : 'Collapse sidebar'} aria-expanded={mobile ? !mobileOpen : !collapsed} onClick={toggleWorkspace}>
+              {!customer && <button type="button" className="vx-toggle" aria-controls="vendor-workspace-navigation" aria-label={mobile ? mobileOpen ? 'Close workspace menu' : 'Open workspace menu' : collapsed ? 'Expand sidebar' : 'Collapse sidebar'} aria-expanded={mobile ? !mobileOpen : !collapsed} onClick={toggleWorkspace}>
                 {mobile ? mobileOpen ? <PanelLeftClose size={17} /> : <PanelLeftOpen size={17} /> : <ChevronLeft size={15} />}
-              </button>
+              </button>}
               {variant === 'vendor' && <nav className="vx-top-nav" aria-label="Vendor workspace shortcuts">
                 {topNavItems.map(([Icon, text, id]) => (
                   <button type="button" key={id} title={topNavLabel(text)} aria-label={topNavLabel(text)} aria-current={nav.id === id ? 'page' : undefined} className={cx('vx-top-nav-item', nav.id === id && 'is-active')} onClick={() => nav.go(id)}>
@@ -871,9 +929,8 @@ export function VendorWorkspace({ children, variant = 'vendor', header }) {
                 ))}
               </nav>}
               <label className="vx-search"><Search size={16} /><input placeholder={customer ? 'Search services, vendors, products…' : 'Search listings, quotes, messages…'} aria-label="Search" /></label>
-              <ThemeToggle className="vx-theme-toggle" />
-              <div className="vx-ico"><NotifBell role={customer ? 'customer' : 'vendor'} /></div>
-              <button type="button" className="vx-locale" onClick={() => setLang(lang === 'en' ? 'hi' : 'en')} aria-label="Switch language">{lang === 'en' ? 'EN | हिन्दी' : 'हि | EN'} <ChevronDown size={12} /></button>
+              <div className="vx-ico"><NotifBell role={customer ? 'customer' : 'vendor'} dropdown={customer} /></div>
+              {!customer && <button type="button" className="vx-locale" onClick={() => setLang(lang === 'en' ? 'hi' : 'en')} aria-label="Switch language">{lang === 'en' ? 'EN | हिन्दी' : 'हि | EN'} <ChevronDown size={12} /></button>}
               <div className="vx-me"><div className="vx-av">{(me.name || 'V').split(/\s+/).map((part) => part[0]).slice(0, 2).join('').toUpperCase()}</div><div><b>{me.name || (customer ? 'Customer' : 'Vendor')}</b><small>{customer ? 'Customer' : 'Owner'}</small></div></div>
             </header>}
           <main className="vx-panel">{children}</main>

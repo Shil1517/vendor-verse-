@@ -1,5 +1,5 @@
 import { Transform } from "class-transformer";
-import { IsIn, IsString, MaxLength, MinLength } from "class-validator";
+import { IsIn, IsOptional, IsString, MaxLength, MinLength } from "class-validator";
 import { ApiProperty } from "@nestjs/swagger";
 
 export class OtpRequestDto {
@@ -13,4 +13,14 @@ export class OtpRequestDto {
   @MinLength(1)
   @MaxLength(320)
   identifier!: string;
+
+  @ApiProperty({ enum: ["login", "register"], required: false })
+  @IsOptional()
+  @IsIn(["login", "register"])
+  intent?: "login" | "register";
+
+  @ApiProperty({ enum: ["CUSTOMER", "VENDOR"], required: false })
+  @IsOptional()
+  @IsIn(["CUSTOMER", "VENDOR"])
+  mode?: "CUSTOMER" | "VENDOR";
 }

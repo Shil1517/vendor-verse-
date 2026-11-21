@@ -34,7 +34,7 @@ export const WORLD = [
   ['BD', 'Bangladesh', '🇧🇩', 'BDT', ['বাংলা', 'English'], 'Dhaka:Dhaka;Chattogram:Chattogram;Khulna:Khulna'],
   ['LK', 'Sri Lanka', '🇱🇰', 'LKR', ['සිංහල', 'English'], 'Western:Colombo;Central:Kandy;Southern:Galle'],
   ['NP', 'Nepal', '🇳🇵', 'NPR', ['नेपाली', 'English'], 'Bagmati:Kathmandu;Gandaki:Pokhara;Lumbini:Bhairahawa'],
-  ['PK', 'Pakistan', '🇵🇰', 'PKR', ['اردو', 'English'], 'Punjab:Lahore;Sindh:Karachi;Islamabad Capital:Islamabad'],
+  ['PK', 'Pakistan', '🇵🇰', 'PKR', ['English'], 'Punjab:Lahore;Sindh:Karachi;Islamabad Capital:Islamabad'],
 ]
 export const EXTRA_CUR = {
   CAD: ['C$', 0.016, 'Canadian dollar'], SAR: ['SAR ', 0.045, 'Saudi riyal'], QAR: ['QAR ', 0.044, 'Qatari riyal'], KWD: ['KWD ', 0.0037, 'Kuwaiti dinar'], OMR: ['OMR ', 0.0046, 'Omani rial'], BHD: ['BHD ', 0.0045, 'Bahraini dinar'],

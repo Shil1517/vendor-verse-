@@ -10,7 +10,7 @@
  */
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { ClipboardList, FileSignature, FileText, Send } from 'lucide-react'
-import { Badge, Banner, Button, Card, Checkbox, Dialog, EmptyState, Input, KV, Screen, Section, Segmented, Select } from '../ui.jsx'
+import { Badge, Banner, Button, Card, CategorySelect, Checkbox, Dialog, EmptyState, Input, KV, Screen, Section, Segmented, Select } from '../ui.jsx'
 import { useApp } from '../store.jsx'
 import { useNav } from '../nav.jsx'
 import { authService } from '../services/authService.js'
@@ -77,7 +77,7 @@ function ActivityEmpty({ icon: Icon, title, body, action, onAction }) {
 /** Customer activity hub (F-BKG-10): bookings first, then RFQs, work orders and contracts, one tab each. */
 export function RemoteActivity() {
   const nav = useNav()
-  const [tab, setTab] = useState('bookings')
+  const [tab, setTab] = useState(() => nav.params?.tab || 'bookings')
   const load = useCallback(() => authService.listMyBookings(), [])
   const bookings = useLoad(load, [load])
   const rfqs = useLoad(() => authService.listMyRfqs(), [])
@@ -230,10 +230,10 @@ export function RemoteRfqNew({ params = {} }) {
   }
 
   return (
-    <Screen title="Request quotation" subtitle="Structured request for eligible vendors" footer={<Button full size="lg" icon={Send} disabled={busy} onClick={submit}>{busy ? 'Sending…' : draftId ? 'Send draft RFQ' : 'Send RFQ'}</Button>}>
+    <Screen title="Request quotation" subtitle="Structured request for eligible vendors" headerClass="bg-[#fffdf8]" bg="bg-[#f4efe6]" footer={<Button className="!border !border-[#d8cdbb] !bg-[#e7dfd1] !text-[#0e1b2c] hover:!border-[#0e1b2c] hover:!bg-[#0e1b2c] hover:!text-white" full size="lg" icon={Send} disabled={busy} onClick={submit}>{busy ? 'Sending…' : draftId ? 'Send draft RFQ' : 'Send RFQ'}</Button>}>
       {failure && <Banner tone="red" title="Could not send">{failure}</Banner>}
       {listings.error && <ErrorBox message={listings.error} />}
-      <Select label="Category" required value={f.categoryId} error={errs.categoryId} onChange={(e) => { set('categoryId')(e); setF((x) => ({ ...x, categoryId: e.target.value, listingId: '' })); setPicked(new Set()) }} options={[{ value: '', label: listings.loading ? 'Loading…' : categoryOptions.length ? 'Choose a category' : 'No category has vendors here yet' }, ...categoryOptions]} />
+      <CategorySelect label="Category" required value={f.categoryId} error={errs.categoryId} onChange={(e) => { set('categoryId')(e); setF((x) => ({ ...x, categoryId: e.target.value, listingId: '' })); setPicked(new Set()) }} options={[{ value: '', label: listings.loading ? 'Loading…' : categoryOptions.length ? 'Choose a category' : 'No category has vendors here yet' }, ...categoryOptions]} />
       <Segmented value={f.kind} onChange={(v) => setF((x) => ({ ...x, kind: v }))} options={[{ id: 'service', label: 'Service' }, { id: 'goods', label: 'Goods' }]} />
       <Input label="What do you need?" required placeholder="e.g. Repair kitchen pipe leak" value={f.title} onChange={set('title')} error={errs.title} />
       <Input label="Scope" required textarea placeholder="Describe the work or the items" value={f.scope} onChange={set('scope')} error={errs.scope} />

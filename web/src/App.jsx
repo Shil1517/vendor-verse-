@@ -1,19 +1,21 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Battery, Signal, Wifi, Search, X, LayoutGrid, CheckCircle2, AlertTriangle, Info, ChevronRight, FileCheck2, Rocket, Users2, Target, HelpCircle, Smartphone, Menu, Bell, Globe, ArrowLeftRight, PanelRightClose, PanelRightOpen, PanelLeftClose, PanelLeftOpen, LogOut, MapPin } from 'lucide-react'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { faHouse, faScrewdriverWrench, faChampagneGlasses, faUserTie, faCode, faBoxesStacked, faIndustry, faTruck } from '@fortawesome/free-solid-svg-icons'
 import { AppProvider, COUNTRY_SETTINGS, LOCATION_PRESETS, useApp } from './store.jsx'
 import { canOpenRoute } from './services/authorization.js'
 import { authService } from './services/authService.js'
 import { NavProvider, useNav } from './nav.jsx'
 import { HOME, TABS, ROLES, ADMIN_SIDEBAR } from './roles.js'
+import { INDUSTRIES } from './data.jsx'
 import { SCREENS, GROUPS } from './registry.jsx'
 import { pathForScreen, screenForLocation } from './screen-routes.js'
 import { Logo } from './screens/auth.jsx'
 import { VendorWorkspace, CUSTOMER_WORKSPACE_IDS } from './screens/vendor.jsx'
-import { ThemeToggle } from './components/ThemeToggle.jsx'
 import { MarketplaceAuthDialog, OPEN_AUTH_EVENT } from './components/MarketplaceAuthDialog.jsx'
 import { LocationDialog } from './components/LocationDialog.jsx'
 import { FRS, NFR, MVP, PHASE2, ACCEPTANCE, DECISIONS, ROLE_TABLE } from './specs.js'
-import { cx } from './ui.jsx'
+import { cx, SearchBar } from './ui.jsx'
 import { ThemeProvider } from './hooks/useTheme.jsx'
 import './screens/customer-visuals.css'
 import './screens/vendor-dashboard-visuals.css'
@@ -25,6 +27,63 @@ import './layout.css'
 import './workspace-themes.css'
 
 const INITIAL_ROUTE = screenForLocation(window.location, SCREENS)
+
+const MARKETPLACE_CATEGORIES = [
+  ['Home services', faHouse],
+  ['Construction', faScrewdriverWrench],
+  ['Events', faChampagneGlasses],
+  ['Professional services', faUserTie],
+  ['IT and digital', faCode],
+  ['Wholesale and industrial', faBoxesStacked],
+  ['Manufacturing and supply', faIndustry],
+  ['Logistics', faTruck],
+]
+
+function MarketplaceCategoriesMenu({ nav }) {
+  const [open, setOpen] = useState(false)
+  const [activeId, setActiveId] = useState(INDUSTRIES[0]?.id)
+  const menuRef = useRef(null)
+  const activeIndustry = INDUSTRIES.find((industry) => industry.id === activeId) || INDUSTRIES[0]
+
+  useEffect(() => {
+    const closeOnOutsideClick = (event) => { if (menuRef.current && !menuRef.current.contains(event.target)) setOpen(false) }
+    document.addEventListener('mousedown', closeOnOutsideClick)
+    return () => document.removeEventListener('mousedown', closeOnOutsideClick)
+  }, [])
+
+  return <div ref={menuRef} className={cx('vv-category-menu', open && 'is-open')}>
+    <button
+      type="button"
+      className="is-featured"
+      aria-haspopup="true"
+      aria-expanded={open}
+      onClick={() => { setOpen((value) => !value); setActiveId((value) => value || INDUSTRIES[0]?.id) }}
+    >
+      <LayoutGrid size={15} aria-hidden="true" />
+      <span>Categories</span>
+    </button>
+    <div className="vv-category-mega" role="menu">
+      <div className="vv-category-mega-heading">
+        <div><strong>All categories</strong><span>Hover over a category to see its subcategories</span></div>
+      </div>
+      <div className="vv-category-browser">
+        <div className="vv-category-browser-list" role="menu" aria-label="All categories">
+          {INDUSTRIES.map((industry) => <button key={industry.id} type="button" role="menuitem" aria-current={activeIndustry?.id === industry.id ? 'true' : undefined} className={cx(activeIndustry?.id === industry.id && 'is-selected')} onMouseEnter={() => setActiveId(industry.id)} onFocus={() => setActiveId(industry.id)} onClick={() => { setOpen(false); nav.go('c_explore', { group: industry.name }) }}>
+            <span>{industry.name}</span><small>{industry.cats}</small><ChevronRight size={14} aria-hidden="true" />
+          </button>)}
+        </div>
+        <div className="vv-category-browser-detail" role="menu" aria-label={`${activeIndustry?.name || 'Category'} subcategories`}>
+          {activeIndustry && <>
+            <div className="vv-category-browser-detail-heading"><strong>{activeIndustry.name}</strong><span>{activeIndustry.cats} sample categories</span></div>
+            <div className="vv-category-browser-subs">
+              {activeIndustry.subs.map((subcategory) => <button key={subcategory} type="button" role="menuitem" onClick={() => { setOpen(false); nav.go('c_explore', { group: activeIndustry.name, q: subcategory }) }}>{subcategory}</button>)}
+            </div>
+          </>}
+        </div>
+      </div>
+    </div>
+  </div>
+}
 
 function useViewport() {
   const [v, setV] = useState({ w: window.innerWidth, h: window.innerHeight })
@@ -99,7 +158,7 @@ function ScreenHost({ onMenu }) {
   const reg = SCREENS[nav.id] || SCREENS.welcome
   const C = reg.C
   const customerRoute = reg.role === 'customer' || (reg.role === 'shared' && me.role === 'customer')
-  const customerPortalRoute = me.role === 'customer' && ['c_profile', 'c_profile_edit', 'c_dash', 'c_activity', 'c_saved', 'c_cases', 'c_case', 'c_orders', 'c_reviews', 'c_settings'].includes(nav.id)
+  const customerPortalRoute = me.role === 'customer' && ['c_profile', 'c_profile_edit', 'c_dash', 'c_activity', 'c_saved', 'c_cases', 'c_case', 'c_orders', 'c_reviews', 'c_settings', 'messages', 'chat'].includes(nav.id)
   const businessWorkspaceRoute = me.role === 'business' && ['b_home', 'b_company', 'b_services', 'b_messages', 'b_more'].includes(nav.id)
   const vendorWorkspaceRoute = ['vendor', 'business'].includes(me.role) && (reg.role === 'vendor' || ['messages', 'chat'].includes(nav.id))
   const customerWorkspaceRoute = me.role === 'customer' && CUSTOMER_WORKSPACE_IDS.includes(nav.id)
@@ -229,11 +288,13 @@ function SpecPanel() {
 
 function WebHeader({ onMenu, hideTabs, workspaceHeader = false, workspaceTheme = false, blueBrand = false, workspaceToggle, workspaceMobile = false, workspaceMobileOpen = false, workspaceCollapsed = false, marketplaceCategories = true, marketplaceAnnouncement = true }) {
   const nav = useNav()
-  const { lang, setLang, locale, setLocale, me, setMe, t } = useApp()
+  const { lang, setLang, locale, setLocale, me, setMe, t, toast } = useApp()
   const [locationOpen, setLocationOpen] = useState(false)
   const [locationQuery, setLocationQuery] = useState('')
   const [headerLanguage, setHeaderLanguage] = useState(lang)
+  const [headerSearch, setHeaderSearch] = useState(nav.params?.q || '')
   const [authDialog, setAuthDialog] = useState(null)
+  useEffect(() => setHeaderSearch(nav.params?.q || ''), [nav.id, nav.params?.q])
   useEffect(() => {
     const open = (event) => setAuthDialog(event.detail?.mode === 'signup' ? 'signup' : 'signin')
     window.addEventListener(OPEN_AUTH_EVENT, open)
@@ -247,13 +308,18 @@ function WebHeader({ onMenu, hideTabs, workspaceHeader = false, workspaceTheme =
   const localeCountry = ['India', 'United Arab Emirates', 'United Kingdom'].includes(locale.countryName) ? locale.countryName : 'India'
   const changeCountry = (countryName) => setLocale({ ...locale, ...COUNTRY_SETTINGS[countryName], ...LOCATION_PRESETS[countryName], countryName })
   const changeCurrency = (currency) => changeCountry(({ INR: 'India', AED: 'United Arab Emirates', GBP: 'United Kingdom' })[currency])
+  const submitMarketplaceSearch = (e) => {
+    e.preventDefault()
+    const value = headerSearch.trim()
+    nav.go('c_explore', { ...(nav.params?.group ? { group: nav.params.group } : {}), ...(value ? { q: value } : {}) })
+  }
   return (
     <header className={cx('sticky top-0 z-40 shrink-0 border-b border-ink-200 bg-white/95 shadow-[0_2px_10px_rgba(20,40,75,.04)] backdrop-blur', workspaceHeader && 'vv-workspace-global-header', mockMarketplaceHeader && 'vv-mock-global-header')}>
       {mockMarketplaceHeader && marketplaceAnnouncement && <div className="vv-mock-announcement">Discover and work with verified vendors worldwide.</div>}
       <div className="mx-auto flex h-[72px] max-w-[1600px] items-center gap-3 px-4 sm:px-7 lg:px-10">
         {mockMarketplaceHeader ? <>
           <button onClick={() => nav.reset('c_home')} className="vv-mock-brand" aria-label="VendorVerse home"><span className="vv-mock-wordmark">VENDOR<span>VERSE</span></span><span className="vv-mock-brand-tagline">Global Marketplace · products · services · quotes</span></button>
-          <div className="vv-mock-header-spacer" />
+          {nav.id === 'c_explore' ? <form className="vv-mock-header-search" onSubmit={submitMarketplaceSearch} role="search"><SearchBar value={headerSearch} onChange={(e) => setHeaderSearch(e.target.value)} placeholder="Search vendors, products, services" /></form> : <div className="vv-mock-header-spacer" />}
           <div className="vv-mock-header-controls">
             {authService.isRemote ? <button type="button" onClick={() => setLocationOpen(true)} className="vv-mock-header-select vv-mock-location" aria-label="Choose location" title={t('searchLocation')}><MapPin size={16}/><span className="max-w-[150px] truncate">{locale.city || localeCountry}{locale.pincode ? ` ${locale.pincode}` : ''}</span></button> : <label className="vv-mock-header-select vv-mock-location"><MapPin size={16}/><select aria-label="Location" value={localeCountry} onChange={(e) => changeCountry(e.target.value)}>{Object.keys(countryLabel).map((country) => <option key={country} value={country}>{countryLabel[country]}</option>)}</select></label>}
             <select className="vv-mock-header-select" aria-label="Language" value={headerLanguage} onChange={(e) => { const value = e.target.value; setHeaderLanguage(value); if (value !== 'ar') setLang(value); document.documentElement.dir = value === 'ar' ? 'rtl' : 'ltr' }}><option value="en">English</option><option value="hi">हिन्दी</option><option value="ar">العربية</option></select>
@@ -271,16 +337,15 @@ function WebHeader({ onMenu, hideTabs, workspaceHeader = false, workspaceTheme =
         <div className="ml-auto flex shrink-0 items-center gap-1 sm:gap-2">
           {workspaceHeader && <button type="button" onClick={workspaceToggle} aria-controls="business-workspace-navigation" aria-label={workspaceMobile ? workspaceMobileOpen ? 'Close business workspace menu' : 'Open business workspace menu' : workspaceCollapsed ? 'Expand sidebar' : 'Collapse sidebar'} aria-expanded={workspaceMobile ? workspaceMobileOpen : !workspaceCollapsed} className="grid size-10 place-items-center rounded-xl text-ink-600 hover:bg-ink-50">{workspaceMobile ? workspaceMobileOpen ? <PanelLeftClose size={19} /> : <PanelLeftOpen size={19} /> : workspaceCollapsed ? <PanelLeftOpen size={19} /> : <PanelLeftClose size={19} />}</button>}
           <button onClick={onMenu} aria-label="More pages and tools" title="More pages and tools" className="grid size-10 place-items-center rounded-xl text-ink-600 hover:bg-ink-50"><Menu size={20} /></button>
-          {me.loggedIn && me.role !== 'business' && me.hasVendorAccount && <button onClick={() => { const nextRole = me.role === 'business' ? 'vendor' : me.role === 'vendor' ? 'customer' : 'vendor'; authService.switchMode?.(nextRole === 'customer' ? 'CUSTOMER' : 'VENDOR'); setMe({ ...me, role: nextRole, name: nextRole === 'customer' ? (me.customerName || me.name) : nextRole === 'vendor' && me.vendorOwnerName ? me.vendorOwnerName : (me.vendorName || me.name), buyerMode: false }); nav.reset(nextRole === 'customer' ? 'c_home' : 'v_dash') }} className="flex h-10 items-center gap-1.5 rounded-xl bg-brand-50 px-2.5 text-xs font-bold text-brand-800 hover:bg-brand-100" title={me.role === 'business' ? 'Switch to vendor workspace' : me.role === 'vendor' ? 'Switch to customer' : 'Switch to vendor workspace'}><ArrowLeftRight size={16} /><span className="hidden sm:inline">{me.role === 'business' ? 'Vendor' : me.role === 'vendor' ? 'Customer' : 'Vendor'}</span></button>}
+          {me.loggedIn && me.role !== 'business' && me.hasVendorAccount && <button onClick={async () => { const nextRole = me.role === 'business' ? 'vendor' : me.role === 'vendor' ? 'customer' : 'vendor'; const switched = await authService.switchMode?.(nextRole === 'customer' ? 'CUSTOMER' : 'VENDOR'); if (switched && !switched.ok) { toast(switched.message, 'warn'); return }; setMe({ ...me, role: nextRole, name: nextRole === 'customer' ? (me.customerName || me.name) : nextRole === 'vendor' && me.vendorOwnerName ? me.vendorOwnerName : (me.vendorName || me.name), buyerMode: false }); nav.reset(nextRole === 'customer' ? 'c_home' : 'v_dash') }} className="flex h-10 items-center gap-1.5 rounded-xl bg-brand-50 px-2.5 text-xs font-bold text-brand-800 hover:bg-brand-100" title={me.role === 'business' ? 'Switch to vendor workspace' : me.role === 'vendor' ? 'Switch to customer' : 'Switch to vendor workspace'}><ArrowLeftRight size={16} /><span className="hidden sm:inline">{me.role === 'business' ? 'Vendor' : me.role === 'vendor' ? 'Customer' : 'Vendor'}</span></button>}
           <button onClick={() => (authService.isRemote ? setLocationOpen(true) : nav.go('c_location'))} className="hidden max-w-[210px] truncate rounded-xl bg-ink-50 px-3 py-2 text-left text-xs font-bold text-ink-700 hover:bg-brand-50 sm:block" title={t('searchLocation')}><MapPin size={14} className="mr-1 inline text-brand-700" />{locale.city || 'Jaipur'}{locale.pincode ? ` ${locale.pincode}` : ''}, {locale.state || 'Rajasthan'}, {locale.countryName || 'India'}</button>
           <button onClick={() => setLang(lang === 'en' ? 'hi' : 'en')} className="hidden h-10 items-center gap-2 rounded-xl px-2.5 text-sm font-semibold text-ink-600 hover:bg-ink-50 sm:flex" aria-label="Switch language"><Globe size={17} /><span>{lang === 'en' ? 'EN' : 'हि'}</span></button>
           <button onClick={() => nav.go('notifications')} className="relative grid size-10 place-items-center rounded-xl text-ink-600 hover:bg-ink-50" aria-label="Notifications"><Bell size={19} /></button>
-          {(workspaceHeader || workspaceTheme) && <ThemeToggle className="vv-workspace-theme-toggle" />}
           {!me.loggedIn && <button onClick={() => nav.go('login')} className="h-10 rounded-xl bg-brand-600 px-4 text-sm font-bold text-white shadow-sm hover:bg-brand-700">Sign in</button>}
         </div>
         </>}
       </div>
-      {mockMarketplaceHeader && marketplaceCategories && <nav className="vv-mock-category-nav" aria-label="Categories">{['New vendors', 'Home services', 'Construction', 'Events', 'Professional services', 'IT and digital', 'Wholesale and industrial', 'Manufacturing and supply', 'Logistics'].map((category, index) => <button key={category} className={cx(index === 0 && 'is-featured', nav.id === 'c_explore' && nav.params?.group === category && 'is-active')} onClick={() => nav.go('c_explore', { group: category })}>{category}</button>)}</nav>}
+      {mockMarketplaceHeader && marketplaceCategories && <nav className="vv-mock-category-nav" aria-label="Categories"><div className="vv-category-nav-items"><MarketplaceCategoriesMenu nav={nav} />{MARKETPLACE_CATEGORIES.map(([category, icon]) => <button key={category} className={cx(nav.id === 'c_explore' && nav.params?.group === category && 'is-active')} onClick={() => nav.go('c_explore', { group: category })}><FontAwesomeIcon icon={icon} aria-hidden="true" /><span>{category}</span></button>)}</div></nav>}
       <div className="sr-only" aria-live="polite">{screen.title}</div>
       {authService.isRemote && <LocationDialog open={locationOpen} onClose={() => setLocationOpen(false)} />}
       {authDialog && <MarketplaceAuthDialog mode={authDialog} onClose={() => setAuthDialog(null)} onChangeMode={setAuthDialog} />}
@@ -352,7 +417,7 @@ function Shell() {
   const showAdminSidebar = me.role === 'admin' && adminSidebarIds.includes(nav.id)
   const showBusinessWorkspace = me.role === 'business' && ['b_home', 'b_company', 'b_services', 'b_messages', 'b_more'].includes(nav.id)
   const showVendorWorkspace = (['vendor', 'business'].includes(me.role) && ((SCREENS[nav.id] || {}).role === 'vendor' || ['messages', 'chat'].includes(nav.id))) || showBusinessWorkspace
-  const customerPortalRoute = me.role === 'customer' && ['c_profile', 'c_profile_edit', 'c_dash', 'c_activity', 'c_saved', 'c_cases', 'c_case', 'c_orders', 'c_reviews', 'c_settings'].includes(nav.id)
+  const customerPortalRoute = me.role === 'customer' && ['c_profile', 'c_profile_edit', 'c_dash', 'c_activity', 'c_saved', 'c_cases', 'c_case', 'c_orders', 'c_reviews', 'c_settings', 'messages', 'chat'].includes(nav.id)
   const showCustomerWorkspace = me.role === 'customer' && CUSTOMER_WORKSPACE_IDS.includes(nav.id)
   const agentLogout = () => {
     setMe({ role: null, loggedIn: false, guest: false, vendorId: 'v-me', name: '' })

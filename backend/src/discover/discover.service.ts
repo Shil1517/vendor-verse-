@@ -294,6 +294,7 @@ export class DiscoverService {
         service_areas: unknown[];
         availability_model: string | null;
         availability_time_zone: string | null;
+        bookable_windows: Array<{ id: string; startsAt: string; endsAt: string; placesLeft: number }>;
         vendor_description: string | null;
       }
     >(
@@ -316,7 +317,17 @@ export class DiscoverService {
                FROM service_areas AS sa
                WHERE sa.vendor_id = l.vendor_id
                  AND (sa.listing_id = l.id OR sa.listing_id IS NULL)) AS service_areas,
-              ar.availability_model, ar.time_zone AS availability_time_zone
+              ar.availability_model, ar.time_zone AS availability_time_zone,
+              (SELECT COALESCE(jsonb_agg(jsonb_build_object(
+                        'id', available.id, 'startsAt', available.starts_at,
+                        'endsAt', available.ends_at,
+                        'placesLeft', available.capacity - available.reserved)
+                      ORDER BY available.starts_at), '[]'::jsonb)
+               FROM (SELECT id, starts_at, ends_at, capacity, reserved
+                     FROM availability_capacity
+                     WHERE listing_id = l.id AND starts_at > CURRENT_TIMESTAMP
+                       AND reserved < capacity
+                     ORDER BY starts_at LIMIT 20) AS available) AS bookable_windows
        ${LISTING_ELIGIBLE_JOINS}
        LEFT JOIN vendor_profiles AS vp ON vp.vendor_id = v.id
        LEFT JOIN availability_rules AS ar ON ar.listing_id = l.id
@@ -343,6 +354,7 @@ export class DiscoverService {
       },
       price: priceView(row),
       instantBooking: row.instant_booking_enabled,
+      bookableWindows: row.bookable_windows ?? [],
       timeZone: row.time_zone,
       attributes: row.attributes,
       serviceAreas: row.service_areas,

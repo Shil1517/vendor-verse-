@@ -8,7 +8,7 @@
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { CalendarClock, Heart, MapPin, Search, Zap } from 'lucide-react'
-import { Badge, Banner, Button, Card, Chips, EmptyState, Input, KV, ListRow, Screen, Section, Segmented, SearchBar, Toggle } from '../ui.jsx'
+import { Badge, Banner, Button, Card, Chips, EmptyState, Input, KV, ListRow, Screen, Section, Segmented, SearchBar, Toggle, cx } from '../ui.jsx'
 import { useApp } from '../store.jsx'
 import { useNav } from '../nav.jsx'
 import { authService } from '../services/authService.js'
@@ -79,7 +79,10 @@ export function useLoad(load, deps = []) {
   return { ...state, reload: run }
 }
 
-export const Loading = () => <p className="p-6 text-center text-sm text-ink-500">Loading…</p>
+export const Loading = () => <div className="vv-loading-state" role="status" aria-live="polite">
+  <span className="vv-loading-spinner" aria-hidden="true" />
+  <span>Loading results…</span>
+</div>
 export const ErrorBox = ({ message, onRetry }) => <Banner tone="red" title="Could not load" action={onRetry && <Button size="sm" variant="secondary" onClick={onRetry}>Try again</Button>}>{message}</Banner>
 
 /* ================= SEARCH (F-DSC-02, F-DSC-03, F-DSC-04) ================= */
@@ -118,7 +121,7 @@ function UniversalPanel({ q, country, cityId, signedIn, onCategory }) {
     <div className="space-y-3">
       {state.loading && !state.data && <Loading />}
       {vendors.length > 0 && <Section title="Vendors">{vendors.map((v) => (
-        <Card key={v.id}><p className="truncate text-[15px] font-bold text-ink-900">{v.name}</p><p className="text-xs text-ink-500">{v.roles.join(' · ') || 'Verified vendor'}</p></Card>
+        <Card key={v.id} onClick={() => nav.go('c_vendor', { id: v.id })}><p className="truncate text-[15px] font-bold text-ink-900">{v.name}</p><p className="text-xs text-ink-500">{v.roles.join(' · ') || 'Verified vendor'}</p></Card>
       ))}</Section>}
       {categories.length > 0 && <Section title="Categories"><div className="flex flex-wrap gap-2">{categories.map((c) => (
         <button key={c.id} onClick={() => onCategory(c.id)} className="rounded-full bg-white px-3 py-1.5 text-sm font-semibold text-ink-800 ring-1 ring-ink-200">{c.name}</button>
@@ -139,6 +142,56 @@ function UniversalPanel({ q, country, cityId, signedIn, onCategory }) {
       ))}
       <p className="text-[11px] text-ink-400">Your RFQs, bookings, contracts and orders are shown only to you{signedIn ? '' : '. Sign in to include them'}.</p>
     </div>
+  )
+}
+
+const RESULT_IMAGES = {
+  Plumbing: '/category-images/plumbing.jpg',
+  'Electrical and AC repair': '/category-images/electrical-ac-repair.jpg',
+  'Home cleaning': '/category-images/home-cleaning.jpg',
+  Carpentry: '/category-images/carpentry.jpg',
+  'Paints and finishing': '/category-images/paints-finishing.jpg',
+  'Hardware and building materials': '/category-images/hardware-building-materials.jpg',
+  'Event catering': '/category-images/event-catering.jpg',
+}
+
+function ResultCard({ listing: l, sample = false, onClick, onVendorClick }) {
+  const location = l.city || l.vendor?.city || l.vendor?.location
+  const kind = l.listingType === 'product' ? 'Product' : 'Service'
+  const matched = sample ? (l.isNew ? 'New vendor' : 'Verified marketplace listing') : matchLabels(l.matchedOn).join(' · ')
+  const image = RESULT_IMAGES[l.categoryName] || (l.listingType === 'product' ? '/category-images/hardware-building-materials.jpg' : '/hero-home-services.svg')
+
+  return (
+    <Card className="group overflow-hidden p-0">
+      <div className="vv-result-card-layout">
+        <button type="button" disabled={!onClick} onClick={onClick} aria-label={`Open ${l.title}`} className="vv-result-card-image relative overflow-hidden rounded-2xl bg-ink-100 text-left">
+          <img src={image} alt="" loading="lazy" className="absolute inset-0 size-full object-cover transition duration-300 group-hover:scale-105" />
+          <div className="absolute inset-0 bg-gradient-to-t from-ink-900/35 to-transparent" />
+          <span className="absolute bottom-3 left-3 rounded-full bg-white/90 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-ink-700 backdrop-blur-sm">{kind}</span>
+        </button>
+        <div className="vv-result-card-body p-4 md:p-5">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-start justify-between gap-2">
+              <button type="button" disabled={!onClick} onClick={onClick} className="min-w-0 text-left text-base font-bold leading-snug text-ink-900 transition hover:text-brand-700 md:text-lg">{l.title}</button>
+              <div className="flex shrink-0 gap-1.5">{l.instantBooking && <Badge tone="teal"><Zap size={11} /> Instant</Badge>}{sample && <Badge tone="gray">Sample</Badge>}</div>
+            </div>
+            {onVendorClick ? <button type="button" onClick={onVendorClick} className="mt-1 text-left text-sm font-medium text-brand-700 underline underline-offset-2 hover:text-brand-900">{l.vendor.name} · View profile & message</button> : <p className="mt-1 text-sm font-medium text-ink-600">{l.vendor.name}</p>}
+            <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-ink-500">
+              <span className="rounded-full bg-ink-50 px-2 py-1 font-semibold text-ink-600">{l.categoryName}</span>
+              {location && <span className="inline-flex items-center gap-1"><MapPin size={12} />{location}</span>}
+            </div>
+          </div>
+        <div className="mt-3 flex flex-wrap items-end justify-between gap-3 rounded-2xl bg-ink-50/80 px-3.5 py-2.5 ring-1 ring-inset ring-ink-100">
+          <div>
+            <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-ink-400">Starting range</p>
+            <p className="mt-1 text-base font-extrabold tracking-tight text-ink-900 md:text-lg">{priceLabel(l.price)}</p>
+          </div>
+          <span className="rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-ink-600 ring-1 ring-ink-200">{kind}</span>
+        </div>
+        {matched && <p className="mt-2 text-xs font-medium text-ink-500">{matched}</p>}
+        </div>
+      </div>
+    </Card>
   )
 }
 
@@ -206,27 +259,56 @@ export function RemoteExplore({ params = {} }) {
       return !text || [l.title, l.vendor.name, l.categoryName, l.group, l.city].some((v) => v.toLowerCase().includes(text))
     })
   }, [q, group, type, categoryId, instantOnly, min, max])
+  const activeFilterCount = [type !== 'all', categoryId !== 'all', Boolean(min), Boolean(max), instantOnly].filter(Boolean).length
 
   return (
-    <Screen title="Explore" back={false} pad={false} headerless>
-      <div className="mx-auto w-full max-w-5xl space-y-5 px-4 py-6 md:py-8">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight md:text-3xl text-ink-900">{group || 'Explore'}</h1>
-        <p className="mt-1 text-sm text-ink-500 md:text-base">{group === 'New vendors' ? 'Recently joined, verified vendors.' : group ? `Products and services in ${group.toLowerCase()}.` : 'Search products and services from verified vendors.'}</p>
-      </div>
-      <div className="space-y-4 rounded-2xl bg-white p-4 md:p-6 shadow-sm ring-1 ring-ink-100">
-        <SearchBar value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search vendors, products, services" />
-        <Segmented value={type} onChange={setType} options={[{ id: 'all', label: 'All' }, { id: 'product', label: 'Products' }, { id: 'service', label: 'Services' }]} />
-        {chipOptions.length > 0 && (
-          <Chips className="md:-mx-6 md:px-6" value={categoryId} onChange={setCategoryId} options={[{ id: 'all', label: 'All categories' }, ...chipOptions]} />
-        )}
-        <div className="flex items-end gap-2">
-          <Input className="!h-11" label="Min price" inputMode="numeric" value={min} onChange={(e) => setMin(e.target.value.replace(/\D/g, ''))} />
-          <Input className="!h-11" label="Max price" inputMode="numeric" value={max} onChange={(e) => setMax(e.target.value.replace(/\D/g, ''))} />
+    <Screen title="Explore" back={false} pad={false} headerless scrollClass="vv-remote-explore-scroll">
+      <div className="vv-remote-explore mx-auto space-y-5 pb-6 pt-3 md:pb-8 md:pt-4">
+      <div className="vv-remote-explore-grid grid items-start gap-5">
+      <aside className="vv-explore-filter md:sticky md:top-4">
+      <div className="overflow-hidden rounded-3xl bg-white shadow-[0_18px_55px_-30px_rgba(15,23,42,0.45)] ring-1 ring-ink-100">
+        <div className="flex items-center justify-between border-b border-ink-100 bg-gradient-to-br from-ink-50 via-white to-brand-50/40 px-5 py-4 md:px-6">
+          <div><p className="text-[11px] font-bold uppercase tracking-[0.18em] text-brand-700">Search filters</p><h2 className="mt-1 text-lg font-bold tracking-tight text-ink-900">Refine results</h2></div>
+          {activeFilterCount > 0 && <span className="rounded-full bg-brand-50 px-2.5 py-1 text-xs font-bold text-brand-700 ring-1 ring-brand-100">{activeFilterCount} active</span>}
         </div>
-        <Toggle label="Instant booking only" desc="Listings you can book without waiting for a reply" on={instantOnly} onChange={setInstantOnly} />
+
+        <div className="vv-explore-filter-body space-y-4 p-4 md:p-5">
+          <div>
+            <div className="mb-2.5 flex items-center justify-between gap-3">
+              <p className="text-xs font-bold uppercase tracking-[0.14em] text-ink-500">Browse by type</p>
+              <span className="text-xs text-ink-400">Choose one</span>
+            </div>
+            <Segmented className="bg-ink-50" value={type} onChange={setType} options={[{ id: 'all', label: 'All' }, { id: 'product', label: 'Products' }, { id: 'service', label: 'Services' }]} />
+          </div>
+
+          {chipOptions.length > 0 && (
+            <div>
+              <p className="mb-2.5 text-xs font-bold uppercase tracking-[0.14em] text-ink-500">Category</p>
+              <Chips className="-mx-1 px-1" value={categoryId} onChange={setCategoryId} options={[{ id: 'all', label: 'All categories' }, ...chipOptions]} />
+            </div>
+          )}
+
+          <div className="rounded-2xl bg-ink-50/75 p-4 ring-1 ring-inset ring-ink-100">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-sm font-bold text-ink-900">Refine your search</p>
+                <p className="mt-0.5 text-xs text-ink-500">Optional filters to narrow the results.</p>
+              </div>
+              <span className="rounded-full bg-white px-2.5 py-1 text-[11px] font-semibold text-ink-500 ring-1 ring-ink-200">Optional</span>
+            </div>
+            <div className="mt-3 grid gap-3 sm:grid-cols-2">
+              <Input className="!h-11 bg-white" label="Minimum price" inputMode="numeric" value={min} onChange={(e) => setMin(e.target.value.replace(/\D/g, ''))} />
+              <Input className="!h-11 bg-white" label="Maximum price" inputMode="numeric" value={max} onChange={(e) => setMax(e.target.value.replace(/\D/g, ''))} />
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-ink-100 bg-white px-4 py-3">
+            <Toggle label="Instant booking only" desc="Show listings you can book without waiting for a reply" on={instantOnly} onChange={setInstantOnly} />
+          </div>
+        </div>
       </div>
-      <div className="space-y-3.5">
+      </aside>
+      <div className="vv-explore-listings space-y-3.5">
         <UniversalPanel q={q} country={country} cityId={cityId} signedIn={Boolean(app.me?.loggedIn)} onCategory={setCategoryId} />
         <p className="pt-1 text-[13px] font-bold uppercase tracking-wide text-ink-500">Products and services{(useSamples ? sampleItems.length : visibleItems.length) > 0 && ` (${useSamples ? sampleItems.length : visibleItems.length})`}</p>
         {!useSamples && state.error && <ErrorBox message={state.error} onRetry={() => search()} />}
@@ -234,40 +316,17 @@ export function RemoteExplore({ params = {} }) {
           <Banner tone="amber" title="Not live in this area yet">VendorVerse is not open for search in {locale.city || 'this area'} yet, so nothing is shown. Nothing here is hidden from you.</Banner>
         )}
         {!state.error && state.loading && state.items.length === 0 && <Loading />}
-        {useSamples && sampleItems.map((l) => (
-          <Card key={l.id}>
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                <p className="truncate text-base font-bold leading-snug text-ink-900 md:text-lg">{l.title}</p>
-                <p className="truncate text-[13px] text-ink-500 md:text-sm">{l.vendor.name} · {l.categoryName} · {l.city}</p>
-              </div>
-              <div className="flex shrink-0 gap-1.5">{l.instantBooking && <Badge tone="teal"><Zap size={11} /> Instant</Badge>}<Badge tone="gray">Sample</Badge></div>
-            </div>
-            <p className="mt-2 text-[15px] font-semibold text-ink-800 md:text-base">{priceLabel(l.price)}</p>
-            <p className="mt-1 text-[13px] text-ink-500 md:text-sm">{l.listingType === 'product' ? 'Product' : 'Service'}{l.isNew ? ' · New vendor' : ''}</p>
-          </Card>
-        ))}
+        {useSamples && sampleItems.map((l) => <ResultCard key={l.id} listing={l} sample />)}
         {useSamples && sampleItems.length === 0 && (
           <EmptyState icon={Search} title="No matches" body="Try different words or remove a filter." action={<Button size="sm" onClick={() => nav.go('c_rfq_new')}>Request a quote</Button>} />
         )}
         {!useSamples && !state.loading && !state.error && state.marketLive && visibleItems.length === 0 && (
           <EmptyState icon={Search} title="No matches" body="Try different words or remove a filter. Results never include vendors that do not serve your area." action={<Button size="sm" onClick={() => nav.go('c_rfq_new')}>Request a quote</Button>} />
         )}
-        {visibleItems.map((l) => (
-          <Card key={l.id} onClick={() => nav.go('c_listing', { id: l.id })}>
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                <p className="truncate text-base font-bold leading-snug text-ink-900 md:text-lg">{l.title}</p>
-                <p className="truncate text-[13px] text-ink-500 md:text-sm">{l.vendor.name} · {l.categoryName}</p>
-              </div>
-              {l.instantBooking && <Badge tone="teal"><Zap size={11} /> Instant</Badge>}
-            </div>
-            <p className="mt-2 text-[15px] font-semibold text-ink-800 md:text-base">{priceLabel(l.price)}</p>
-            <p className="mt-1 text-[13px] text-ink-500 md:text-sm">{matchLabels(l.matchedOn).join(' · ')}</p>
-          </Card>
-        ))}
+        {visibleItems.map((l) => <ResultCard key={l.id} listing={l} onClick={() => nav.go('c_listing', { id: l.id })} onVendorClick={() => nav.go('c_vendor', { id: l.vendor.id, listingId: l.id })} />)}
         {state.nextCursor && !state.loading && <Button full variant="secondary" onClick={() => search(state.nextCursor)}>Show more</Button>}
         {state.nextCursor && state.loading && <Loading />}
+      </div>
       </div>
       </div>
     </Screen>
@@ -311,7 +370,7 @@ export function RemoteListingDetail({ params = {} }) {
     >
       <div>
         <h2 className="text-lg font-bold text-ink-900">{l.title}</h2>
-        <p className="text-sm text-ink-500">{l.vendor.name} · {l.categoryName}</p>
+        <p className="text-sm text-ink-500"><button type="button" className="font-semibold text-brand-700 underline underline-offset-2" onClick={() => nav.go('c_vendor', { id: l.vendor.id, listingId: l.id })}>{l.vendor.name} · View profile & message</button> · {l.categoryName}</p>
         <p className="mt-2 text-base font-semibold text-ink-900">{priceLabel(l.price)}</p>
       </div>
       {l.description ? <p className="text-sm leading-relaxed text-ink-700">{l.description}</p> : <p className="text-sm text-ink-500">The vendor has not added a description.</p>}
@@ -340,6 +399,7 @@ export function RemoteBookNew({ params = {} }) {
   const [end, setEnd] = useState('')
   const [notes, setNotes] = useState('')
   const [repeat, setRepeat] = useState(1)
+  const [windowId, setWindowId] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const key = useRef(newKey()) // one key per user action: a double tap or retry makes one booking (F-BKG-08)
@@ -348,6 +408,7 @@ export function RemoteBookNew({ params = {} }) {
   if (listing.loading) return <Screen title="Request a booking"><Loading /></Screen>
   if (listing.error) return <Screen title="Request a booking"><ErrorBox message={listing.error} onRetry={listing.reload} /></Screen>
   const l = listing.data.listing
+  const windows = (l.bookableWindows || []).filter((window) => new Date(window.startsAt) > new Date() && window.placesLeft > 0)
 
   // The Send button lives in a fixed footer, so an error shown only inside the scrolled form can be off-screen
   // and the tap looks like it did nothing. Show it at the top of the form and as a toast.
@@ -357,12 +418,22 @@ export function RemoteBookNew({ params = {} }) {
     // Default the end to one hour later so a customer only has to pick a start; they can still change it.
     if (value && (!end || new Date(end) <= new Date(value))) setEnd(toLocalInput(new Date(new Date(value).getTime() + 3600000)))
   }
+  const chooseWindow = (id) => {
+    setWindowId(id)
+  }
+  const changeMode = (value) => {
+    setMode(value)
+    setError('')
+    if (value === 'instant') setRepeat(1)
+  }
 
   const submit = async () => {
     setError('')
-    if (!start || !end) return fail('Choose a start and end time.')
-    const s = new Date(start)
-    const e = new Date(end)
+    const chosenWindow = mode === 'instant' ? windows.find((item) => item.id === windowId) : null
+    if (mode === 'instant' && !chosenWindow) return fail('Choose an available time window.')
+    if (mode === 'scheduled' && (!start || !end)) return fail('Choose a start and end time.')
+    const s = new Date(chosenWindow?.startsAt || start)
+    const e = new Date(chosenWindow?.endsAt || end)
     if (!(e > s)) return fail('The end time must be after the start.')
     if (s <= new Date()) return fail('Choose a time in the future.')
     const week = 7 * 86400000
@@ -379,8 +450,14 @@ export function RemoteBookNew({ params = {} }) {
     const r = await authService.createBooking(body, key.current)
     setBusy(false)
     if (!r.ok) {
-      if (r.status === 409) key.current = newKey() // a different attempt may now be valid
-      return fail(r.status === 409 ? 'That slot was just taken. Choose another time.' : r.message || 'Could not create the booking.')
+      if (r.status === 409) {
+        key.current = newKey() // a different attempt may now be valid
+        if (mode === 'instant') {
+          setWindowId('')
+          listing.reload()
+        }
+      }
+      return fail(r.status === 409 ? 'That time is no longer available. Choose another one.' : r.message || 'Could not create the booking.')
     }
     toast(r.bookings[0].state === 'confirmed' ? 'Booking confirmed' : 'Request sent to the vendor')
     nav.replace('c_booking', { id: r.bookings[0].id })
@@ -389,10 +466,17 @@ export function RemoteBookNew({ params = {} }) {
   return (
     <Screen title={mode === 'instant' ? 'Instant booking' : 'Request a booking'} subtitle={l.title} footer={<Button full disabled={busy} onClick={submit}>{busy ? 'Sending…' : mode === 'instant' ? 'Confirm booking' : 'Send request'}</Button>}>
       <div ref={scrollRef}>{error && <Banner tone="red" title="Cannot book">{error}</Banner>}</div>
-      {l.instantBooking && <Segmented value={mode} onChange={setMode} options={[{ id: 'scheduled', label: 'Request' }, { id: 'instant', label: 'Instant' }]} />}
+      {l.instantBooking && <Segmented value={mode} onChange={changeMode} options={[{ id: 'scheduled', label: 'Request' }, { id: 'instant', label: 'Instant' }]} />}
       <Card><KV rows={[['Vendor', l.vendor.name], ['Price', priceLabel(l.price)]]} /></Card>
-      <Input label="Start" type="datetime-local" min={toLocalInput(new Date())} value={start} onChange={(e) => onStart(e.target.value)} required />
-      <Input label="End" type="datetime-local" min={start || toLocalInput(new Date())} value={end} onChange={(e) => setEnd(e.target.value)} required hint={`Times are in your device's time zone (${deviceZone()}).`} />
+      {mode === 'instant' ? <Section title="Available time windows">
+        {windows.length ? <div className="space-y-2">{windows.map((window) => <button key={window.id} type="button" aria-pressed={windowId === window.id} onClick={() => chooseWindow(window.id)} className={cx('w-full rounded-xl border p-3 text-left text-sm transition', windowId === window.id ? 'border-brand-600 bg-brand-50 text-brand-900' : 'border-ink-200 bg-white text-ink-700 hover:border-brand-400')}>
+          <span className="font-semibold">{fmtWhen(window.startsAt, deviceZone())} to {fmtWhen(window.endsAt, deviceZone())}</span>
+          <span className="ml-2 text-xs">{window.placesLeft} {window.placesLeft === 1 ? 'place' : 'places'} left</span>
+        </button>)}</div> : <Banner tone="amber" title="No instant times available">Try a scheduled request or check again later.</Banner>}
+      </Section> : <>
+        <Input label="Start" type="datetime-local" min={toLocalInput(new Date())} value={start} onChange={(e) => onStart(e.target.value)} required />
+        <Input label="End" type="datetime-local" min={start || toLocalInput(new Date())} value={end} onChange={(e) => setEnd(e.target.value)} required hint={`Times are in your device's time zone (${deviceZone()}).`} />
+      </>}
       {mode === 'scheduled' && <Select2 label="Repeat" value={repeat} onChange={setRepeat} />}
       <Input label="Notes for the vendor" textarea rows={3} value={notes} onChange={(e) => setNotes(e.target.value)} hint="Address, access details, anything the vendor needs." />
       {mode === 'instant'

@@ -38,6 +38,9 @@ export const AUTH_ERRORS = {
   INVALID_PROFILE: 'INVALID_PROFILE',
   NOT_FOUND: 'NOT_FOUND',
   CONFLICT: 'CONFLICT',
+  ACCOUNT_NOT_FOUND: 'ACCOUNT_NOT_FOUND',
+  WRONG_ACCOUNT_TYPE: 'WRONG_ACCOUNT_TYPE',
+  ACCOUNT_EXISTS: 'ACCOUNT_EXISTS',
 }
 
 export const AUTH_MESSAGES = {
@@ -55,6 +58,9 @@ export const AUTH_MESSAGES = {
   INVALID_PROFILE: 'Check your details and try again.',
   NOT_FOUND: 'That item no longer exists.',
   CONFLICT: 'That change is not allowed. Choose another option.',
+  ACCOUNT_NOT_FOUND: 'Account does not exist. Please sign up first.',
+  WRONG_ACCOUNT_TYPE: 'No vendor account exists for this sign-in.',
+  ACCOUNT_EXISTS: 'Account already exists. Please sign in.',
 }
 
 export const isEmail = (s) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(s || ''))
@@ -223,17 +229,19 @@ export function createApiAuthService({ baseUrl, fetchImpl = (...args) => globalT
     return r
   }
 
-  async function requestOtp(contact) {
+  async function requestOtp(contact, { intent, mode } = {}) {
     const c = String(contact || '').trim()
     if (!c || !(isEmail(c) || isPhone(c))) return fail(AUTH_ERRORS.INVALID_CONTACT)
     const identifier = canonicalIdentifier(c)
-    const r = await call('/auth/otp/request', { body: { channel: isEmail(c) ? 'email' : 'phone', identifier } })
+    const r = await call('/auth/otp/request', { body: { channel: isEmail(c) ? 'email' : 'phone', identifier, ...(intent ? { intent } : {}), ...(mode ? { mode } : {}) } })
     if (r.status === 202 && r.data?.challengeId) {
       challenges.set(identifier, r.data.challengeId)
       return { ok: true, mock: false, ...(r.data.devCode ? { devCode: r.data.devCode } : {}) }
     }
     if (r.status === 429) return fail(AUTH_ERRORS.RATE_LIMITED)
     if (r.status === 400) return fail(AUTH_ERRORS.INVALID_CONTACT)
+    if (r.status === 404) return fail(mode === 'VENDOR' ? AUTH_ERRORS.WRONG_ACCOUNT_TYPE : AUTH_ERRORS.ACCOUNT_NOT_FOUND)
+    if (r.status === 409) return fail(AUTH_ERRORS.ACCOUNT_EXISTS)
     return fail(r.status === 0 ? AUTH_ERRORS.NETWORK : AUTH_ERRORS.PROVIDER_ERROR)
   }
 
@@ -258,6 +266,18 @@ export function createApiAuthService({ baseUrl, fetchImpl = (...args) => globalT
       return fail(me.status === 0 ? AUTH_ERRORS.NETWORK : AUTH_ERRORS.PROVIDER_ERROR)
     }
     return { ok: true, account: me.data }
+  }
+
+  async function requestEmailLink(email) {
+    const r = await authed('/auth/email-link/request', { body: { channel: 'email', identifier: canonicalIdentifier(email) } })
+    if (r.status === 202 && r.data?.challengeId) return { ok: true, challengeId: r.data.challengeId, devCode: r.data.devCode }
+    return fail(r.status === 409 ? AUTH_ERRORS.ACCOUNT_EXISTS : r.status === 0 ? AUTH_ERRORS.NETWORK : AUTH_ERRORS.PROVIDER_ERROR)
+  }
+
+  async function verifyEmailLink(challengeId, code) {
+    if (!/^\d{6}$/.test(String(code || ''))) return fail(AUTH_ERRORS.INVALID_FORMAT)
+    const r = await authed('/auth/email-link/verify', { body: { challengeId, code } })
+    return r.status === 201 || r.status === 200 ? { ok: true } : fail(r.status === 401 ? AUTH_ERRORS.INVALID_OTP : r.status === 429 ? AUTH_ERRORS.LOCKED : r.status === 0 ? AUTH_ERRORS.NETWORK : AUTH_ERRORS.PROVIDER_ERROR)
   }
 
   /** Revokes the server session (best effort) and always clears local tokens. */
@@ -409,6 +429,23 @@ export function createApiAuthService({ baseUrl, fetchImpl = (...args) => globalT
   async function getPublicVendor(vendorId) {
     const r = await call(`/vendors/${encodeURIComponent(vendorId)}/public`, { method: 'GET' })
     return r.status === 200 ? { ok: true, vendor: r.data } : profileFail(r)
+  }
+
+  async function startConversation(vendorId, listingId) {
+    const r = await authed('/conversations', { body: { vendorId, ...(listingId ? { listingId } : {}) } })
+    return r.status === 201 || r.status === 200 ? { ok: true, conversation: r.data } : bookingFail(r)
+  }
+  async function listConversations() {
+    const r = await authed('/conversations', { method: 'GET' })
+    return r.status === 200 ? { ok: true, conversations: r.data.conversations } : bookingFail(r)
+  }
+  async function getConversation(id) {
+    const r = await authed(`/conversations/${encodeURIComponent(id)}`, { method: 'GET' })
+    return r.status === 200 ? { ok: true, conversation: r.data } : bookingFail(r)
+  }
+  async function sendConversationMessage(id, body) {
+    const r = await authed(`/conversations/${encodeURIComponent(id)}/messages`, { body: { body } })
+    return r.status === 201 || r.status === 200 ? { ok: true, message: r.data } : bookingFail(r)
   }
 
   /* ---- vendor roles (D-023, D-024): the catalogue is data, so clients read it instead of hardcoding ---- */
@@ -985,7 +1022,7 @@ export function createApiAuthService({ baseUrl, fetchImpl = (...args) => globalT
     return r.status === 200 ? { ok: true, ...r.data } : bad(r)
   }
 
-  return { requestOtp, verifyOtp, endSession, getProfile, saveProfile, listLocations, addLocation, updateLocation, removeLocation, listSessions, revokeSession, getNotificationPreferences, saveNotificationPreferences, listDataRequests, requestDataRequest, cancelDataRequest, listNotifications, getUnreadNotificationCount, markNotificationRead, markAllNotificationsRead, createVendor, switchMode, listMyVendors, updateVendor, getPublicVendor, listVendorRoleCatalogue, listVendorRoles, addVendorRole, removeVendorRole, listVendorRoleReviews, decideVendorRole, listVendorRoleDefinitions, createVendorRoleDefinition, updateVendorRoleDefinition, listVendorDocuments, listVendorVerifications, submitVendorVerification, uploadVendorEvidence, getFile, registerVendorDocument, listVerificationQueue, reviewVerification, getVerificationEvidenceUrl, listCities, listCategories, searchListings, getPublicListing, listFavorites, addFavorite, removeFavorite, createBooking, listMyBookings, listVendorBookings, getBooking, bookingAction, proposeBookingModification, decideBookingModification, universalSearch, createRfq, openRfq, listMyRfqs, listVendorRfqs, getRfq, listRfqQuotes, submitQuote, listListingCapacity, reviseQuote, withdrawQuote, acceptQuote, extendRfqDeadline, listMyWorkOrders, listVendorWorkOrders, getWorkOrder, workOrderAction, proposeContract, listMyContracts, listVendorContracts, getContract, reviseContract, acceptContract, declineContract, addContractMilestone, milestoneAction, completeContract, listMyPurchaseOrders, listVendorPurchaseOrders, getPurchaseOrder, purchaseOrderAction, openPurchaseOrderDispute, resolvePurchaseOrderDispute, createLocalBooking, createLocalBookingSeries, listMyLocalBookings, listVendorLocalBookings, getLocalBooking, listLocalBookingEvents, localBookingAction, cancelLocalBooking, proposeLocalBookingModification, decideLocalBookingModification, confirmLocalBookingCompletion, reportLocalBookingCompletion, resolveLocalBookingConflicts, listCountries, listRegions, lookupPincode, listLocalities, listMyWaitlist, joinCityWaitlist, leaveCityWaitlist, listIndustries, getCategory, createListing, listVendorListings, getListing, updateListing, listingTransition, getPublicationGates, getListingAvailability, saveListingAvailability, clearListingAvailability, addListingCapacity, removeListingCapacity, listServiceAreas, addServiceArea, removeServiceArea, getFileDownloadUrl, isRemote: true }
+  return { requestOtp, verifyOtp, requestEmailLink, verifyEmailLink, endSession, getProfile, saveProfile, listLocations, addLocation, updateLocation, removeLocation, listSessions, revokeSession, getNotificationPreferences, saveNotificationPreferences, listDataRequests, requestDataRequest, cancelDataRequest, listNotifications, getUnreadNotificationCount, markNotificationRead, markAllNotificationsRead, createVendor, switchMode, listMyVendors, updateVendor, getPublicVendor, startConversation, listConversations, getConversation, sendConversationMessage, listVendorRoleCatalogue, listVendorRoles, addVendorRole, removeVendorRole, listVendorRoleReviews, decideVendorRole, listVendorRoleDefinitions, createVendorRoleDefinition, updateVendorRoleDefinition, listVendorDocuments, listVendorVerifications, submitVendorVerification, uploadVendorEvidence, getFile, registerVendorDocument, listVerificationQueue, reviewVerification, getVerificationEvidenceUrl, listCities, listCategories, searchListings, getPublicListing, listFavorites, addFavorite, removeFavorite, createBooking, listMyBookings, listVendorBookings, getBooking, bookingAction, proposeBookingModification, decideBookingModification, universalSearch, createRfq, openRfq, listMyRfqs, listVendorRfqs, getRfq, listRfqQuotes, submitQuote, listListingCapacity, reviseQuote, withdrawQuote, acceptQuote, extendRfqDeadline, listMyWorkOrders, listVendorWorkOrders, getWorkOrder, workOrderAction, proposeContract, listMyContracts, listVendorContracts, getContract, reviseContract, acceptContract, declineContract, addContractMilestone, milestoneAction, completeContract, listMyPurchaseOrders, listVendorPurchaseOrders, getPurchaseOrder, purchaseOrderAction, openPurchaseOrderDispute, resolvePurchaseOrderDispute, createLocalBooking, createLocalBookingSeries, listMyLocalBookings, listVendorLocalBookings, getLocalBooking, listLocalBookingEvents, localBookingAction, cancelLocalBooking, proposeLocalBookingModification, decideLocalBookingModification, confirmLocalBookingCompletion, reportLocalBookingCompletion, resolveLocalBookingConflicts, listCountries, listRegions, lookupPincode, listLocalities, listMyWaitlist, joinCityWaitlist, leaveCityWaitlist, listIndustries, getCategory, createListing, listVendorListings, getListing, updateListing, listingTransition, getPublicationGates, getListingAvailability, saveListingAvailability, clearListingAvailability, addListingCapacity, removeListingCapacity, listServiceAreas, addServiceArea, removeServiceArea, getFileDownloadUrl, isRemote: true }
 }
 
 const apiBaseUrl = import.meta.env?.VITE_API_BASE_URL

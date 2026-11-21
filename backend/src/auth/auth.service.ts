@@ -4,6 +4,7 @@ import {
   HttpStatus,
   Inject,
   Injectable,
+  NotFoundException,
   ServiceUnavailableException,
   UnauthorizedException,
 } from "@nestjs/common";
@@ -94,6 +95,22 @@ export class AuthService {
        WHERE channel = $1 AND normalized_value = $2`,
       [request.channel, identifier],
     );
+    if (request.intent === "login") {
+      const userId = identifierRow.rows[0]?.user_id;
+      if (!userId) throw new NotFoundException("Account does not exist. Please sign up first.");
+      if (request.mode === "VENDOR") {
+        const vendor = await this.database.query(
+          `SELECT 1 FROM vendors WHERE owner_user_id = $1 LIMIT 1`,
+          [userId],
+        );
+        if (!vendor.rowCount) {
+          throw new NotFoundException("No vendor account exists for this sign-in.");
+        }
+      }
+    }
+    if (request.intent === "register" && identifierRow.rows.length) {
+      throw new ConflictException("Account already exists. Please sign in.");
+    }
     await this.database.query(
       `INSERT INTO auth_challenges
          (id, user_id, channel, identifier_value, purpose,
@@ -116,6 +133,60 @@ export class AuthService {
       this.config.get("APP_ENV", { infer: true }) === "test"
       ? { ...response, devCode: code }
       : response;
+  }
+
+  async requestEmailLink(user: AuthenticatedUser, email: string) {
+    const identifier = this.normalizeIdentifier("email", email);
+    const existing = await this.database.query<{ user_id: string }>(
+      `SELECT user_id FROM user_identifiers WHERE channel = 'email' AND normalized_value = $1`,
+      [identifier],
+    );
+    if (existing.rows[0] && existing.rows[0].user_id !== user.userId) {
+      throw new ConflictException("Email belongs to another account");
+    }
+    const challenge = await this.requestOtp({ channel: "email", identifier });
+    await this.database.query(
+      `UPDATE auth_challenges SET user_id = $1 WHERE id = $2`,
+      [user.userId, challenge.challengeId],
+    );
+    return challenge;
+  }
+
+  async verifyEmailLink(user: AuthenticatedUser, request: { challengeId: string; code: string }) {
+    const result = await this.database.transaction<"ok" | "invalid" | "locked">(async (client) => {
+      const challenge = await client.query<ChallengeRow>(
+        `SELECT id, user_id, channel, identifier_value, verifier_hash,
+                expires_at, consumed_at, failed_attempts
+         FROM auth_challenges WHERE id = $1 AND purpose = 'otp' FOR UPDATE`,
+        [request.challengeId],
+      );
+      const row = challenge.rows[0];
+      if (!row || row.user_id !== user.userId || row.channel !== "email" || row.consumed_at || row.expires_at <= new Date()) return "invalid";
+      if (row.failed_attempts >= this.config.get("OTP_VERIFY_MAX", { infer: true })) return "locked";
+      const hash = this.signValue(request.code, this.config.get("OTP_VERIFIER_SECRET", { infer: true }));
+      if (!this.matchesHash(row.verifier_hash, hash)) {
+        const attempts = await client.query<{ failed_attempts: number }>(
+          `UPDATE auth_challenges SET failed_attempts = failed_attempts + 1 WHERE id = $1 RETURNING failed_attempts`,
+          [row.id],
+        );
+        return Number(attempts.rows[0]?.failed_attempts) >= this.config.get("OTP_VERIFY_MAX", { infer: true }) ? "locked" : "invalid";
+      }
+      const linked = await client.query(
+        `INSERT INTO user_identifiers (id, user_id, channel, normalized_value, verified_at)
+         VALUES ($1, $2, 'email', $3, CURRENT_TIMESTAMP)
+         ON CONFLICT (channel, normalized_value) DO UPDATE
+           SET verified_at = CURRENT_TIMESTAMP
+           WHERE user_identifiers.user_id = EXCLUDED.user_id
+         RETURNING id`,
+        [randomUUID(), user.userId, row.identifier_value],
+      );
+      if (!linked.rowCount) throw new ConflictException("Email belongs to another account");
+      await client.query(`UPDATE auth_challenges SET consumed_at = CURRENT_TIMESTAMP WHERE id = $1`, [row.id]);
+      return "ok";
+    });
+    if (result === "locked") throw new HttpException("OTP verification limit exceeded", HttpStatus.TOO_MANY_REQUESTS);
+    if (result === "invalid") throw new UnauthorizedException("OTP challenge is invalid or expired");
+    return { verified: true };
   }
 
   async verifyOtp(request: {
