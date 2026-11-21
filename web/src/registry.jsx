@@ -16,6 +16,7 @@ import * as DP from './screens/p1-depth.jsx'
 import * as SF from './screens/p2-storefront.jsx'
 import * as VR from './screens/vendor-roles.jsx'
 import * as RD from './screens/remote-discovery.jsx'
+import * as RM from './screens/remote-messages.jsx'
 import * as RR from './screens/remote-rfq.jsx'
 import * as RT from './screens/remote-transactions.jsx'
 import * as RL from './screens/remote-listings.jsx'
@@ -45,7 +46,7 @@ export const SCREENS = Object.fromEntries([
   R('c_category', C1.Category, 'shared', 'Category detail', ['FR-04', 'FR-05'], { defaultParams: { id: 'elec' } }),
   R('c_explore', live(RD.RemoteExplore, C1.Explore), 'shared', 'Search, filters & results', ['FR-05'], { tab: true }),
   R('c_listing', live(RD.RemoteListingDetail, C1.ListingDetail), 'shared', 'Product / service detail', ['FR-04', 'FR-05', 'FR-10'], { defaultParams: { id: 'l1' } }),
-  R('c_vendor', C1.VendorProfile, 'shared', 'Vendor profile', ['FR-03', 'FR-05'], { defaultParams: { id: 'v-me' } }),
+  R('c_vendor', live(RM.RemoteVendorProfile, C1.VendorProfile), 'shared', 'Vendor profile', ['FR-03', 'FR-05'], { defaultParams: { id: 'v-me' } }),
   R('c_activity', live(RR.RemoteActivity, C2.Quotes), 'customer', 'Activity', ['FR-08'], { tab: true }),
   R('c_book_new', live(RD.RemoteBookNew, C2.BookingNew), 'customer', 'Request a service booking', ['FR-09']),
   R('c_booking', live(RD.RemoteBookingDetail, C2.BookingDetail), 'shared', 'Booking details & actions', ['FR-09', 'FR-11'], { defaultParams: { id: 'BKG-1039' } }),
@@ -56,8 +57,8 @@ export const SCREENS = Object.fromEntries([
   R('c_work_order', RT.RemoteCustomerWorkOrder, 'customer', 'Work order', ['FR-08']),
   R('v_work_order', RT.RemoteVendorWorkOrder, 'vendor', 'Work order (vendor)', ['FR-08']),
   R('c_saved', C2.Saved, 'customer', 'Saved & compare', ['FR-05']),
-  R('messages', C2.Messages, 'shared', 'Messages (customer and vendor)', ['FR-10'], { tab: true }),
-  R('chat', C2.Chat, 'shared', 'Chat', ['FR-10'], { defaultParams: { id: 't1' } }),
+  R('messages', live(RM.RemoteMessages, C2.Messages), 'shared', 'Messages (customer and vendor)', ['FR-10'], { tab: true }),
+  R('chat', live(RM.RemoteChat, C2.Chat), 'shared', 'Chat', ['FR-10'], { defaultParams: { id: 't1' } }),
   R('notifications', C2.Notifications, 'shared', 'Notifications', ['FR-10']),
   R('c_review', C2.WriteReview, 'customer', 'Rate a vendor', ['FR-11'], { defaultParams: { vendorId: 'v-me' } }),
   R('c_report', C2.IssueNew, 'customer', 'Report a problem (case)', ['FR-11']),

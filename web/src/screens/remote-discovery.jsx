@@ -121,7 +121,7 @@ function UniversalPanel({ q, country, cityId, signedIn, onCategory }) {
     <div className="space-y-3">
       {state.loading && !state.data && <Loading />}
       {vendors.length > 0 && <Section title="Vendors">{vendors.map((v) => (
-        <Card key={v.id}><p className="truncate text-[15px] font-bold text-ink-900">{v.name}</p><p className="text-xs text-ink-500">{v.roles.join(' · ') || 'Verified vendor'}</p></Card>
+        <Card key={v.id} onClick={() => nav.go('c_vendor', { id: v.id })}><p className="truncate text-[15px] font-bold text-ink-900">{v.name}</p><p className="text-xs text-ink-500">{v.roles.join(' · ') || 'Verified vendor'}</p></Card>
       ))}</Section>}
       {categories.length > 0 && <Section title="Categories"><div className="flex flex-wrap gap-2">{categories.map((c) => (
         <button key={c.id} onClick={() => onCategory(c.id)} className="rounded-full bg-white px-3 py-1.5 text-sm font-semibold text-ink-800 ring-1 ring-ink-200">{c.name}</button>
@@ -155,27 +155,27 @@ const RESULT_IMAGES = {
   'Event catering': '/category-images/event-catering.jpg',
 }
 
-function ResultCard({ listing: l, sample = false, onClick }) {
+function ResultCard({ listing: l, sample = false, onClick, onVendorClick }) {
   const location = l.city || l.vendor?.city || l.vendor?.location
   const kind = l.listingType === 'product' ? 'Product' : 'Service'
   const matched = sample ? (l.isNew ? 'New vendor' : 'Verified marketplace listing') : matchLabels(l.matchedOn).join(' · ')
   const image = RESULT_IMAGES[l.categoryName] || (l.listingType === 'product' ? '/category-images/hardware-building-materials.jpg' : '/hero-home-services.svg')
 
   return (
-    <Card onClick={onClick} className="group overflow-hidden p-0">
+    <Card className="group overflow-hidden p-0">
       <div className="vv-result-card-layout">
-        <div className="vv-result-card-image relative overflow-hidden rounded-2xl bg-ink-100">
+        <button type="button" disabled={!onClick} onClick={onClick} aria-label={`Open ${l.title}`} className="vv-result-card-image relative overflow-hidden rounded-2xl bg-ink-100 text-left">
           <img src={image} alt="" loading="lazy" className="absolute inset-0 size-full object-cover transition duration-300 group-hover:scale-105" />
           <div className="absolute inset-0 bg-gradient-to-t from-ink-900/35 to-transparent" />
           <span className="absolute bottom-3 left-3 rounded-full bg-white/90 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-ink-700 backdrop-blur-sm">{kind}</span>
-        </div>
+        </button>
         <div className="vv-result-card-body p-4 md:p-5">
           <div className="min-w-0">
             <div className="flex flex-wrap items-start justify-between gap-2">
-              <p className="min-w-0 text-base font-bold leading-snug text-ink-900 transition group-hover:text-brand-700 md:text-lg">{l.title}</p>
+              <button type="button" disabled={!onClick} onClick={onClick} className="min-w-0 text-left text-base font-bold leading-snug text-ink-900 transition hover:text-brand-700 md:text-lg">{l.title}</button>
               <div className="flex shrink-0 gap-1.5">{l.instantBooking && <Badge tone="teal"><Zap size={11} /> Instant</Badge>}{sample && <Badge tone="gray">Sample</Badge>}</div>
             </div>
-            <p className="mt-1 text-sm font-medium text-ink-600">{l.vendor.name}</p>
+            {onVendorClick ? <button type="button" onClick={onVendorClick} className="mt-1 text-left text-sm font-medium text-brand-700 underline underline-offset-2 hover:text-brand-900">{l.vendor.name} · View profile & message</button> : <p className="mt-1 text-sm font-medium text-ink-600">{l.vendor.name}</p>}
             <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-ink-500">
               <span className="rounded-full bg-ink-50 px-2 py-1 font-semibold text-ink-600">{l.categoryName}</span>
               {location && <span className="inline-flex items-center gap-1"><MapPin size={12} />{location}</span>}
@@ -323,7 +323,7 @@ export function RemoteExplore({ params = {} }) {
         {!useSamples && !state.loading && !state.error && state.marketLive && visibleItems.length === 0 && (
           <EmptyState icon={Search} title="No matches" body="Try different words or remove a filter. Results never include vendors that do not serve your area." action={<Button size="sm" onClick={() => nav.go('c_rfq_new')}>Request a quote</Button>} />
         )}
-        {visibleItems.map((l) => <ResultCard key={l.id} listing={l} onClick={() => nav.go('c_listing', { id: l.id })} />)}
+        {visibleItems.map((l) => <ResultCard key={l.id} listing={l} onClick={() => nav.go('c_listing', { id: l.id })} onVendorClick={() => nav.go('c_vendor', { id: l.vendor.id, listingId: l.id })} />)}
         {state.nextCursor && !state.loading && <Button full variant="secondary" onClick={() => search(state.nextCursor)}>Show more</Button>}
         {state.nextCursor && state.loading && <Loading />}
       </div>
@@ -370,7 +370,7 @@ export function RemoteListingDetail({ params = {} }) {
     >
       <div>
         <h2 className="text-lg font-bold text-ink-900">{l.title}</h2>
-        <p className="text-sm text-ink-500">{l.vendor.name} · {l.categoryName}</p>
+        <p className="text-sm text-ink-500"><button type="button" className="font-semibold text-brand-700 underline underline-offset-2" onClick={() => nav.go('c_vendor', { id: l.vendor.id, listingId: l.id })}>{l.vendor.name} · View profile & message</button> · {l.categoryName}</p>
         <p className="mt-2 text-base font-semibold text-ink-900">{priceLabel(l.price)}</p>
       </div>
       {l.description ? <p className="text-sm leading-relaxed text-ink-700">{l.description}</p> : <p className="text-sm text-ink-500">The vendor has not added a description.</p>}
