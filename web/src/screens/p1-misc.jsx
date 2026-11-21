@@ -1,10 +1,10 @@
 import { useState } from 'react'
-import { Store, Factory, Wrench, Star, Trophy, ShieldCheck, FileText, Wallet, ClipboardList, Target, Clock, Receipt, RefreshCw, Landmark, CreditCard, Globe, WifiOff, SearchX } from 'lucide-react'
-import { Badge, Banner, Button, Card, Checkbox, Chips, EmptyState, Group, HBar, Input, ListRow, Section, Select, Stars, StatusBadge, Toggle, Stat, fmt, cx } from '../ui.jsx'
+import { Store, Factory, Wrench, Star, Trophy, ShieldCheck, FileText, Wallet, ClipboardList, Target, Clock, Receipt, RefreshCw, Landmark, CreditCard, Globe, WifiOff, SearchX, ChevronRight } from 'lucide-react'
+import { Badge, Banner, Button, Card, Checkbox, Chips, EmptyState, Group, HBar, Input, ListRow, Section, Select, Stars, StatusBadge, Toggle, fmt, cx } from '../ui.jsx'
 import { useApp } from '../store.jsx'
 import { useNav } from '../nav.jsx'
 import { VENDOR_ROLES } from '../vendorRoles.js'
-import { P2Badge, Page, Facts, Links, Checklist, SampleBadge } from './blocks.jsx'
+import { P2Badge, Page, Facts, Checklist, SampleBadge } from './blocks.jsx'
 import { AppealQueue } from './p1-depth.jsx'
 import { computePublicationGates } from '../services/publicationGates.js'
 import { TRUST_LEVELS as TRUST_LEVELS_SVC, levelBadges } from '../services/verification.js'
@@ -177,9 +177,37 @@ export function ProductPage({ params = {} }) {
 export function CustomerDashboard() {
   const { bookings, rfqs, orders, me } = useApp()
   const nav = useNav()
+  const metrics = [
+    { label: 'Open bookings', value: bookings.filter((b) => ['requested', 'accepted'].includes(b.status)).length, icon: Clock, to: 'c_activity' },
+    { label: 'Active RFQs', value: rfqs.filter((r) => r.mine && ['open', 'quoted'].includes(r.status)).length, icon: ClipboardList, to: 'c_activity' },
+    { label: 'Purchase orders', value: orders.length, icon: Receipt, to: 'c_orders' },
+    { label: 'Contracts', value: 2, icon: FileText, to: 'c_activity' },
+  ]
+  const actions = [
+    { label: 'Request a quotation', subtitle: 'Services or goods', icon: ClipboardList, to: 'c_rfq_new' },
+    { label: 'Find a supplier', subtitle: 'Suppliers and manufacturers', icon: Store, to: 'c_explore_suppliers' },
+    { label: 'My reviews', icon: Star, to: 'c_reviews' },
+  ]
   return <Page title="Dashboard" subtitle={me.name}>
-    <div className="grid grid-cols-2 gap-3"><Stat label="Open bookings" icon={Clock} value={bookings.filter((b) => ['requested', 'accepted'].includes(b.status)).length} onClick={() => nav.go('c_activity')} /><Stat label="Active RFQs" icon={ClipboardList} value={rfqs.filter((r) => r.mine && ['open', 'quoted'].includes(r.status)).length} onClick={() => nav.go('c_activity')} /><Stat label="Purchase orders" icon={Receipt} value={orders.length} onClick={() => nav.go('c_orders')} /><Stat label="Contracts" icon={FileText} value={2} onClick={() => nav.go('c_activity')} /></div>
-    <Links title="Quick actions" items={[[ClipboardList, 'Request a quotation', 'Services or goods', 'c_rfq_new'], [Store, 'Find a supplier', 'Suppliers and manufacturers', 'c_explore_suppliers'], [Star, 'My reviews', '', 'c_reviews']]} />
+    <div className="vv-customer-dashboard">
+      <div className="vv-customer-dashboard-stats" aria-label="Account activity">
+        {metrics.map(({ label, value, icon: Icon, to }) => <Card key={label} onClick={() => nav.go(to)} className="vv-customer-dashboard-stat">
+          <span className="vv-customer-dashboard-icon"><Icon size={20} aria-hidden="true" /></span>
+          <span className="vv-customer-dashboard-stat-copy"><span>{label}</span><strong>{value}</strong></span>
+          <ChevronRight size={18} className="vv-customer-dashboard-chevron" aria-hidden="true" />
+        </Card>)}
+      </div>
+      <section className="vv-customer-dashboard-actions-section" aria-labelledby="customer-dashboard-actions">
+        <h2 id="customer-dashboard-actions">Quick actions</h2>
+        <div className="vv-customer-dashboard-actions">
+          {actions.map(({ label, subtitle, icon: Icon, to }) => <Card key={label} onClick={() => nav.go(to)} className="vv-customer-dashboard-action">
+            <span className="vv-customer-dashboard-icon"><Icon size={19} aria-hidden="true" /></span>
+            <span className="vv-customer-dashboard-action-copy"><strong>{label}</strong>{subtitle && <small>{subtitle}</small>}</span>
+            <ChevronRight size={18} className="vv-customer-dashboard-chevron" aria-hidden="true" />
+          </Card>)}
+        </div>
+      </section>
+    </div>
   </Page>
 }
 

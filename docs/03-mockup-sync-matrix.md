@@ -172,7 +172,7 @@ Maps every feature in [01-feature-spec.md](01-feature-spec.md) to the screens th
 | F-XCT-03 | `ui_states` | Partial | `ui_states` | Done | Web 2026-10-30: six state previews added; not every screen uses them yet. Web: add the same loading, empty, error, offline, denied, expired states. |
 | F-XCT-04 |  | Partial |  | Partial | Both: audit against WCAG 2.2 AA. |
 | F-XCT-05 |  | Partial |  | Partial | Both: same terminology and status vocabulary; this matrix is the check. |
-| F-XCT-06 | `c_dash` | Done | `c_dash` | Done | Web 2026-10-30: customer dashboard added. Web: add customer dashboard. |
+| F-XCT-06 | `c_dash` | Done | `c_dash` | Done | Web 2026-11-21: customer dashboard cards and quick actions now use the existing warm marketplace palette, typography and responsive card patterns; data, routes and click actions are unchanged. Mobile remains unchanged. Web 2026-10-30: customer dashboard added. |
 | F-XCT-07 |  | N/A |  | N/A | Roadmap only. |
 | F-MCK-01 | `scope_review` `vision` `flows` `journeys` `journeys_pick` | Partial | `vision` `flows` `journeys` `journeys_pick` | Done | Web 2026-10-30: vision, flows and journeys J1 to J5 added; the phase view still shows the old SRS v1.0 content. Both: same five required demo journeys and a phase view generated from these docs. |
 
@@ -212,6 +212,7 @@ These are mockup behaviours that differ between the apps and must be made the sa
 
 | Date & time (YYYY-MM-DD HH:MM, local) | Updated by | Change | Reason |
 |---|---|---|---|
+| 2026-11-21 16:10 | tanya sen | Modified: F-XCT-06 customer dashboard presentation | Align the dashboard content cards with the existing customer workspace styling without changing data or actions. |
 | 2026-11-20 15:52 | Sahil Soni | Modified: web customer workspace sidebar (c_dash, c_saved, c_activity, c_orders, c_contract, c_review, c_cases, c_settings); Removed from sidebar only: Activity group, Marketplace home, Explore, Messages, My account, My reviews | Owner wanted a minimal, grouped sidebar matching the My account shortcuts (Saved & compare, Quote requests, Purchase orders, Contracts, Rate a vendor, Cases, Account settings, which also holds Language, Notifications and Privacy & security). Messages, My account and My reviews stay reachable from the dashboard and My account page; no screen, route or behaviour removed |
 | 2026-11-20 15:35 | Sahil Soni | Modified: web customer account layout (c_dash, c_activity, c_saved, c_orders, c_reviews, c_cases, c_profile, c_settings, messages) | Owner asked for a sidebar and content pane like the vendor workspace. Layout only: same screens, routes, data and actions; no new behaviour |
 | 2026-11-20 15:15 | Sahil Soni | Modified: F-BKG-10 `c_activity` layout (web and mobile) | Bookings sat below three tall empty sections; Activity is now tabs (Bookings, RFQs, Work orders, Contracts) with counts, bookings first and compact empty states. Same data and APIs, no scope change |
