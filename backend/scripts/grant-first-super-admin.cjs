@@ -19,6 +19,7 @@ async function main() {
     connectionString: url,
     ssl: process.env.DATABASE_SSL === "true",
   });
+  client.on("error", (error) => console.error(`PostgreSQL connection lost: ${error.message}`));
   await client.connect();
   try {
     await client.query("BEGIN");

@@ -45,6 +45,7 @@ async function main() {
   run("seed.cjs");
 
   const client = new Client({ connectionString: url });
+  client.on("error", (error) => console.error(`PostgreSQL connection lost: ${error.message}`));
   await client.connect();
   try {
     await invariants(client);
@@ -59,6 +60,7 @@ async function main() {
     if (out.includes("nothing to roll back")) break;
   }
   const check = new Client({ connectionString: url });
+  check.on("error", (error) => console.error(`PostgreSQL connection lost: ${error.message}`));
   await check.connect();
   const left = (
     await check.query(

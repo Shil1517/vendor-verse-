@@ -1,0 +1,151 @@
+.vv-remote-vendor-scroll { background: #f7f4ee; }
+
+.vv-remote-vendor-page {
+  min-height: 100%;
+  padding: 28px 24px 64px;
+  color: #0e1b2c;
+  font-family: "DM Sans", "Segoe UI", system-ui, sans-serif;
+}
+
+.vv-remote-vendor-inner { width: min(100%, 1120px); margin: 0 auto; }
+
+.vv-remote-vendor-hero {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 36px 32px 34px;
+  border: 1px solid #e4ddd0;
+  border-radius: 28px;
+  background: radial-gradient(circle at 50% -45%, #ead7b5 0, transparent 56%), linear-gradient(135deg, #fbf8f2, #efe7d9);
+  text-align: center;
+}
+
+.vv-remote-vendor-hero::before,
+.vv-remote-vendor-hero::after {
+  position: absolute;
+  width: 270px;
+  height: 270px;
+  border: 1px solid rgba(138, 100, 32, .13);
+  border-radius: 50%;
+  content: "";
+  pointer-events: none;
+}
+.vv-remote-vendor-hero::before { top: -150px; left: -125px; }
+.vv-remote-vendor-hero::after { right: -115px; bottom: -175px; }
+.vv-remote-vendor-hero > * { position: relative; z-index: 1; }
+
+.vv-remote-vendor-eyebrow {
+  padding: 7px 14px;
+  border: 1px solid #e4ddd0;
+  border-radius: 999px;
+  background: #fff;
+  color: #8a6420;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+}
+
+.vv-remote-vendor-avatar {
+  display: grid;
+  width: 76px;
+  height: 76px;
+  margin-top: 21px;
+  place-items: center;
+  border: 5px solid #fff;
+  border-radius: 23px;
+  background: linear-gradient(135deg, #8a6420, #b98f3e);
+  box-shadow: 0 10px 25px rgba(138, 100, 32, .18);
+  color: #fff;
+  font-family: "Playfair Display", Georgia, serif;
+  font-size: 31px;
+  font-weight: 800;
+}
+
+.vv-remote-vendor-hero h1 {
+  max-width: 820px;
+  margin: 16px 0 4px;
+  font-family: "Playfair Display", Georgia, serif;
+  font-size: clamp(29px, 3vw, 42px);
+  font-weight: 500;
+  letter-spacing: -.025em;
+  line-height: 1.15;
+}
+.vv-remote-vendor-role { margin: 0; color: #8a6420; font-size: 14px; font-weight: 700; }
+.vv-remote-vendor-description { max-width: 650px; margin: 15px 0 0; color: #5b5f6b; font-size: 15px; line-height: 1.65; }
+.vv-remote-vendor-action { display: flex; width: 100%; flex-direction: column; align-items: center; gap: 10px; margin-top: 24px; }
+.vv-remote-vendor-action > div { width: min(100%, 540px); text-align: left; }
+.vv-remote-vendor-message {
+  display: inline-flex;
+  min-width: 226px;
+  min-height: 50px;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 11px 22px;
+  border-radius: 999px;
+  background: #8a6420;
+  box-shadow: 0 9px 19px rgba(138, 100, 32, .18);
+  color: #fff;
+  font-size: 15px;
+  font-weight: 700;
+  transition: background .2s, box-shadow .2s, transform .2s;
+}
+.vv-remote-vendor-message:hover { background: #6b4a0b; box-shadow: 0 12px 22px rgba(138, 100, 32, .24); transform: translateY(-2px); }
+.vv-remote-vendor-message:active { transform: translateY(0); }
+.vv-remote-vendor-message:disabled { cursor: wait; opacity: .65; transform: none; }
+.vv-remote-vendor-message:focus-visible,
+.vv-remote-vendor-listing:focus-visible { outline: 3px solid #b98f3e; outline-offset: 3px; }
+.vv-remote-vendor-action p { margin: 0; color: #5b5f6b; font-size: 12px; }
+
+.vv-remote-vendor-content { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(280px, 1fr); gap: 24px; margin-top: 32px; }
+.vv-remote-vendor-section-heading { margin-bottom: 15px; }
+.vv-remote-vendor-section-heading > span { color: #8a6420; font-size: 11px; font-weight: 800; letter-spacing: .16em; text-transform: uppercase; }
+.vv-remote-vendor-section-heading h2 { margin: 4px 0 0; font-family: "Playfair Display", Georgia, serif; font-size: clamp(23px, 2.2vw, 29px); font-weight: 500; letter-spacing: -.025em; }
+
+.vv-remote-vendor-listing,
+.vv-remote-vendor-facts,
+.vv-remote-vendor-empty {
+  border: 1px solid #e4ddd0;
+  border-radius: 20px;
+  background: #fff;
+  box-shadow: 0 6px 20px rgba(14, 27, 44, .045);
+}
+.vv-remote-vendor-listing { display: flex; width: 100%; align-items: center; gap: 18px; padding: 22px; text-align: left; transition: border-color .2s, box-shadow .2s, transform .2s; }
+.vv-remote-vendor-listing:hover { transform: translateY(-2px); border-color: #c7ac7b; box-shadow: 0 14px 30px rgba(14, 27, 44, .09); }
+.vv-remote-vendor-listing-icon { display: grid; width: 62px; height: 62px; flex: none; place-items: center; border-radius: 17px; background: #efeae0; color: #8a6420; }
+.vv-remote-vendor-listing-copy { display: flex; min-width: 0; flex: 1; flex-direction: column; align-items: flex-start; gap: 5px; }
+.vv-remote-vendor-listing-type { color: #8a6420; font-size: 11px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+.vv-remote-vendor-listing-copy strong { color: #0e1b2c; font-family: "Playfair Display", Georgia, serif; font-size: 20px; font-weight: 500; line-height: 1.3; }
+.vv-remote-vendor-listing-price { color: #5b5f6b; font-size: 13px; }
+.vv-remote-vendor-listing-arrow { flex: none; color: #8a6420; }
+.vv-remote-vendor-empty { margin: 0; padding: 24px; color: #5b5f6b; font-size: 14px; line-height: 1.6; }
+.vv-remote-vendor-facts { padding: 7px 22px; }
+.vv-remote-vendor-facts > div { display: flex; align-items: baseline; justify-content: space-between; gap: 18px; padding: 15px 0; border-bottom: 1px solid #eee9e1; }
+.vv-remote-vendor-facts > div:last-child { border-bottom: 0; }
+.vv-remote-vendor-facts span { color: #5b5f6b; font-size: 13px; }
+.vv-remote-vendor-facts strong { display: inline-flex; align-items: center; gap: 7px; color: #0e1b2c; font-size: 13px; font-weight: 700; text-align: right; }
+.vv-remote-vendor-facts p { margin: 14px 0; color: #5b5f6b; font-size: 13px; line-height: 1.5; }
+
+@media (max-width: 760px) {
+  .vv-remote-vendor-page { padding: 16px 16px 36px; }
+  .vv-remote-vendor-hero { padding: 30px 22px; border-radius: 22px; }
+  .vv-remote-vendor-content { grid-template-columns: 1fr; gap: 28px; margin-top: 28px; }
+}
+
+@media (max-width: 480px) {
+  .vv-remote-vendor-avatar { width: 66px; height: 66px; border-radius: 19px; font-size: 27px; }
+  .vv-remote-vendor-hero h1 { font-size: 29px; }
+  .vv-remote-vendor-description { font-size: 14px; }
+  .vv-remote-vendor-message { width: 100%; }
+  .vv-remote-vendor-listing { gap: 13px; padding: 17px; }
+  .vv-remote-vendor-listing-icon { width: 50px; height: 50px; }
+  .vv-remote-vendor-listing-copy strong { font-size: 15px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vv-remote-vendor-message,
+  .vv-remote-vendor-listing { transition: none; }
+}

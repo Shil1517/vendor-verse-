@@ -24,16 +24,33 @@ export class DatabaseService implements OnModuleDestroy {
     operation: (client: PoolClient) => Promise<Result>,
   ): Promise<Result> {
     const client = await this.pool.connect();
+    let connectionError: Error | undefined;
+    let discardError: Error | undefined;
+    // Pool's error listener covers idle clients only. A checked-out client can
+    // emit an error while the transaction callback is between queries.
+    const onClientError = (error: Error) => {
+      connectionError = error;
+      this.logger.error(`PostgreSQL transaction connection lost: ${error.message}`, error.stack);
+    };
+    client.on("error", onClientError);
     try {
       await client.query("BEGIN");
       const result = await operation(client);
+      if (connectionError) throw connectionError;
       await client.query("COMMIT");
+      if (connectionError) throw connectionError;
       return result;
     } catch (error) {
-      await client.query("ROLLBACK");
-      throw error;
+      try {
+        await client.query("ROLLBACK");
+      } catch (rollbackError) {
+        discardError = rollbackError instanceof Error ? rollbackError : new Error(String(rollbackError));
+        this.logger.warn(`PostgreSQL rollback failed after transaction error: ${discardError.message}`);
+      }
+      throw connectionError ?? error;
     } finally {
-      client.release();
+      client.release(connectionError ?? discardError);
+      client.removeListener("error", onClientError);
     }
   }
 

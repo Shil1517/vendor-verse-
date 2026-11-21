@@ -15,6 +15,7 @@ async function main() {
     .sort();
 
   const client = new Client({ connectionString: url, ssl });
+  client.on("error", (error) => console.error(`PostgreSQL connection lost: ${error.message}`));
   await client.connect();
   try {
     for (const file of files) {
