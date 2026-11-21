@@ -28,7 +28,7 @@ export const useMyVendor = () => {
 const VendorWorkspaceContext = createContext(false)
 
 const VX_CSS = `@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Sora:wght@500;600;700&display=swap');
-.vx-shell { --bg:#f2fbf8; --ink:#0c2a26; --muted:#5f8279; --soft:#35625a; --line:rgba(16,150,120,.16); --glass:rgba(255,255,255,.7); --glass2:rgba(255,255,255,.9); --mint:#12b48f; --sky:#1796d6; --violet:#6a5ae0; --gold:#d89a1d; --coral:#ff7a5c; --grad:linear-gradient(135deg,#27d9ae,#0fa98a); --r-lg:30px; --r-md:24px; --ease:cubic-bezier(.2,.8,.2,1); --sw:264px; --shellbg:linear-gradient(160deg,#fafffd 0%,#eafaf4 50%,#dff6ee 100%); --orb1:#9be8d0; --orb2:#b8f0e4; --side1:rgba(255,255,255,.88); --side2:rgba(255,255,255,.62); --hi:#fff; --g85:rgba(255,255,255,.85); --g70:rgba(255,255,255,.7); --rowh:#fff; --panel1:rgba(255,255,255,.72); --panel2:rgba(255,255,255,.4); --card1:rgba(255,255,255,.95); --card2:rgba(255,255,255,.7); --cardbd:rgba(255,255,255,.9); --btnl:#fff; --btnlh:#f4fffb; --h1a:#0c2a26; --h1b:#1b6b58; --tip:#0c2a26; --tipink:#fff; --track:rgba(18,150,120,.12); --dotfill:#fff; position:relative; isolation:isolate; overflow:hidden; display:grid; grid-template-columns:var(--sw) minmax(0,1fr); gap:16px; height:100vh; padding:16px; font-family:'Plus Jakarta Sans',system-ui,sans-serif; color:var(--ink); background:var(--shellbg); transition:grid-template-columns .55s var(--ease); -webkit-font-smoothing:antialiased; }
+.vx-shell { --bg:#f2fbf8; --ink:#0c2a26; --muted:#5f8279; --soft:#35625a; --line:rgba(16,150,120,.16); --glass:rgba(255,255,255,.7); --glass2:rgba(255,255,255,.9); --mint:#12b48f; --sky:#8a6420; --violet:#a67a2c; --gold:#d89a1d; --coral:#ff7a5c; --grad:linear-gradient(135deg,#27d9ae,#0fa98a); --r-lg:30px; --r-md:24px; --ease:cubic-bezier(.2,.8,.2,1); --sw:264px; --shellbg:linear-gradient(160deg,#fafffd 0%,#eafaf4 50%,#dff6ee 100%); --orb1:#9be8d0; --orb2:#b8f0e4; --side1:rgba(255,255,255,.88); --side2:rgba(255,255,255,.62); --hi:#fff; --g85:rgba(255,255,255,.85); --g70:rgba(255,255,255,.7); --rowh:#fff; --panel1:rgba(255,255,255,.72); --panel2:rgba(255,255,255,.4); --card1:rgba(255,255,255,.95); --card2:rgba(255,255,255,.7); --cardbd:rgba(255,255,255,.9); --btnl:#fff; --btnlh:#f4fffb; --h1a:#0c2a26; --h1b:#1b6b58; --tip:#0c2a26; --tipink:#fff; --track:rgba(18,150,120,.12); --dotfill:#fff; position:relative; isolation:isolate; overflow:hidden; display:grid; grid-template-columns:var(--sw) minmax(0,1fr); gap:16px; height:100vh; padding:16px; font-family:'Plus Jakarta Sans',system-ui,sans-serif; color:var(--ink); background:var(--shellbg); transition:grid-template-columns .55s var(--ease); -webkit-font-smoothing:antialiased; }
 .vx-shell.is-collapsed { --sw:76px; }
 .vx-shell::before, .vx-shell::after { content:""; position:absolute; z-index:-1; border-radius:50%; filter:blur(90px); pointer-events:none; animation:vx-drift 22s ease-in-out infinite alternate; }
 .vx-shell::before { width:640px; height:640px; left:-120px; top:-160px; background:radial-gradient(circle,var(--orb1),transparent 65%); opacity:.8; }
@@ -130,7 +130,7 @@ const VX_CSS = `@import url('https://fonts.googleapis.com/css2?family=Plus+Jakar
 .vx-row:hover { transform:translateX(3px); background:var(--rowh); }
 .vx-row .ri { flex:none; width:36px; height:36px; border-radius:12px; display:grid; place-items:center; }
 .vx-row .ri.amber { background:rgba(255,190,70,.2); color:#8a5d05; }
-.vx-row .ri.violet { background:rgba(106,90,224,.14); color:#5445c9; }
+.vx-row .ri.violet { background:rgba(138, 100, 32, .14); color:#a67a2c; }
 .vx-row .ri.rose { background:rgba(255,122,92,.16); color:#d4492b; }
 .vx-row .rt { flex:1; min-width:0; }
 .vx-row .rt b { display:block; font-size:12.5px; }
@@ -168,8 +168,8 @@ const VX_CSS = `@import url('https://fonts.googleapis.com/css2?family=Plus+Jakar
 .vx-perf-ic { display:grid; place-items:center; width:42px; height:42px; border-radius:14px; }
 .vx-perf-ic.amber { background:rgba(245,171,41,.14); color:#ad6d09; }
 .vx-perf-ic.mint { background:rgba(18,180,143,.14); color:#0d8d74; }
-.vx-perf-ic.violet { background:rgba(106,90,224,.12); color:#5641d5; }
-.vx-perf-ic.sky { background:rgba(23,150,214,.12); color:#0f74ad; }
+.vx-perf-ic.violet { background:rgba(138, 100, 32, .12); color:#a67a2c; }
+.vx-perf-ic.sky { background:rgba(138, 100, 32, .12); color:#6f5018; }
 .vx-perf-stat-text { display:grid; gap:2px; }
 .vx-perf-stat b { font-size:clamp(20px,2vw,28px); letter-spacing:-.04em; }
 .vx-perf-stat span { color:var(--muted); font-size:11px; font-weight:700; text-transform:none; }
@@ -192,8 +192,8 @@ const VX_CSS = `@import url('https://fonts.googleapis.com/css2?family=Plus+Jakar
 .vx-conversion-bar { position:relative; height:10px; overflow:hidden; border-radius:999px; background:rgba(18,180,143,.12); }
 .vx-conversion-bar i { display:block; height:100%; border-radius:inherit; }
 .vx-conversion-bar i.mint { background:linear-gradient(90deg,#2ad9a4,#08a484); }
-.vx-conversion-bar i.sky { background:linear-gradient(90deg,#46c7ff,#1a95df); }
-.vx-conversion-bar i.violet { background:linear-gradient(90deg,#7e73ff,#5d51d9); }
+.vx-conversion-bar i.sky { background:linear-gradient(90deg,#a67a2c,#8a6420); }
+.vx-conversion-bar i.violet { background:linear-gradient(90deg,#e4d6b8,#a67a2c); }
 .vx-ranked-list { display:flex; flex-direction:column; gap:12px; margin-top:18px; }
 .vx-ranked-row { display:grid; grid-template-columns:auto minmax(0,1fr) minmax(100px,1.2fr); align-items:center; gap:10px; }
 .vx-rank-index { display:grid; place-items:center; width:24px; height:24px; border-radius:8px; background:rgba(18,180,143,.12); color:#0c7d63; font-size:11px; font-weight:800; }
@@ -220,7 +220,7 @@ const VX_CSS = `@import url('https://fonts.googleapis.com/css2?family=Plus+Jakar
 .vx-shell {
   --ink:#0c2a26; --muted:#5f8279; --soft:#35625a; --line:rgba(16,150,120,.16);
   --glass:rgba(255,255,255,.7); --glass2:rgba(255,255,255,.9);
-  --mint:#12b48f; --sky:#1796d6; --violet:#6a5ae0; --gold:#d89a1d; --coral:#ff7a5c;
+  --mint:#12b48f; --sky:#8a6420; --violet:#a67a2c; --gold:#d89a1d; --coral:#ff7a5c;
   --grad:linear-gradient(135deg,#27d9ae,#0fa98a); --r-lg:30px; --r-md:24px;
   --sw:264px; --shellbg:linear-gradient(160deg,#fafffd 0%,#eafaf4 50%,#dff6ee 100%);
   --orb1:#9be8d0; --orb2:#b8f0e4; --side1:rgba(255,255,255,.88); --side2:rgba(255,255,255,.62);
@@ -476,21 +476,21 @@ const VX_CSS = `@import url('https://fonts.googleapis.com/css2?family=Plus+Jakar
 
 .vv-vendor-workspace-route:not(.vv-business-workspace-route) > .vv-vendor-workspace.vx-shell:not([data-theme='dark']) {
   --sw:192px;
-  --ink:#0f172a;
-  --muted:#64748b;
-  --soft:#475569;
-  --line:#e2e8f0;
-  --mint:#1e40af;
-  --sky:#2563eb;
-  --grad:linear-gradient(135deg,#1e40af,#2563eb);
-  --shellbg:#f8f9ff;
+  --ink:#0e1b2c;
+  --muted:#737b86;
+  --soft:#5b5f6b;
+  --line:#e4ddd0;
+  --mint:#8a6420;
+  --sky:#a67a2c;
+  --grad:linear-gradient(135deg,#8a6420,#a67a2c);
+  --shellbg:#f5f5f4;
   --side1:#fff;
   --side2:#fff;
   --r-lg:8px;
   --r-md:8px;
   gap:0;
   padding:0;
-  background:#f8f9ff;
+  background:#f5f5f4;
   color:var(--ink);
   font-family:Inter,system-ui,sans-serif;
 }
@@ -500,7 +500,7 @@ const VX_CSS = `@import url('https://fonts.googleapis.com/css2?family=Plus+Jakar
 .vv-vendor-workspace-route:not(.vv-business-workspace-route) .vv-vendor-workspace.vx-shell:not([data-theme='dark']) .vx-side {
   padding:14px 8px 10px;
   border:0;
-  border-right:1px solid #e2e8f0;
+  border-right:1px solid #e4ddd0;
   border-radius:0;
   background:#fff;
   box-shadow:none;
@@ -510,7 +510,7 @@ const VX_CSS = `@import url('https://fonts.googleapis.com/css2?family=Plus+Jakar
 .vv-vendor-workspace-route:not(.vv-business-workspace-route) .vv-vendor-workspace.vx-shell:not([data-theme='dark']) .vx-brand {
   margin-bottom:8px;
   padding:2px 6px 12px;
-  border-bottom:1px solid #f1f5f9;
+  border-bottom:1px solid #efeae0;
 }
 .vv-vendor-workspace-route:not(.vv-business-workspace-route) .vv-vendor-workspace.vx-shell:not([data-theme='dark']) .vx-logo,
 .vv-vendor-workspace-route:not(.vv-business-workspace-route) .vv-vendor-workspace.vx-shell:not([data-theme='dark']) .vx-av {
@@ -519,7 +519,7 @@ const VX_CSS = `@import url('https://fonts.googleapis.com/css2?family=Plus+Jakar
 }
 .vv-vendor-workspace-route:not(.vv-business-workspace-route) .vv-vendor-workspace.vx-shell:not([data-theme='dark']) .vx-group {
   padding:12px 8px 5px;
-  color:#64748b;
+  color:#737b86;
   font-size:9px;
   font-weight:600;
   letter-spacing:.06em;
@@ -530,26 +530,26 @@ const VX_CSS = `@import url('https://fonts.googleapis.com/css2?family=Plus+Jakar
   min-height:32px;
   padding:7px 8px;
   border-radius:4px;
-  color:#475569;
+  color:#5b5f6b;
   font-size:12px;
   font-weight:500;
 }
-.vv-vendor-workspace-route:not(.vv-business-workspace-route) .vv-vendor-workspace.vx-shell:not([data-theme='dark']) .vx-nav-item:hover { background:#f1f5f9; color:#0f172a; }
+.vv-vendor-workspace-route:not(.vv-business-workspace-route) .vv-vendor-workspace.vx-shell:not([data-theme='dark']) .vx-nav-item:hover { background:#efeae0; color:#0e1b2c; }
 .vv-vendor-workspace-route:not(.vv-business-workspace-route) .vv-vendor-workspace.vx-shell:not([data-theme='dark']) .vx-nav-item.is-active,
 .vv-vendor-workspace-route:not(.vv-business-workspace-route) .vv-vendor-workspace.vx-shell:not([data-theme='dark']) .vx-nav-item.is-active:hover {
-  background:#eef2ff;
-  color:#1e40af;
+  background:#f7f4ee;
+  color:#8a6420;
 }
-.vv-vendor-workspace-route:not(.vv-business-workspace-route) .vv-vendor-workspace.vx-shell:not([data-theme='dark']) .vx-nav-item.is-active svg { color:#1e40af; }
+.vv-vendor-workspace-route:not(.vv-business-workspace-route) .vv-vendor-workspace.vx-shell:not([data-theme='dark']) .vx-nav-item.is-active svg { color:#8a6420; }
 .vv-vendor-workspace-route:not(.vv-business-workspace-route) .vv-vendor-workspace.vx-shell:not([data-theme='dark']) .vx-plan {
   padding:10px;
-  border:1px solid #e2e8f0;
+  border:1px solid #e4ddd0;
   border-radius:6px;
-  background:#f8fafc;
+  background:#f8f6f2;
   font-size:10px;
 }
-.vv-vendor-workspace-route:not(.vv-business-workspace-route) .vv-vendor-workspace.vx-shell:not([data-theme='dark']) .vx-plan > div { color:#475569; }
-.vv-vendor-workspace-route:not(.vv-business-workspace-route) .vv-vendor-workspace.vx-shell:not([data-theme='dark']) .vx-bar { background:#e2e8f0; }
+.vv-vendor-workspace-route:not(.vv-business-workspace-route) .vv-vendor-workspace.vx-shell:not([data-theme='dark']) .vx-plan > div { color:#5b5f6b; }
+.vv-vendor-workspace-route:not(.vv-business-workspace-route) .vv-vendor-workspace.vx-shell:not([data-theme='dark']) .vx-bar { background:#e4ddd0; }
 .vv-vendor-workspace-route:not(.vv-business-workspace-route) .vv-vendor-workspace.vx-shell:not([data-theme='dark']) .vx-biz { border-radius:4px; }
 .vv-vendor-workspace-route:not(.vv-business-workspace-route) .vv-vendor-workspace.vx-shell:not([data-theme='dark']) .vx-top {
   min-height:48px;
@@ -558,7 +558,7 @@ const VX_CSS = `@import url('https://fonts.googleapis.com/css2?family=Plus+Jakar
   gap:10px;
   padding:6px 16px;
   border:0;
-  border-bottom:1px solid #e2e8f0;
+  border-bottom:1px solid #e4ddd0;
   border-radius:0;
   background:#fff;
   box-shadow:none;
@@ -577,17 +577,17 @@ const VX_CSS = `@import url('https://fonts.googleapis.com/css2?family=Plus+Jakar
   flex:0 1 290px;
   height:32px;
   padding:0 10px;
-  border:1px solid #e2e8f0;
+  border:1px solid #e4ddd0;
   border-radius:4px;
-  background:#f8f9ff;
+  background:#f5f5f4;
 }
 .vv-vendor-workspace-route:not(.vv-business-workspace-route) .vv-vendor-workspace.vx-shell:not([data-theme='dark']) .vx-search input {
-  color:#0f172a;
+  color:#0e1b2c;
   font:500 12px Inter,system-ui,sans-serif;
 }
 .vv-vendor-workspace-route:not(.vv-business-workspace-route) .vv-vendor-workspace.vx-shell:not([data-theme='dark']) .vx-search:focus-within {
-  border-color:#2563eb;
-  box-shadow:0 0 0 2px rgba(37,99,235,.14);
+  border-color:#a67a2c;
+  box-shadow:0 0 0 2px rgba(138, 100, 32, .14);
 }
 .vv-vendor-workspace-route:not(.vv-business-workspace-route) .vv-vendor-workspace.vx-shell:not([data-theme='dark']) .vx-theme-toggle,
 .vv-vendor-workspace-route:not(.vv-business-workspace-route) .vv-vendor-workspace.vx-shell:not([data-theme='dark']) .vx-ico {
@@ -596,9 +596,9 @@ const VX_CSS = `@import url('https://fonts.googleapis.com/css2?family=Plus+Jakar
   border-color:transparent;
   border-radius:4px;
   background:transparent;
-  color:#64748b;
+  color:#737b86;
 }
-.vv-vendor-workspace-route:not(.vv-business-workspace-route) .vv-vendor-workspace.vx-shell:not([data-theme='dark']) .vx-theme-toggle:hover { background:#f1f5f9; color:#1e40af; transform:none; }
+.vv-vendor-workspace-route:not(.vv-business-workspace-route) .vv-vendor-workspace.vx-shell:not([data-theme='dark']) .vx-theme-toggle:hover { background:#efeae0; color:#8a6420; transform:none; }
 .vv-vendor-workspace-route:not(.vv-business-workspace-route) .vv-vendor-workspace.vx-shell:not([data-theme='dark']) .vx-me {
   padding:3px 6px;
   border:0;
@@ -610,7 +610,7 @@ const VX_CSS = `@import url('https://fonts.googleapis.com/css2?family=Plus+Jakar
   padding:24px;
   border:0;
   border-radius:0;
-  background:#f8f9ff;
+  background:#f5f5f4;
   box-shadow:none;
   backdrop-filter:none;
 }
@@ -618,34 +618,34 @@ const VX_CSS = `@import url('https://fonts.googleapis.com/css2?family=Plus+Jakar
 .vv-vendor-workspace-route:not(.vv-business-workspace-route) .vv-vendor-workspace.vx-shell:not([data-theme='dark']) .vx-panel > .vx-dash > .vx-hero {
   min-height:0;
   padding:20px;
-  border:1px solid #e2e8f0;
+  border:1px solid #e4ddd0;
   border-radius:8px;
   background:#fff !important;
-  box-shadow:0 1px 2px rgba(15,23,42,.03);
+  box-shadow:0 1px 2px rgba(138, 100, 32, .03);
 }
 .vv-vendor-workspace-route:not(.vv-business-workspace-route) .vv-vendor-workspace.vx-shell:not([data-theme='dark']) .vx-hero-art { display:none; }
 .vv-vendor-workspace-route:not(.vv-business-workspace-route) .vv-vendor-workspace.vx-shell:not([data-theme='dark']) .vx-hero h1 {
-  color:#0f172a;
+  color:#0e1b2c;
   font:600 24px/1.25 Inter,system-ui,sans-serif;
   letter-spacing:-.02em;
 }
 .vv-vendor-workspace-route:not(.vv-business-workspace-route) .vv-vendor-workspace.vx-shell:not([data-theme='dark']) .vx-card {
-  border:1px solid #e2e8f0;
+  border:1px solid #e4ddd0;
   border-radius:8px;
   background:#fff;
-  box-shadow:0 1px 2px rgba(15,23,42,.03);
+  box-shadow:0 1px 2px rgba(138, 100, 32, .03);
   backdrop-filter:none;
   -webkit-backdrop-filter:none;
 }
-.vv-vendor-workspace-route:not(.vv-business-workspace-route) .vv-vendor-workspace.vx-shell:not([data-theme='dark']) .vx-stat:hover { transform:translateY(-2px); box-shadow:0 4px 10px rgba(15,23,42,.06); }
+.vv-vendor-workspace-route:not(.vv-business-workspace-route) .vv-vendor-workspace.vx-shell:not([data-theme='dark']) .vx-stat:hover { transform:translateY(-2px); box-shadow:0 4px 10px rgba(138, 100, 32, .06); }
 .vv-vendor-workspace-route:not(.vv-business-workspace-route) .vv-vendor-workspace.vx-shell:not([data-theme='dark']) .vx-top-row h3,
 .vv-vendor-workspace-route:not(.vv-business-workspace-route) .vv-vendor-workspace.vx-shell:not([data-theme='dark']) .vx-quick-card h3,
 .vv-vendor-workspace-route:not(.vv-business-workspace-route) .vv-vendor-workspace.vx-shell:not([data-theme='dark']) .vx-attention h3 { font-family:Inter,system-ui,sans-serif; }
 @media (max-width:680px) {
   .vv-vendor-workspace-route:not(.vv-business-workspace-route) .vv-vendor-workspace.vx-shell:not([data-theme='dark']) .vx-side {
-    border:1px solid #e2e8f0;
+    border:1px solid #e4ddd0;
     border-radius:8px;
-    box-shadow:0 10px 24px rgba(15,23,42,.12);
+    box-shadow:0 10px 24px rgba(138, 100, 32, .12);
   }
   .vv-vendor-workspace-route:not(.vv-business-workspace-route) .vv-vendor-workspace.vx-shell:not([data-theme='dark']) .vx-top {
     min-height:56px;

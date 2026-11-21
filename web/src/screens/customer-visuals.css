@@ -8,10 +8,10 @@
 .vv-customer-route.vv-customer-portal { background: #f5f5f4; }
 .vv-customer-portal .vv-screen-scroll { background: #f5f5f4 !important; }
 .vv-customer-portal .vv-screen-layout > header { background: #fff; border-color: #e4ddd0; }
-.vv-customer-portal .vv-screen-layout > header h1 { color: #0e1b2c; font-family: "Bricolage Grotesque", "Figtree", sans-serif; letter-spacing: -.025em; }
-.vv-customer-portal .vv-screen-scroll > div:not(.vv-profile-page):not(.vv-profile-edit-page) { width: min(100% - 48px, 1120px); padding-top: 30px; padding-bottom: 48px; color: #0e1b2c; font-family: "Figtree", "DM Sans", "Segoe UI", system-ui, sans-serif; }
+.vv-customer-portal .vv-screen-layout > header h1 { color: #6f5018; font-family: "Bricolage Grotesque", "Figtree", sans-serif; letter-spacing: -.025em; }
+.vv-customer-portal .vv-screen-scroll > div:not(.vv-profile-page):not(.vv-profile-edit-page) { width: min(100% - 48px, 1120px); padding-top: 30px; padding-bottom: 48px; color: #6f5018; font-family: "Figtree", "DM Sans", "Segoe UI", system-ui, sans-serif; }
 .vv-customer-portal .vv-screen-scroll .text-brand-700,.vv-customer-portal .vv-screen-scroll .text-brand-800 { color: #8a6420; }
-.vv-customer-portal .vv-screen-scroll .bg-brand-600 { background-color: #0e1b2c; }
+.vv-customer-portal .vv-screen-scroll .bg-brand-600 { background-color: #6f5018; }
 .vv-customer-portal .vv-screen-scroll .bg-brand-50 { background-color: #f7f4ee; }
 .vv-customer-portal .vv-screen-scroll .ring-brand-500,.vv-customer-portal .vv-screen-scroll .ring-brand-600 { --tw-ring-color: #cbb486; }
 
@@ -20,7 +20,7 @@
 .vv-profile-screen-header { display: none; }
 .vv-customer-portal .vv-screen-scroll > .vv-profile-page { width: min(100% - 48px, 1120px); padding: 46px 0 54px; }
 .vv-profile-page,.vv-profile-edit-page { color: #0e1b2c; font-family: "Figtree", "DM Sans", "Segoe UI", system-ui, sans-serif; }
-.vv-vendor-register-route { color: #0e1b2c; font-family: "Figtree", "DM Sans", "Segoe UI", system-ui, sans-serif; }
+.vv-vendor-register-route { color: #6f5018; font-family: "Figtree", "DM Sans", "Segoe UI", system-ui, sans-serif; }
 .vv-vendor-register-route .vv-screen-scroll { background: #f5f7f6; }
 .vv-vendor-register-route .vv-screen-scroll > div { width: min(100% - 48px, 880px) !important; padding-top: 18px !important; padding-bottom: 34px !important; }
 .vv-vendor-register-route .vv-screen-layout > header { background: #fff; border-color: #e4ddd0; }
@@ -34,9 +34,9 @@
 .vv-vendor-register-route .vv-screen-layout > .shrink-0.border-t { padding-top: 9px; padding-bottom: 9px; }
 /* Registration uses the marketplace's ink/gold palette rather than the
    product-wide green action colour. */
-.vv-vendor-register-route .bg-brand-600 { background-color: #0e1b2c !important; }
+.vv-vendor-register-route .bg-brand-600 { background-color: #6f5018 !important; }
 .vv-vendor-register-route .hover\:bg-brand-700:hover { background-color: #8a6420 !important; }
-.vv-vendor-register-route .text-brand-700,.vv-vendor-register-route .text-brand-800 { color: #0e1b2c !important; }
+.vv-vendor-register-route .text-brand-700,.vv-vendor-register-route .text-brand-800 { color: #6f5018 !important; }
 .vv-vendor-register-route .bg-brand-50 { background-color: #f7f4ee !important; }
 .vv-vendor-register-route .ring-brand-500,.vv-vendor-register-route .ring-brand-600 { --tw-ring-color: #8a6420 !important; }
 .vv-vendor-register-route .border-brand-200,.vv-vendor-register-route .border-brand-300 { border-color: #d9c79e !important; }
@@ -108,6 +108,51 @@
   transform: translateY(-2px);
   box-shadow: 0 14px 28px -16px rgba(14, 27, 44, .26);
 }
+/* Vendor and listing cards share one frame: same cover height, same avatar tile, same body padding. */
+.vv-customer-route .vv-saved-grid > * {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start; /* cards are <button>s, which centre their content vertically by default */
+  overflow: hidden;
+}
+.vv-customer-route .vv-saved-grid > * > :first-child {
+  flex: none;
+  width: 100%;
+  height: 150px;
+}
+.vv-customer-route .vv-saved-grid :is(.listing-card-body, .vendor-card-body) {
+  flex: 1 1 auto;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 16px;
+}
+.vv-customer-route .vv-saved-grid :is(.listing-card-body, .vendor-card-body) > :first-child {
+  flex: none;
+  width: 64px;
+  height: 64px;
+  margin-top: 0;
+  border-radius: 16px;
+}
+.vv-customer-route .vv-saved-grid :is(.listing-card-body, .vendor-card-body) > :first-child > * {
+  width: 52px;
+  height: 52px;
+  border-radius: 12px;
+}
+.vv-customer-route .vv-saved-grid :is(.listing-card-body, .vendor-card-body) > :last-child > :first-child {
+  align-items: flex-start;
+}
+/* One neutral tile for every saved item: flat warm grey, gold icon / initials, no gradient or decorative circles. */
+.vv-customer-route .vv-saved-grid :is(.listing-card-body, .vendor-card-body) > :first-child {
+  border: 1px solid #e4ddd0;
+  background: #f7f4ee;
+  box-shadow: none;
+}
+.vv-customer-route .vv-saved-grid :is(.listing-card-body, .vendor-card-body) > :first-child > * {
+  background-image: none;
+  background-color: #efeae0;
+  color: #8a6420;
+}
+.vv-customer-route .vv-saved-grid :is(.listing-card-body, .vendor-card-body) > :first-child > * > div { display: none; }
 @media (max-width: 720px) {
   .vv-customer-route .vv-saved-grid { gap: 12px; }
 }
