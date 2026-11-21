@@ -399,6 +399,7 @@ export function RemoteBookNew({ params = {} }) {
   const [end, setEnd] = useState('')
   const [notes, setNotes] = useState('')
   const [repeat, setRepeat] = useState(1)
+  const [windowId, setWindowId] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const key = useRef(newKey()) // one key per user action: a double tap or retry makes one booking (F-BKG-08)
@@ -407,6 +408,7 @@ export function RemoteBookNew({ params = {} }) {
   if (listing.loading) return <Screen title="Request a booking"><Loading /></Screen>
   if (listing.error) return <Screen title="Request a booking"><ErrorBox message={listing.error} onRetry={listing.reload} /></Screen>
   const l = listing.data.listing
+  const windows = (l.bookableWindows || []).filter((window) => new Date(window.startsAt) > new Date() && window.placesLeft > 0)
 
   // The Send button lives in a fixed footer, so an error shown only inside the scrolled form can be off-screen
   // and the tap looks like it did nothing. Show it at the top of the form and as a toast.
@@ -416,12 +418,22 @@ export function RemoteBookNew({ params = {} }) {
     // Default the end to one hour later so a customer only has to pick a start; they can still change it.
     if (value && (!end || new Date(end) <= new Date(value))) setEnd(toLocalInput(new Date(new Date(value).getTime() + 3600000)))
   }
+  const chooseWindow = (id) => {
+    setWindowId(id)
+  }
+  const changeMode = (value) => {
+    setMode(value)
+    setError('')
+    if (value === 'instant') setRepeat(1)
+  }
 
   const submit = async () => {
     setError('')
-    if (!start || !end) return fail('Choose a start and end time.')
-    const s = new Date(start)
-    const e = new Date(end)
+    const chosenWindow = mode === 'instant' ? windows.find((item) => item.id === windowId) : null
+    if (mode === 'instant' && !chosenWindow) return fail('Choose an available time window.')
+    if (mode === 'scheduled' && (!start || !end)) return fail('Choose a start and end time.')
+    const s = new Date(chosenWindow?.startsAt || start)
+    const e = new Date(chosenWindow?.endsAt || end)
     if (!(e > s)) return fail('The end time must be after the start.')
     if (s <= new Date()) return fail('Choose a time in the future.')
     const week = 7 * 86400000
@@ -438,8 +450,14 @@ export function RemoteBookNew({ params = {} }) {
     const r = await authService.createBooking(body, key.current)
     setBusy(false)
     if (!r.ok) {
-      if (r.status === 409) key.current = newKey() // a different attempt may now be valid
-      return fail(r.status === 409 ? 'That slot was just taken. Choose another time.' : r.message || 'Could not create the booking.')
+      if (r.status === 409) {
+        key.current = newKey() // a different attempt may now be valid
+        if (mode === 'instant') {
+          setWindowId('')
+          listing.reload()
+        }
+      }
+      return fail(r.status === 409 ? 'That time is no longer available. Choose another one.' : r.message || 'Could not create the booking.')
     }
     toast(r.bookings[0].state === 'confirmed' ? 'Booking confirmed' : 'Request sent to the vendor')
     nav.replace('c_booking', { id: r.bookings[0].id })
@@ -448,10 +466,17 @@ export function RemoteBookNew({ params = {} }) {
   return (
     <Screen title={mode === 'instant' ? 'Instant booking' : 'Request a booking'} subtitle={l.title} footer={<Button full disabled={busy} onClick={submit}>{busy ? 'Sending…' : mode === 'instant' ? 'Confirm booking' : 'Send request'}</Button>}>
       <div ref={scrollRef}>{error && <Banner tone="red" title="Cannot book">{error}</Banner>}</div>
-      {l.instantBooking && <Segmented value={mode} onChange={setMode} options={[{ id: 'scheduled', label: 'Request' }, { id: 'instant', label: 'Instant' }]} />}
+      {l.instantBooking && <Segmented value={mode} onChange={changeMode} options={[{ id: 'scheduled', label: 'Request' }, { id: 'instant', label: 'Instant' }]} />}
       <Card><KV rows={[['Vendor', l.vendor.name], ['Price', priceLabel(l.price)]]} /></Card>
-      <Input label="Start" type="datetime-local" min={toLocalInput(new Date())} value={start} onChange={(e) => onStart(e.target.value)} required />
-      <Input label="End" type="datetime-local" min={start || toLocalInput(new Date())} value={end} onChange={(e) => setEnd(e.target.value)} required hint={`Times are in your device's time zone (${deviceZone()}).`} />
+      {mode === 'instant' ? <Section title="Available time windows">
+        {windows.length ? <div className="space-y-2">{windows.map((window) => <button key={window.id} type="button" aria-pressed={windowId === window.id} onClick={() => chooseWindow(window.id)} className={cx('w-full rounded-xl border p-3 text-left text-sm transition', windowId === window.id ? 'border-brand-600 bg-brand-50 text-brand-900' : 'border-ink-200 bg-white text-ink-700 hover:border-brand-400')}>
+          <span className="font-semibold">{fmtWhen(window.startsAt, deviceZone())} to {fmtWhen(window.endsAt, deviceZone())}</span>
+          <span className="ml-2 text-xs">{window.placesLeft} {window.placesLeft === 1 ? 'place' : 'places'} left</span>
+        </button>)}</div> : <Banner tone="amber" title="No instant times available">Try a scheduled request or check again later.</Banner>}
+      </Section> : <>
+        <Input label="Start" type="datetime-local" min={toLocalInput(new Date())} value={start} onChange={(e) => onStart(e.target.value)} required />
+        <Input label="End" type="datetime-local" min={start || toLocalInput(new Date())} value={end} onChange={(e) => setEnd(e.target.value)} required hint={`Times are in your device's time zone (${deviceZone()}).`} />
+      </>}
       {mode === 'scheduled' && <Select2 label="Repeat" value={repeat} onChange={setRepeat} />}
       <Input label="Notes for the vendor" textarea rows={3} value={notes} onChange={(e) => setNotes(e.target.value)} hint="Address, access details, anything the vendor needs." />
       {mode === 'instant'

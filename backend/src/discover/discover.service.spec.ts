@@ -214,6 +214,7 @@ describe("DiscoverService.getListing", () => {
           service_areas: [],
           availability_model: null,
           availability_time_zone: null,
+          bookable_windows: [],
         },
       ]),
     );
@@ -221,5 +222,16 @@ describe("DiscoverService.getListing", () => {
     expect(listing.availability).toEqual({ state: "not_provided" });
     expect(listing.price.state).toBe("not_provided");
     expect(listing.bookingModes).toEqual(["INSTANT"]);
+    expect(listing.bookableWindows).toEqual([]);
+  });
+
+  it("returns future capacity with free places for instant booking", async () => {
+    const h = harness();
+    const window = { id: "w1", startsAt: "2026-12-01T09:00:00Z", endsAt: "2026-12-01T10:00:00Z", placesLeft: 1 };
+    h.query.mockResolvedValueOnce(result([{ id: "l1", configuration: {}, bookable_windows: [window] }]));
+    const listing = await h.service.getListing("l1");
+    expect(listing.bookableWindows).toEqual([window]);
+    expect(h.query.mock.calls[0][0]).toContain("reserved < capacity");
+    expect(h.query.mock.calls[0][0]).toContain("starts_at > CURRENT_TIMESTAMP");
   });
 });
