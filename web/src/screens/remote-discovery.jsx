@@ -7,7 +7,7 @@
  * is labelled, never shown as zero (F-DSC-05).
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { CalendarClock, Heart, MapPin, MessageCircle, Search, Zap } from 'lucide-react'
+import { CalendarClock, Heart, LayoutGrid, List, MapPin, MessageCircle, Search, Zap } from 'lucide-react'
 import { Badge, Banner, Button, Card, Chips, EmptyState, Input, KV, ListRow, Screen, Section, Segmented, SearchBar, Toggle, cx } from '../ui.jsx'
 import { useApp } from '../store.jsx'
 import { useNav } from '../nav.jsx'
@@ -236,6 +236,7 @@ export function RemoteExplore({ params = {} }) {
   const [type, setType] = useState('all')
   const [categoryId, setCategoryId] = useState('all')
   const [instantOnly, setInstantOnly] = useState(false)
+  const [view, setView] = useState('list')
   const [min, setMin] = useState('')
   const [max, setMax] = useState('')
   const [state, setState] = useState({ loading: true, error: '', items: [], nextCursor: null, marketLive: true })
@@ -342,20 +343,28 @@ export function RemoteExplore({ params = {} }) {
       </aside>
       <div className="vv-explore-listings space-y-3.5">
         <UniversalPanel q={q} country={country} cityId={cityId} signedIn={Boolean(app.me?.loggedIn)} onCategory={setCategoryId} />
-        <p className="pt-1 text-[13px] font-bold uppercase tracking-wide text-ink-500">Products and services{(useSamples ? sampleItems.length : visibleItems.length) > 0 && ` (${useSamples ? sampleItems.length : visibleItems.length})`}</p>
+        <div className="flex items-center justify-between gap-3 pt-1">
+          <p className="text-[13px] font-bold uppercase tracking-wide text-ink-500">Products and services{(useSamples ? sampleItems.length : visibleItems.length) > 0 && ` (${useSamples ? sampleItems.length : visibleItems.length})`}</p>
+          <button type="button" onClick={() => setView((current) => current === 'list' ? 'grid' : 'list')} aria-label={view === 'list' ? 'Show grid view' : 'Show list view'} className="inline-flex min-h-10 shrink-0 items-center gap-2 rounded-xl border border-ink-200 bg-white px-3 py-2 text-sm font-semibold text-ink-700 transition hover:border-brand-600 hover:bg-brand-50 hover:text-brand-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600">
+            {view === 'list' ? <LayoutGrid size={17} aria-hidden="true" /> : <List size={17} aria-hidden="true" />}
+            {view === 'list' ? 'Grid view' : 'List view'}
+          </button>
+        </div>
         {!useSamples && state.error && <ErrorBox message={state.error} onRetry={() => search()} />}
         {!state.error && !state.loading && !state.marketLive && (
           <Banner tone="amber" title="Not live in this area yet">VendorVerse is not open for search in {locale.city || 'this area'} yet, so nothing is shown. Nothing here is hidden from you.</Banner>
         )}
         {!state.error && state.loading && state.items.length === 0 && <Loading />}
-        {useSamples && sampleItems.map((l) => <ResultCard key={l.id} listing={l} sample />)}
+        {(useSamples ? sampleItems.length > 0 : visibleItems.length > 0) && <div className={cx('vv-result-list', view === 'grid' && 'vv-result-grid')}>
+          {useSamples && sampleItems.map((l) => <ResultCard key={l.id} listing={l} sample />)}
+          {visibleItems.map((l) => <ResultCard key={l.id} listing={l} onClick={() => nav.go('c_listing', { id: l.id })} />)}
+        </div>}
         {useSamples && sampleItems.length === 0 && (
           <EmptyState icon={Search} title="No matches" body="Try different words or remove a filter." action={<Button size="sm" onClick={() => nav.go('c_rfq_new')}>Request a quote</Button>} />
         )}
         {!useSamples && !state.loading && !state.error && state.marketLive && visibleItems.length === 0 && (
           <EmptyState icon={Search} title="No matches" body="Try different words or remove a filter. Results never include vendors that do not serve your area." action={<Button size="sm" onClick={() => nav.go('c_rfq_new')}>Request a quote</Button>} />
         )}
-        {visibleItems.map((l) => <ResultCard key={l.id} listing={l} onClick={() => nav.go('c_listing', { id: l.id })} />)}
         {state.nextCursor && !state.loading && <Button full variant="secondary" onClick={() => search(state.nextCursor)}>Show more</Button>}
         {state.nextCursor && state.loading && <Loading />}
       </div>

@@ -27,6 +27,7 @@ import './layout.css'
 import './workspace-themes.css'
 
 const INITIAL_ROUTE = screenForLocation(window.location, SCREENS)
+const PUBLIC_MARKETPLACE_ROUTES = new Set(['c_home', 'c_categories', 'c_category', 'c_explore', 'c_listing', 'c_vendor'])
 
 const MARKETPLACE_CATEGORIES = [
   ['Home services', faHouse],
@@ -157,7 +158,7 @@ function ScreenHost({ onMenu }) {
   const { me } = useApp()
   const reg = SCREENS[nav.id] || SCREENS.welcome
   const C = reg.C
-  const customerRoute = reg.role === 'customer' || (reg.role === 'shared' && me.role === 'customer')
+  const customerRoute = reg.role === 'customer' || PUBLIC_MARKETPLACE_ROUTES.has(nav.id) || (reg.role === 'shared' && me.role === 'customer')
   const customerPortalRoute = me.role === 'customer' && ['c_profile', 'c_profile_edit', 'c_dash', 'c_activity', 'c_saved', 'c_cases', 'c_case', 'c_orders', 'c_reviews', 'c_settings', 'messages', 'chat'].includes(nav.id)
   const businessWorkspaceRoute = me.role === 'business' && ['b_home', 'b_company', 'b_services', 'b_messages', 'b_more'].includes(nav.id)
   const vendorWorkspaceRoute = ['vendor', 'business'].includes(me.role) && (reg.role === 'vendor' || ['messages', 'chat'].includes(nav.id))
@@ -408,7 +409,7 @@ function Shell() {
   const { me, setMe, t } = useApp()
   const { w } = useViewport()
   const [drawer, setDrawer] = useState(false)
-  const skipFirstUrlSync = useRef(true)
+  const [routeInitialized, setRouteInitialized] = useState(false)
   const [agentSidebarCollapsed, setAgentSidebarCollapsed] = useState(false)
   const [adminSidebarCollapsed, setAdminSidebarCollapsed] = useState(false)
   const desktop = w >= 768
@@ -433,7 +434,7 @@ function Shell() {
     if (reg.role === 'auth') { nav.reset(id, reg.defaultParams || {}); return }
     if (id === 'c_home') { nav.reset('c_home', reg.defaultParams || {}); return }
     const role = reg.role === 'shared' ? (me.role || 'customer') : reg.role
-    const canOpen = (role === 'customer' && me.role === 'customer') || canOpenRoute(me, role)
+    const canOpen = PUBLIC_MARKETPLACE_ROUTES.has(id) || canOpenRoute(me, role)
     if (!canOpen) { nav.reset('login', { role, next: id, nextParams: reg.defaultParams || {} }); return }
     nav.reset(id, reg.defaultParams || {})
   }
@@ -443,21 +444,25 @@ function Shell() {
     if (SCREENS[INITIAL_ROUTE.id]) {
       const { id, params } = INITIAL_ROUTE
       const reg = SCREENS[id]
-      if (reg.role === 'auth' || id === 'c_home') nav.reset(id, params)
+      if (id === 'login' && params.next === 'c_explore') {
+        nav.reset('c_explore')
+        window.history.replaceState({ route: 'c_explore' }, '', pathForScreen('c_explore'))
+      } else if (reg.role === 'auth' || PUBLIC_MARKETPLACE_ROUTES.has(id)) nav.reset(id, params)
       else {
         const role = reg.role === 'shared' ? (me.role || 'customer') : reg.role
-        if ((role === 'customer' && me.role === 'customer') || canOpenRoute(me, role)) nav.reset(id, params)
+        if (canOpenRoute(me, role)) nav.reset(id, params)
         else nav.reset('login', { role, next: id, nextParams: params })
       }
     }
+    setRouteInitialized(true)
   }, [])
   useEffect(() => {
-    if (skipFirstUrlSync.current) { skipFirstUrlSync.current = false; return }
+    if (!routeInitialized) return
     const next = pathForScreen(nav.id, nav.params)
     if (`${window.location.pathname}${window.location.search}` !== next || window.location.hash) {
       window.history.pushState({ route: nav.id }, '', next)
     }
-  }, [nav.id, nav.params])
+  }, [routeInitialized, nav.id, nav.params])
   // Browser back/forward follows the readable URL.
   useEffect(() => {
     const onPopState = () => {
