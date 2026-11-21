@@ -61,6 +61,31 @@ describe("AuthService", () => {
   });
 
   describe("requestOtp", () => {
+    it("rejects sign-in for an unknown identifier before creating a challenge", async () => {
+      query.mockResolvedValueOnce(result([{ request_count: 1 }])).mockResolvedValue(result());
+      await expect(service.requestOtp({ channel: "email", identifier: "missing@example.com", intent: "login", mode: "CUSTOMER" })).rejects.toMatchObject({ status: 404 });
+      expect(query.mock.calls.some(([sql]) => String(sql).includes("INSERT INTO auth_challenges"))).toBe(false);
+    });
+
+    it("rejects vendor sign-in when the user has no vendor record", async () => {
+      query.mockResolvedValueOnce(result([{ request_count: 1 }])).mockImplementation((sql) => String(sql).includes("FROM user_identifiers") ? Promise.resolve(result([{ user_id: "u1" }])) : Promise.resolve(result()));
+      await expect(service.requestOtp({ channel: "email", identifier: "customer@example.com", intent: "login", mode: "VENDOR" })).rejects.toMatchObject({ status: 404 });
+      expect(query.mock.calls.some(([sql]) => String(sql).includes("INSERT INTO auth_challenges"))).toBe(false);
+    });
+
+    it("allows vendor sign-in for an owner even when their saved mode is customer", async () => {
+      query.mockResolvedValueOnce(result([{ request_count: 1 }])).mockImplementation((sql) => {
+        if (String(sql).includes("FROM user_identifiers")) return Promise.resolve(result([{ user_id: "u1" }]));
+        if (String(sql).includes("FROM vendors")) return Promise.resolve(result([{ exists: 1 }]));
+        return Promise.resolve(result());
+      });
+      await expect(service.requestOtp({ channel: "email", identifier: "vendor@example.com", intent: "login", mode: "VENDOR" })).resolves.toHaveProperty("challengeId");
+    });
+
+    it("rejects sign-up for an existing identifier", async () => {
+      query.mockResolvedValueOnce(result([{ request_count: 1 }])).mockImplementation((sql) => String(sql).includes("FROM user_identifiers") ? Promise.resolve(result([{ user_id: "u1" }])) : Promise.resolve(result()));
+      await expect(service.requestOtp({ channel: "email", identifier: "existing@example.com", intent: "register" })).rejects.toMatchObject({ status: 409 });
+    });
     it("rejects once the per-identifier limit is exceeded", async () => {
       query.mockResolvedValueOnce(result([{ request_count: 3 }]));
       await expect(
@@ -191,6 +216,29 @@ describe("AuthService", () => {
       });
       expect(credentials.accessToken).toBe("jwt");
       expect(credentials.refreshToken).toBeTruthy();
+    });
+  });
+
+  describe("email linking", () => {
+    const user = { userId: "u1", sessionId: "s1" } as never;
+
+    it("issues an email challenge bound to the signed-in user", async () => {
+      query.mockResolvedValueOnce(result())
+        .mockResolvedValueOnce(result([{ request_count: 1 }]))
+        .mockResolvedValue(result());
+      const challenge = await service.requestEmailLink(user, "Person@Example.com");
+      expect(challenge.challengeId).toBeDefined();
+      expect(query.mock.calls.some(([sql, args]) => String(sql).includes("UPDATE auth_challenges SET user_id") && args[0] === "u1")).toBe(true);
+    });
+
+    it("verifies an email and inserts it as a login identifier", async () => {
+      clientQuery.mockResolvedValueOnce(result([{
+        id: "c1", user_id: "u1", channel: "email", identifier_value: "person@example.com",
+        verifier_hash: sign("123456", VERIFIER_SECRET), expires_at: new Date(Date.now() + 60_000),
+        consumed_at: null, failed_attempts: 0,
+      }])).mockResolvedValueOnce(result([{ id: "i1" }])).mockResolvedValueOnce(result());
+      await expect(service.verifyEmailLink(user, { challengeId: "c1", code: "123456" })).resolves.toEqual({ verified: true });
+      expect(clientQuery.mock.calls.some(([sql]) => String(sql).includes("INSERT INTO user_identifiers"))).toBe(true);
     });
   });
 

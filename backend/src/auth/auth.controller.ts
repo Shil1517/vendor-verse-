@@ -74,6 +74,21 @@ export class AuthController {
     return this.auth.verifyOtp(request);
   }
 
+  @Post("email-link/request")
+  @HttpCode(HttpStatus.ACCEPTED)
+  @UseGuards(AccessTokenGuard)
+  @ApiBearerAuth()
+  requestEmailLink(@CurrentUser() user: AuthenticatedUser, @Body() request: OtpRequestDto) {
+    return this.auth.requestEmailLink(user, request.identifier);
+  }
+
+  @Post("email-link/verify")
+  @UseGuards(AccessTokenGuard)
+  @ApiBearerAuth()
+  verifyEmailLink(@CurrentUser() user: AuthenticatedUser, @Body() request: OtpVerificationDto) {
+    return this.auth.verifyEmailLink(user, request);
+  }
+
   @Post("mfa/verify")
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: "Verify a privileged-account MFA challenge" })

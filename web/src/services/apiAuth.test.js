@@ -50,6 +50,33 @@ describe('createApiAuthService', () => {
     expect(calls[0].body).toEqual({ channel: 'phone', identifier: '+919829000001' })
   })
 
+  it('passes sign-in intent and selected vendor mode to the API', async () => {
+    const { service, calls } = setup({ 'POST /auth/otp/request': reply(202, { challengeId: 'c1' }) })
+    await service.requestOtp('vendor@example.com', { intent: 'login', mode: 'VENDOR' })
+    expect(calls[0].body).toEqual({ channel: 'email', identifier: 'vendor@example.com', intent: 'login', mode: 'VENDOR' })
+  })
+
+  it('shows account errors from the OTP request', async () => {
+    const missing = setup({ 'POST /auth/otp/request': reply(404, {}) })
+    expect((await missing.service.requestOtp('missing@example.com', { intent: 'login', mode: 'CUSTOMER' })).code).toBe('ACCOUNT_NOT_FOUND')
+    const wrongMode = setup({ 'POST /auth/otp/request': reply(404, {}) })
+    expect((await wrongMode.service.requestOtp('customer@example.com', { intent: 'login', mode: 'VENDOR' })).code).toBe('WRONG_ACCOUNT_TYPE')
+  })
+
+  it('links a verified signup email to the signed-in account', async () => {
+    const { service, store, calls } = setup({
+      'POST /auth/email-link/request': reply(202, { challengeId: 'email-c1', devCode: '123456' }),
+      'POST /auth/email-link/verify': reply(201, { verified: true }),
+    })
+    store.set(TOKENS)
+    const challenge = await service.requestEmailLink(' Person@Example.com ')
+    expect(challenge).toMatchObject({ ok: true, challengeId: 'email-c1' })
+    expect((await service.verifyEmailLink(challenge.challengeId, '123456')).ok).toBe(true)
+    expect(calls.map(({ path }) => path)).toEqual(['/auth/email-link/request', '/auth/email-link/verify'])
+    expect(calls[0].body.identifier).toBe('person@example.com')
+    expect(calls[1].auth).toBe('Bearer a1')
+  })
+
   it('rejects malformed contacts without calling the server', async () => {
     const { service, calls } = setup({})
     expect((await service.requestOtp('nope')).code).toBe('INVALID_CONTACT')
