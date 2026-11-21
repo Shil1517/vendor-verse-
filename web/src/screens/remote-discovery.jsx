@@ -7,7 +7,7 @@
  * is labelled, never shown as zero (F-DSC-05).
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { CalendarClock, Heart, MapPin, Search, Zap } from 'lucide-react'
+import { CalendarClock, Heart, MapPin, MessageCircle, Search, Zap } from 'lucide-react'
 import { Badge, Banner, Button, Card, Chips, EmptyState, Input, KV, ListRow, Screen, Section, Segmented, SearchBar, Toggle, cx } from '../ui.jsx'
 import { useApp } from '../store.jsx'
 import { useNav } from '../nav.jsx'
@@ -155,7 +155,38 @@ const RESULT_IMAGES = {
   'Event catering': '/category-images/event-catering.jpg',
 }
 
-function ResultCard({ listing: l, sample = false, onClick, onVendorClick }) {
+function VendorActions({ vendorId, listingId }) {
+  const nav = useNav()
+  const { me } = useApp()
+  const [busy, setBusy] = useState(false)
+  const [failure, setFailure] = useState('')
+
+  const message = async () => {
+    if (!me?.loggedIn) return openAuthDialog('signin')
+    if (busy) return
+    setBusy(true)
+    setFailure('')
+    try {
+      const result = await authService.startConversation(vendorId, listingId)
+      if (!result.ok) return setFailure(result.message || 'Could not open a conversation.')
+      nav.go('chat', { id: result.conversation.id })
+    } catch {
+      setFailure('Could not open a conversation. Please try again.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return <div className="mt-4 border-t border-ink-100 pt-4">
+    <div className="flex flex-wrap gap-2.5">
+      <button type="button" onClick={() => nav.go('c_vendor', { id: vendorId, listingId })} className="inline-flex min-h-10 flex-1 items-center justify-center rounded-xl border border-ink-200 bg-white px-4 py-2 text-sm font-semibold text-ink-800 transition hover:border-brand-600 hover:bg-brand-50 hover:text-brand-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600 sm:flex-none">View profile</button>
+      <button type="button" disabled={busy} onClick={message} className="inline-flex min-h-10 flex-1 items-center justify-center gap-2 rounded-xl bg-brand-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600 disabled:cursor-wait disabled:opacity-60 sm:flex-none"><MessageCircle size={16} aria-hidden="true" />{busy ? 'Opening…' : 'Message'}</button>
+    </div>
+    {failure && <p role="alert" className="mt-2 text-sm text-red-700">{failure}</p>}
+  </div>
+}
+
+function ResultCard({ listing: l, sample = false, onClick }) {
   const location = l.city || l.vendor?.city || l.vendor?.location
   const kind = l.listingType === 'product' ? 'Product' : 'Service'
   const matched = sample ? (l.isNew ? 'New vendor' : 'Verified marketplace listing') : matchLabels(l.matchedOn).join(' · ')
@@ -175,7 +206,7 @@ function ResultCard({ listing: l, sample = false, onClick, onVendorClick }) {
               <button type="button" disabled={!onClick} onClick={onClick} className="min-w-0 text-left text-base font-bold leading-snug text-ink-900 transition hover:text-brand-700 md:text-lg">{l.title}</button>
               <div className="flex shrink-0 gap-1.5">{l.instantBooking && <Badge tone="teal"><Zap size={11} /> Instant</Badge>}{sample && <Badge tone="gray">Sample</Badge>}</div>
             </div>
-            {onVendorClick ? <button type="button" onClick={onVendorClick} className="mt-1 text-left text-sm font-medium text-brand-700 underline underline-offset-2 hover:text-brand-900">{l.vendor.name} · View profile & message</button> : <p className="mt-1 text-sm font-medium text-ink-600">{l.vendor.name}</p>}
+            <p className="mt-1 text-sm font-semibold text-ink-600">{l.vendor.name}</p>
             <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-ink-500">
               <span className="rounded-full bg-ink-50 px-2 py-1 font-semibold text-ink-600">{l.categoryName}</span>
               {location && <span className="inline-flex items-center gap-1"><MapPin size={12} />{location}</span>}
@@ -189,6 +220,7 @@ function ResultCard({ listing: l, sample = false, onClick, onVendorClick }) {
           <span className="rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-ink-600 ring-1 ring-ink-200">{kind}</span>
         </div>
         {matched && <p className="mt-2 text-xs font-medium text-ink-500">{matched}</p>}
+        {!sample && <VendorActions vendorId={l.vendor.id} listingId={l.id} />}
         </div>
       </div>
     </Card>
@@ -281,7 +313,7 @@ export function RemoteExplore({ params = {} }) {
             <Segmented className="bg-ink-50" value={type} onChange={setType} options={[{ id: 'all', label: 'All' }, { id: 'product', label: 'Products' }, { id: 'service', label: 'Services' }]} />
           </div>
 
-          {chipOptions.length > 0 && (
+          {!group && chipOptions.length > 0 && (
             <div>
               <p className="mb-2.5 text-xs font-bold uppercase tracking-[0.14em] text-ink-500">Category</p>
               <Chips className="-mx-1 px-1" value={categoryId} onChange={setCategoryId} options={[{ id: 'all', label: 'All categories' }, ...chipOptions]} />
@@ -323,7 +355,7 @@ export function RemoteExplore({ params = {} }) {
         {!useSamples && !state.loading && !state.error && state.marketLive && visibleItems.length === 0 && (
           <EmptyState icon={Search} title="No matches" body="Try different words or remove a filter. Results never include vendors that do not serve your area." action={<Button size="sm" onClick={() => nav.go('c_rfq_new')}>Request a quote</Button>} />
         )}
-        {visibleItems.map((l) => <ResultCard key={l.id} listing={l} onClick={() => nav.go('c_listing', { id: l.id })} onVendorClick={() => nav.go('c_vendor', { id: l.vendor.id, listingId: l.id })} />)}
+        {visibleItems.map((l) => <ResultCard key={l.id} listing={l} onClick={() => nav.go('c_listing', { id: l.id })} />)}
         {state.nextCursor && !state.loading && <Button full variant="secondary" onClick={() => search(state.nextCursor)}>Show more</Button>}
         {state.nextCursor && state.loading && <Loading />}
       </div>
@@ -370,8 +402,9 @@ export function RemoteListingDetail({ params = {} }) {
     >
       <div>
         <h2 className="text-lg font-bold text-ink-900">{l.title}</h2>
-        <p className="text-sm text-ink-500"><button type="button" className="font-semibold text-brand-700 underline underline-offset-2" onClick={() => nav.go('c_vendor', { id: l.vendor.id, listingId: l.id })}>{l.vendor.name} · View profile & message</button> · {l.categoryName}</p>
+        <p className="text-sm text-ink-500">{l.vendor.name} · {l.categoryName}</p>
         <p className="mt-2 text-base font-semibold text-ink-900">{priceLabel(l.price)}</p>
+        <VendorActions vendorId={l.vendor.id} listingId={l.id} />
       </div>
       {l.description ? <p className="text-sm leading-relaxed text-ink-700">{l.description}</p> : <p className="text-sm text-ink-500">The vendor has not added a description.</p>}
       <Card>
