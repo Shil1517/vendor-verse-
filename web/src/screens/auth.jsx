@@ -127,6 +127,7 @@ export function Login({ params = {} }) {
             <h2 className="text-2xl font-extrabold tracking-tight">Sign in</h2>
             <p className="mt-1 text-sm text-ink-500">Choose your workspace and enter your phone or email to continue.</p>
           </div>
+          <Segmented value={role} onChange={(selected) => { setRole(selected); setErr('') }} options={[{ id: 'customer', label: 'Customer' }, { id: 'vendor', label: 'Vendor' }]} />
           <Segmented value={method} onChange={(m) => { setMethod(m); setVal(''); setErr('') }} options={[{ id: 'phone', label: 'Phone' }, { id: 'email', label: 'Email' }]} />
           {method === 'phone' ? (
             <div><label className="mb-1.5 block text-[13px] font-semibold text-ink-700">Mobile number</label><div className="flex h-12 overflow-hidden rounded-xl bg-white ring-1 ring-inset ring-ink-200 focus-within:ring-2 focus-within:ring-brand-500"><select aria-label="Country calling code" value={countryCode} onChange={(e) => setCountryCode(e.target.value)} className="w-[92px] shrink-0 border-r border-ink-200 bg-ink-50 px-2 text-sm font-bold text-ink-700 outline-none"><option value="+91">🇮🇳 +91</option><option value="+1">🇺🇸 +1</option><option value="+44">🇬🇧 +44</option><option value="+971">🇦🇪 +971</option><option value="+81">🇯🇵 +81</option><option value="+46">🇸🇪 +46</option></select><div className="relative flex min-w-0 flex-1 items-center"><Phone size={17} className="pointer-events-none absolute left-3 text-ink-400" /><input inputMode="numeric" maxLength={10} placeholder="98290 00001" value={val} onChange={(e) => { setVal(e.target.value.replace(/\D/g, '')); setErr('') }} className="h-full min-w-0 flex-1 bg-transparent pl-10 pr-3 text-sm outline-none" /></div></div>{err && <p className="mt-1.5 text-xs font-medium text-red-600">{err}</p>}<p className="mt-1.5 text-xs text-ink-500">Standard SMS rates may apply</p></div>
@@ -159,12 +160,17 @@ export function Otp({ params, embedded = false, onComplete }) {
   const [sending, setSending] = useState(true)
   const [secs, setSecs] = useState(30)
   const [checking, setChecking] = useState(false)
+  const [linkingEmail, setLinkingEmail] = useState(false)
+  const [emailChallenge, setEmailChallenge] = useState('')
   const verifying = useRef(false)
   const sendCode = async () => {
     setSending(true); setErr('')
-    const r = await authService.requestOtp(contact)
+    const r = linkingEmail
+      ? await authService.requestEmailLink(email)
+      : await authService.requestOtp(contact, { intent: mode === 'register' ? 'register' : 'login', mode: role === 'vendor' ? 'VENDOR' : 'CUSTOMER' })
     setSending(false)
     if (!r.ok) return setErr(r.message)
+    if (linkingEmail) setEmailChallenge(r.challengeId)
     setDevCode(r.devCode || '')
     setSecs(30)
   }
@@ -178,14 +184,17 @@ export function Otp({ params, embedded = false, onComplete }) {
     if (verifying.current) return
     verifying.current = true
     setChecking(true)
-    const r = await authService.verifyOtp(contact, candidate)
+    if (linkingEmail && !emailChallenge) { setChecking(false); verifying.current = false; return setErr('Request a new email code to continue.') }
+    const r = linkingEmail
+      ? await authService.verifyEmailLink(emailChallenge, candidate)
+      : await authService.verifyOtp(contact, candidate)
     verifying.current = false
     setChecking(false)
     if (!r.ok) return setErr(r.message)
     // F-ACC-06: the server holds the name and email. Sign-up saves what it collected (without overwriting an
     // existing profile); plain sign-in reads the stored profile so an account with no name is asked for one.
     let profile = null
-    if (authService.isRemote) {
+    if (authService.isRemote && !linkingEmail) {
       const stored = await authService.getProfile()
       profile = stored.ok ? stored.profile : null
       if (mode === 'register' && stored.ok) {
@@ -198,6 +207,19 @@ export function Otp({ params, embedded = false, onComplete }) {
           else toast('Account created, but your details were not saved. Add them from Edit profile.')
         }
       }
+    }
+    if (authService.isRemote && mode === 'register' && email && !linkingEmail) {
+      setLinkingEmail(true)
+      setCode('')
+      setDevCode('')
+      setSecs(0)
+      const linked = await authService.requestEmailLink(email)
+      if (!linked.ok) { setErr(linked.message); return }
+      setEmailChallenge(linked.challengeId)
+      setCode('')
+      setDevCode(linked.devCode || '')
+      setSecs(30)
+      return
     }
     // Super Admin signs in with the same single OTP as every other role (owner request, 2026-10-30).
     if (mode === 'register') {
@@ -219,18 +241,19 @@ export function Otp({ params, embedded = false, onComplete }) {
       }
       return
     }
-    const accountRole = r.account ? roleForAccount(r.account) : role
-    const same = accountRole === role
-    const needsName = authService.isRemote && accountRole === 'customer' && !profile?.displayName
-    const extra = { ...(r.account ? { userId: r.account.userId, hasVendorAccount: !!r.account.availableModes?.includes('VENDOR') } : {}), ...(accountPhone(profile, contact) ? { phone: accountPhone(profile, contact) } : {}), ...(profile?.displayName ? { name: profile.displayName } : authService.isRemote ? { name: 'Customer' } : {}) }
-    if (needsName) {
-      if (embedded) {
-        setMe({ role: accountRole, loggedIn: true, guest: false, vendorId: 'v-me', name: ME[accountRole], ...extra })
-        finish('c_profile_edit', { firstRun: true })
-      } else signIn(accountRole, extra, 'c_profile_edit', { firstRun: true })
-      toast('Welcome! Add your name to finish your profile.')
+    const privilegedRole = r.account ? roleForAccount(r.account) : null
+    const accountRole = privilegedRole === 'admin' || privilegedRole === 'agent' ? privilegedRole : role
+    if (r.account && !['admin', 'agent'].includes(accountRole) && !r.account.availableModes?.includes(role.toUpperCase())) {
+      await authService.endSession()
+      setErr(role === 'vendor' ? 'No vendor account exists for this sign-in.' : 'No customer account exists for this sign-in.')
       return
     }
+    if (r.account && !['admin', 'agent'].includes(accountRole) && r.account.currentMode !== role.toUpperCase()) {
+      const switched = await authService.switchMode(role.toUpperCase())
+      if (!switched.ok) { await authService.endSession(); setErr(switched.message); return }
+    }
+    const same = accountRole === role
+    const extra = { ...(r.account ? { userId: r.account.userId, hasVendorAccount: !!r.account.availableModes?.includes('VENDOR') } : {}), ...(accountPhone(profile, contact) ? { phone: accountPhone(profile, contact) } : {}), ...(profile?.displayName ? { name: profile.displayName } : authService.isRemote ? { name: 'Customer' } : {}) }
     const destination = same ? next || HOME[role] : HOME[accountRole]
     const destinationParams = same ? nextParams || {} : {}
     if (embedded) {
@@ -254,7 +277,7 @@ export function Otp({ params, embedded = false, onComplete }) {
             <p className="vv-login-eyebrow">SECURE ACCOUNT ACCESS</p>
             <h2 id={embedded ? 'vv-market-auth-title' : undefined} className="text-2xl font-extrabold tracking-tight">Enter the code</h2>
             <p className="mt-1 text-sm text-ink-500">
-              {sending ? 'Sending your code…' : <>We sent a 6-digit code to <b className="text-ink-800">{contact}</b></>}
+              {sending ? 'Sending your code…' : <>We sent a 6-digit code to <b className="text-ink-800">{linkingEmail ? email : contact}</b></>}
             </p>
           </div>
           <div className="vv-otp-entry relative">
@@ -266,8 +289,8 @@ export function Otp({ params, embedded = false, onComplete }) {
             <input autoFocus aria-label="One-time code" inputMode="numeric" maxLength={6} value={code} onChange={(e) => { const nextCode = e.target.value.replace(/\D/g, '').slice(0, 6); setCode(nextCode); setErr(''); if (nextCode.length === 6) window.setTimeout(() => verify(nextCode), 0) }} className="absolute inset-0 h-full w-full cursor-text opacity-0" />
           </div>
           {err && <p className="text-sm font-medium text-red-600" role="alert">{err}</p>}
-          {devCode && <Banner tone="blue" title="Development mode: no SMS provider configured">The code for this request is <b>{devCode}</b>. A real provider replaces this banner. <button type="button" className="font-bold underline" onClick={() => { setCode(devCode); setErr(''); window.setTimeout(() => verify(devCode), 0) }}>Auto-fill</button></Banner>}
-          <Button full size="lg" disabled={sending || checking} onClick={() => verify()}>{mode === 'register' ? 'Verify & create account' : 'Verify & log in'}</Button>
+          {devCode && <Banner tone="blue" title="Development mode: no delivery provider configured">The code for this request is <b>{devCode}</b>. A real provider replaces this banner. <button type="button" className="font-bold underline" onClick={() => { setCode(devCode); setErr(''); window.setTimeout(() => verify(devCode), 0) }}>Auto-fill</button></Banner>}
+          <Button full size="lg" disabled={sending || checking} onClick={() => verify()}>{linkingEmail ? 'Verify email & continue' : mode === 'register' ? 'Verify phone & continue' : 'Verify & log in'}</Button>
           <p className="text-center text-sm text-ink-500">
             {secs > 0 ? `Resend code in 0:${String(secs).padStart(2, '0')}` : <button onClick={() => { sendCode().then(() => toast('A new OTP has been sent')) }} className="font-bold text-brand-700">Resend OTP</button>}
           </p>
@@ -286,7 +309,7 @@ export function Register() {
     const e = {}
     if (f.name.trim().length < 3) e.name = 'Enter your full name'
     if (!isPhone(f.phone)) e.phone = 'Enter a valid 10-digit mobile number'
-    if (f.email && !isEmail(f.email)) e.email = 'Enter a valid email address'
+    if (!isEmail(f.email)) e.email = 'Enter a valid email address'
     if (role !== 'customer' && f.biz.trim().length < 3) e.biz = 'Enter your business name'
     if (!f.agree) e.agree = 'Please accept to continue'
     setErrs(e)
@@ -323,7 +346,7 @@ export function Register() {
           <Input label="Full name" required placeholder="As per ID" value={f.name} onChange={set('name')} error={errs.name} />
           {role !== 'customer' && <Input label="Business name" required placeholder="Registered business name" value={f.biz} onChange={set('biz')} error={errs.biz} />}
           <Input label="Mobile number" required icon={Phone} inputMode="numeric" maxLength={10} placeholder="98290 00001" value={f.phone} onChange={(e) => set('phone')(normalizePhone(e.target.value))} error={errs.phone} className="!pl-10" />
-          <Input label="Email (optional)" icon={Mail} type="email" placeholder="you@company.com" value={f.email} onChange={set('email')} error={errs.email} />
+          <Input label="Email" icon={Mail} type="email" placeholder="you@company.com" value={f.email} onChange={set('email')} error={errs.email} />
           <div>
             <Checkbox checked={f.agree} onChange={(v) => set('agree')(v)}>I agree to the <b className="text-brand-700">Terms of Service</b> and <b className="text-brand-700">Privacy Policy</b>, and consent to my data being processed to provide this service.</Checkbox>
             {errs.agree && <p className="mt-1 text-xs font-medium text-red-600">{errs.agree}</p>}

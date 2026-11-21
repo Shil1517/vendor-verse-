@@ -1648,3 +1648,139 @@ html[data-theme='light'] .vv-vendor-workspace.vx-shell {
 }
 
 html[data-theme='light'] .vv-global-vendor-shell { background: #f5f5f4; }
+
+/* Match the customer workspace palette across the vendor workspace. */
+html[data-theme='light'] .vv-vendor-workspace-route:not(.vv-customer-route):not(.vv-business-workspace-route) > .vv-vendor-workspace.vx-shell[data-theme='light'] {
+  --vv-theme-canvas: #f5f5f4;
+  --vv-theme-glow: #f3ead6;
+  --vv-theme-surface: #fff;
+  --vv-theme-surface-strong: #fff;
+  --vv-theme-line: #e4ddd0;
+  --vv-theme-ink: #0e1b2c;
+  --vv-theme-muted: #737b86;
+  --vv-theme-accent: #8a6420;
+  --vv-theme-accent-2: #b98f3e;
+  --vv-theme-shadow: rgba(60, 45, 20, .08);
+  --v-bg: #f5f5f4;
+  --v-panel: #fff;
+  --v-card: #fff;
+  --v-ink: #0e1b2c;
+  --v-muted: #737b86;
+  --v-line: #e4ddd0;
+  --v-accent: #8a6420;
+  --vv-canvas: #f5f5f4;
+  --vv-screen-canvas: #f5f5f4;
+  --ink: #0e1b2c;
+  --muted: #737b86;
+  --soft: #5b5f6b;
+  --line: #e4ddd0;
+  --mint: #8a6420;
+  --sky: #a67a2c;
+  --grad: linear-gradient(135deg, #8a6420, #b98f3e);
+  --vv-ws-side-edge: #e4ddd0;
+  --vv-ws-side-bg: #fff;
+  --vv-ws-top-edge: #e4ddd0;
+  --vv-ws-top-bg: #fff;
+  --vv-ws-card-edge: #e4ddd0;
+  --vv-ws-card-bg: #fff;
+  --vv-ws-plan-bg: #f8f6f2;
+  --vv-analytics-blue: #8a6420;
+  background: #f5f5f4;
+}
+
+html[data-theme='light'] .vv-vendor-workspace-route:not(.vv-customer-route):not(.vv-business-workspace-route) .vv-vendor-workspace.vx-shell[data-theme='light'] .vx-panel {
+  background: #f5f5f4 !important;
+}
+
+html[data-theme='light'] .vv-vendor-workspace-route:not(.vv-customer-route):not(.vv-business-workspace-route) .vv-vendor-workspace.vx-shell[data-theme='light'] .vx-nav-item:not(.is-active) {
+  color: #3b4350;
+}
+
+html[data-theme='light'] .vv-vendor-workspace-route:not(.vv-customer-route):not(.vv-business-workspace-route) .vv-vendor-workspace.vx-shell[data-theme='light'] .vx-nav-item > svg,
+html[data-theme='light'] .vv-vendor-workspace-route:not(.vv-customer-route):not(.vv-business-workspace-route) .vv-vendor-workspace.vx-shell[data-theme='light'] .vx-toggle,
+html[data-theme='light'] .vv-vendor-workspace-route:not(.vv-customer-route):not(.vv-business-workspace-route) .vv-vendor-workspace.vx-shell[data-theme='light'] .vx-search > svg {
+  color: #8a6420;
+}
+
+html[data-theme='light'] .vv-vendor-workspace-route:not(.vv-customer-route):not(.vv-business-workspace-route) .vv-vendor-workspace.vx-shell[data-theme='light'] .vx-nav-item:hover,
+html[data-theme='light'] .vv-vendor-workspace-route:not(.vv-customer-route):not(.vv-business-workspace-route) .vv-vendor-workspace.vx-shell[data-theme='light'] .vx-nav-item.is-active {
+  background: #f3ead6;
+  color: #6f5018;
+}
+
+html[data-theme='light'] .vv-vendor-workspace-route:not(.vv-customer-route):not(.vv-business-workspace-route) .vv-vendor-workspace.vx-shell[data-theme='light'] .vx-logo,
+html[data-theme='light'] .vv-vendor-workspace-route:not(.vv-customer-route):not(.vv-business-workspace-route) .vv-vendor-workspace.vx-shell[data-theme='light'] .vx-av {
+  background: linear-gradient(135deg, #8a6420, #b98f3e);
+}
+
+html[data-theme='light'] .vv-vendor-workspace-route:not(.vv-customer-route):not(.vv-business-workspace-route) .vv-vendor-workspace.vx-shell[data-theme='light'] .vx-search:focus-within {
+  border-color: #8a6420;
+  box-shadow: 0 0 0 2px rgba(138, 100, 32, .14);
+}
+
+html[data-theme='light'] .vv-vendor-workspace-route:not(.vv-customer-route):not(.vv-business-workspace-route) .vv-vendor-workspace.vx-shell[data-theme='light'] :is(.vx-perf-kicker, .vx-text-link, .vx-perf-chart-chip, .vx-rank-index) {
+  color: #8a6420;
+}
+
+html[data-theme='light'] .vv-vendor-workspace-route:not(.vv-customer-route):not(.vv-business-workspace-route) .vv-vendor-workspace.vx-shell[data-theme='light'] :is(.vx-perf-pill, .vx-perf-ic, .vx-quick span, .vx-cat-row .ci) {
+  background: #f3ead6;
+  color: #8a6420;
+  border-color: #e4d6b8;
+}
+
+html[data-theme='light'] .vv-vendor-workspace-route:not(.vv-customer-route):not(.vv-business-workspace-route) .vv-vendor-workspace.vx-shell[data-theme='light'] :is(.vx-seg, .vx-perf-period, .vx-perf-chart-chip, .vx-conversion-bar, .vx-rank-bar, .vx-mini-bar, .vx-ring-track) {
+  background: #efeae0;
+  border-color: #e4ddd0;
+}
+
+html[data-theme='light'] .vv-vendor-workspace-route:not(.vv-customer-route):not(.vv-business-workspace-route) .vv-vendor-workspace.vx-shell[data-theme='light'] :is(.vx-seg button.on, .vx-perf-period button.on) {
+  background: #8a6420;
+  color: #fff;
+}
+
+html[data-theme='light'] .vv-vendor-workspace-route:not(.vv-customer-route):not(.vv-business-workspace-route) .vv-vendor-workspace.vx-shell[data-theme='light'] :is(.vx-analytics-curve, .vx-chart-line, .vx-ring-value) {
+  stroke: #a67a2c;
+}
+
+html[data-theme='light'] .vv-vendor-workspace-route:not(.vv-customer-route):not(.vv-business-workspace-route) .vv-vendor-workspace.vx-shell[data-theme='light'] :is(.vx-point-dot, .vx-chart-point .dot) {
+  stroke: #a67a2c;
+}
+
+html[data-theme='light'] .vv-vendor-workspace-route:not(.vv-customer-route):not(.vv-business-workspace-route) .vv-vendor-workspace.vx-shell[data-theme='light'] :is(.vx-conversion-bar i, .vx-rank-bar i, .vx-mini-bar i) {
+  background: linear-gradient(90deg, #b98f3e, #8a6420);
+}
+
+html[data-theme='light'] .vv-vendor-workspace-route:not(.vv-customer-route):not(.vv-business-workspace-route) .vv-vendor-workspace.vx-shell[data-theme='light'] :is(.vx-perf-shell .vx-perf-header h2, .vx-perf-shell .vx-perf-stat-text b, .vx-perf-shell .vx-perf-card h3) {
+  color: #0e1b2c;
+}
+
+html[data-theme='light'] .vv-vendor-workspace-route:not(.vv-customer-route):not(.vv-business-workspace-route) .vv-vendor-workspace.vx-shell[data-theme='light'] :is(.vx-perf-shell .vx-perf-subtitle, .vx-perf-shell .vx-perf-stat-text > span, .vx-perf-shell .vx-dash-stat-caption) {
+  color: #737b86;
+}
+
+html[data-theme='light'] .vv-vendor-workspace-route:not(.vv-customer-route):not(.vv-business-workspace-route) .vv-vendor-workspace.vx-shell[data-theme='light'] :is(.vx-vendor-dash .vx-kpi-strip .vx-perf-stat, .vx-vendor-dash .vx-row) {
+  border-color: #e4ddd0;
+  background: #fff;
+}
+
+html[data-theme='light'] .vv-vendor-workspace-route:not(.vv-customer-route):not(.vv-business-workspace-route) .vv-vendor-workspace.vx-shell[data-theme='light'] :is(.vx-vendor-dash .vx-kpi-strip .vx-perf-ic, .vx-perf-category > span, .vx-perf-quick button > span, .vx-cat-row .ci, .vx-cat-row em) {
+  background: #f3ead6;
+  color: #8a6420;
+}
+
+html[data-theme='light'] .vv-vendor-workspace-route:not(.vv-customer-route):not(.vv-business-workspace-route) .vv-vendor-workspace.vx-shell[data-theme='light'] :is(.vx-vendor-dash .vx-kpi-strip .vx-perf-stat > small, .vx-vendor-dash .vx-text-link) {
+  color: #8a6420;
+}
+
+html[data-theme='light'] .vv-vendor-workspace-route:not(.vv-customer-route):not(.vv-business-workspace-route) .vv-vendor-workspace.vx-shell[data-theme='light'] :is(.vx-vendor-dash .vx-row:hover, .vx-perf-shell .vx-cat-row:hover) {
+  border-color: #d3bb84;
+  background: #f8f6f2;
+}
+
+html[data-theme='light'] .vv-vendor-workspace-route:not(.vv-customer-route):not(.vv-business-workspace-route) .vv-vendor-workspace.vx-shell[data-theme='light'] :is(.vv-vendor-chart-line, .vv-vendor-chart-point .dot) {
+  stroke: #8a6420;
+}
+
+html[data-theme='light'] .vv-vendor-workspace-route:not(.vv-customer-route):not(.vv-business-workspace-route) .vv-vendor-workspace.vx-shell[data-theme='light'] .vv-vendor-chart-column {
+  fill: rgba(185, 143, 62, .2);
+}
