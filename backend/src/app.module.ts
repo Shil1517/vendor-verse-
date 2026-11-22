@@ -10,6 +10,7 @@ import { FilesModule } from "./files/files.module";
 import { GeoModule } from "./geo/geo.module";
 import { ListingsModule } from "./listings/listings.module";
 import { MessagesModule } from "./messages/messages.module";
+import { PaymentRecordsModule } from "./payments/payment-records.module";
 import { NotificationsModule } from "./notifications/notifications.module";
 import { HealthController } from "./health/health.controller";
 import { PlatformModule } from "./platform/platform.module";
@@ -45,6 +46,7 @@ import { validateEnvironment } from "./config/environment";
     VendorRolesModule,
     ListingsModule,
     MessagesModule,
+    PaymentRecordsModule,
     NotificationsModule,
     FilesModule,
     VerificationModule,

@@ -1,0 +1,80 @@
+openapi: 3.1.0
+info:
+  title: VendorVerse Phase 1 Payment Records API
+  version: 0.1.0
+  description: Informational Mode A direct-payment and Mode B invoice/offline-terms records. No platform funds movement.
+  x-feature-ids: [F-PAY-01, F-PAY-02]
+servers:
+  - url: /v1
+security:
+  - bearerAuth: []
+paths:
+  /payment-records:
+    get:
+      operationId: listPaymentRecords
+      summary: List records for an authorized transaction party
+      parameters:
+        - { name: parentType, in: query, required: true, schema: { type: string, enum: [booking, purchase_order, contract, accepted_terms] } }
+        - { name: parentId, in: query, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "200":
+          description: Most recent 100 records
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items: { type: array, items: { $ref: "#/components/schemas/PaymentRecord" } }
+        "401": { description: Authentication required }
+        "404": { description: Transaction not found or caller is not a party }
+    post:
+      operationId: createPaymentRecord
+      summary: Add an informational record after transaction terms are agreed
+      description: A vendor may note a Mode A direct-payment receipt. Either party may record Mode B invoice or offline terms. The platform does not verify the stated status or move funds.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CreatePaymentRecord" }
+      responses:
+        "201":
+          description: Record created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PaymentRecord" }
+        "400": { description: Invalid record }
+        "401": { description: Authentication required }
+        "403": { description: Buyer cannot record a Mode A receipt }
+        "404": { description: Transaction not found or caller is not a party }
+        "409": { description: Transaction terms are not agreed }
+components:
+  securitySchemes:
+    bearerAuth: { type: http, scheme: bearer, bearerFormat: JWT }
+  schemas:
+    CreatePaymentRecord:
+      type: object
+      additionalProperties: false
+      required: [parentType, parentId, mode, amountMinor, currency, status]
+      properties:
+        parentType: { type: string, enum: [booking, purchase_order, contract, accepted_terms] }
+        parentId: { type: string, format: uuid }
+        mode: { type: string, enum: [A, B] }
+        amountMinor: { type: integer, minimum: 0, maximum: 9007199254740991 }
+        currency: { type: string, pattern: "^[A-Za-z]{3}$" }
+        status: { type: string, minLength: 1, maxLength: 100 }
+        externalReference: { type: string, minLength: 1, maxLength: 200 }
+        termsSnapshot: { type: object }
+    PaymentRecord:
+      type: object
+      required: [id, mode, amountMinor, currency, status, recordedByUserId, createdAt, updatedAt]
+      properties:
+        id: { type: string, format: uuid }
+        mode: { type: string, enum: [A, B] }
+        amountMinor: { type: string, pattern: "^[0-9]+$" }
+        currency: { type: string }
+        status: { type: string }
+        externalReference: { type: [string, "null"] }
+        termsSnapshot: { type: object }
+        recordedByUserId: { type: string, format: uuid }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }

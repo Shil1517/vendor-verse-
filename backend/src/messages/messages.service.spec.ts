@@ -1,6 +1,7 @@
 import { BadRequestException, NotFoundException } from "@nestjs/common";
 import { DatabaseService } from "../database/database.service";
 import { NotificationsService } from "../notifications/notifications.service";
+import { AuditService } from "../platform/audit.service";
 import { MessagesService } from "./messages.service";
 
 const user = { userId: "customer", sessionId: "session" };
@@ -14,8 +15,9 @@ function harness() {
     transaction: (fn: (client: unknown) => Promise<unknown>) => fn({ query: clientQuery }),
   } as unknown as DatabaseService;
   const notify = jest.fn();
-  const service = new MessagesService(database, { notify } as unknown as NotificationsService);
-  return { service, query, clientQuery, notify };
+  const record = jest.fn();
+  const service = new MessagesService(database, { notify } as unknown as NotificationsService, { record } as unknown as AuditService);
+  return { service, query, clientQuery, notify, record };
 }
 
 describe("MessagesService", () => {
@@ -48,6 +50,7 @@ describe("MessagesService", () => {
   it("stores a participant message and notifies the other participant", async () => {
     const h = harness();
     h.clientQuery.mockResolvedValueOnce(result([{ recipient_user_id: "owner", state: "open" }]));
+    h.clientQuery.mockResolvedValueOnce(result([]));
     h.clientQuery.mockResolvedValueOnce(result([{ id: "message", sent_at: new Date() }]));
     h.clientQuery.mockResolvedValueOnce(result([]));
     h.notify.mockResolvedValueOnce("notification");
@@ -57,5 +60,37 @@ describe("MessagesService", () => {
       recipientUserId: "owner",
       linkedResource: { type: "conversation", id: "thread" },
     }), expect.anything());
+  });
+
+  it("masks contact details until the sender grants consent", async () => {
+    const h = harness();
+    h.clientQuery.mockResolvedValueOnce(result([{ recipient_user_id: "owner", state: "open" }]));
+    h.clientQuery.mockResolvedValueOnce(result([]));
+    h.clientQuery.mockResolvedValueOnce(result([{ id: "message", sent_at: new Date() }]));
+    h.clientQuery.mockResolvedValueOnce(result([]));
+    const sent = await h.service.send(user, "thread", { body: "Call +91 9876543210 or me@example.com" });
+    expect(sent.body).toBe("Call [phone hidden] or [email hidden]");
+    expect(sent.contactFiltered).toBe(true);
+    expect(h.clientQuery.mock.calls.find(([sql]) => String(sql).includes("INSERT INTO messages"))?.[1]).toEqual([
+      "thread", "customer", sent.body, true,
+    ]);
+  });
+
+  it("preserves only contact details covered by the sender's consent", async () => {
+    const h = harness();
+    h.clientQuery.mockResolvedValueOnce(result([{ recipient_user_id: "owner", state: "open" }]));
+    h.clientQuery.mockResolvedValueOnce(result([{ scope: "email" }]));
+    h.clientQuery.mockResolvedValueOnce(result([{ id: "message", sent_at: new Date() }]));
+    h.clientQuery.mockResolvedValueOnce(result([]));
+    const sent = await h.service.send(user, "thread", { body: "Call +91 9876543210 or me@example.com" });
+    expect(sent.body).toBe("Call [phone hidden] or me@example.com");
+    expect(sent.contactFiltered).toBe(true);
+  });
+
+  it("requires membership before granting contact consent", async () => {
+    const h = harness();
+    h.clientQuery.mockResolvedValueOnce(result([]));
+    await expect(h.service.grantConsent(user, "thread", "phone")).rejects.toBeInstanceOf(NotFoundException);
+    expect(h.record).not.toHaveBeenCalled();
   });
 });

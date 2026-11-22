@@ -5,10 +5,12 @@ import { AdminTaxonomyController } from "./admin-taxonomy.controller";
 import { AdminTaxonomyService } from "./admin-taxonomy.service";
 import { TaxonomyController } from "./taxonomy.controller";
 import { TaxonomyService } from "./taxonomy.service";
+import { AdminCategorySuggestionsController, CategorySuggestionsController } from "./category-suggestions.controller";
+import { CategorySuggestionsService } from "./category-suggestions.service";
 
 @Module({
   imports: [AuthModule],
-  controllers: [TaxonomyController, AdminTaxonomyController],
-  providers: [TaxonomyService, AdminTaxonomyService, PermissionGuard],
+  controllers: [TaxonomyController, AdminTaxonomyController, CategorySuggestionsController, AdminCategorySuggestionsController],
+  providers: [TaxonomyService, AdminTaxonomyService, CategorySuggestionsService, PermissionGuard],
 })
 export class TaxonomyModule {}
