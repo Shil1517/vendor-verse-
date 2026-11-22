@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
-import { ArrowUpRight, Globe2, MessageCircle, Send, Store } from 'lucide-react'
-import { Banner, Button, Card, EmptyState, Screen } from '../ui.jsx'
+import { ArrowLeft, ArrowUpRight, Globe2, MessageCircle, Send, Store } from 'lucide-react'
+import { Banner, Button, EmptyState, Screen } from '../ui.jsx'
 import { useApp } from '../store.jsx'
 import { useNav } from '../nav.jsx'
 import { authService } from '../services/authService.js'
@@ -86,36 +86,34 @@ export function RemoteVendorProfile({ params = {} }) {
 }
 
 export function RemoteMessages() {
-  const nav = useNav()
   const { me } = useApp()
   const state = useLoad(() => authService.listConversations(), [me.role])
   if (!me.loggedIn) return <Screen title="Messages"><EmptyState icon={MessageCircle} title="Sign in to see messages" action={<Button onClick={() => openAuthDialog('signin')}>Sign in</Button>} /></Screen>
-  return <Screen title="Messages" back={false}>
-    {state.loading && !state.data && <Loading />}
-    {state.error && <ErrorBox message={state.error} onRetry={state.reload} />}
-    {state.data?.conversations?.length === 0 && <EmptyState icon={MessageCircle} title="No conversations yet" body="Open a vendor profile to start one." />}
-    <div className="space-y-3">{state.data?.conversations?.map((c) => <Card key={c.id} onClick={() => nav.go('chat', { id: c.id })}>
-      <div className="flex items-center gap-3"><Store size={18} /><div><p className="text-sm font-bold">{c.vendorName}</p><p className="text-xs text-ink-500">{c.lastMessageAt ? `Last message ${fmtWhen(c.lastMessageAt)}` : 'Start the conversation'}</p></div></div>
-    </Card>)}</div>
-  </Screen>
+  if (state.loading && !state.data) return <Screen title="Messages" back={false}><Loading /></Screen>
+  if (state.error) return <Screen title="Messages" back={false}><ErrorBox message={state.error} onRetry={state.reload} /></Screen>
+  if (!state.data?.conversations?.length) return <Screen title="Messages" back={false}><EmptyState icon={MessageCircle} title="No conversations yet" body="Open a vendor profile to start one." /></Screen>
+  return <RemoteChat params={{ id: state.data.conversations[0].id }} initialConversations={state.data.conversations} />
 }
 
-export function RemoteChat({ params = {} }) {
+export function RemoteChat({ params = {}, initialConversations }) {
+  const nav = useNav()
   const { me } = useApp()
-  const state = useLoad(() => authService.getConversation(params.id), [params.id])
+  const [selectedId, setSelectedId] = useState(params.id)
+  const state = useLoad(() => authService.getConversation(selectedId), [selectedId])
+  const inbox = useLoad(() => authService.listConversations(), [me.role])
+  const conversations = inbox.data?.conversations || initialConversations || []
   const [message, setMessage] = useState('')
   const [busy, setBusy] = useState(false)
   const [failure, setFailure] = useState('')
   useEffect(() => {
-    if (!me.loggedIn || !params.id) return undefined
+    if (!me.loggedIn || !selectedId) return undefined
     const timer = setInterval(() => state.reload(), 5000)
     return () => clearInterval(timer)
-  }, [me.loggedIn, params.id]) // eslint-disable-line react-hooks/exhaustive-deps
-  if (state.loading && !state.data) return <Screen title="Conversation"><Loading /></Screen>
-  if (state.error && !state.data) return <Screen title="Conversation"><ErrorBox message={state.error} onRetry={state.reload} /></Screen>
-  const c = state.data?.conversation
+  }, [me.loggedIn, selectedId]) // eslint-disable-line react-hooks/exhaustive-deps
+  const c = state.data?.conversation?.id === selectedId ? state.data.conversation : null
+  const selectedThread = conversations.find((thread) => thread.id === selectedId)
   const send = async () => {
-    if (!message.trim() || busy) return
+    if (!c || !message.trim() || busy) return
     setBusy(true)
     setFailure('')
     const r = await authService.sendConversationMessage(c.id, message.trim())
@@ -123,11 +121,36 @@ export function RemoteChat({ params = {} }) {
     if (!r.ok) return setFailure(r.message || 'Could not send the message.')
     setMessage('')
     state.reload()
+    inbox.reload()
   }
-  return <Screen title={c?.vendorName || 'Conversation'} subtitle={c?.viewerRole === 'vendor' ? 'Customer conversation' : 'Vendor conversation'} footer={<div className="flex gap-2"><input className="min-w-0 flex-1 rounded-xl border border-ink-200 bg-white px-3 py-2 text-sm" aria-label="Message" placeholder="Type a message" value={message} onChange={(event) => setMessage(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter') send() }} /><Button icon={Send} disabled={busy || !message.trim()} onClick={send}>Send</Button></div>}>
-    {failure && <Banner tone="red" title="Message not sent">{failure}</Banner>}
-    {state.error && <ErrorBox message={state.error} onRetry={state.reload} />}
-    {!c?.messages?.length && <EmptyState icon={MessageCircle} title="Say hello" body="Messages you send here reach the vendor's inbox." />}
-    <div className="space-y-2">{c?.messages?.map((item) => <div key={item.id} className={`max-w-[85%] rounded-2xl p-3 text-sm ${item.mine ? 'ml-auto bg-brand-600 text-white' : 'bg-white text-ink-900'}`}><p className="whitespace-pre-wrap break-words">{item.body}</p><p className="mt-1 text-[11px] opacity-70">{fmtWhen(item.sentAt)}</p></div>)}</div>
+  const isVendor = c?.viewerRole === 'vendor' || me.role === 'vendor'
+  const conversationName = (thread) => isVendor ? (thread.customerName || thread.vendorName || 'Customer') : (thread.vendorName || 'Vendor')
+  return <Screen headerless pad={false} scrollClass="vv-conversation-scroll">
+    <div className="vv-conversation-page">
+    <div className="vv-conversation-page-title">Messages</div>
+    <div className="vv-conversation-workspace">
+      <aside className="vv-conversation-list" aria-label={isVendor ? 'Customer conversations' : 'Vendor conversations'}>
+        <div className="vv-conversation-list-heading"><h2>{isVendor ? 'Customers' : 'Vendors'}</h2><span>{conversations.length}</span></div>
+        {inbox.loading && conversations.length === 0 && <p className="vv-conversation-list-note">Loading conversations…</p>}
+        {inbox.error && <div className="vv-conversation-list-note"><ErrorBox message={inbox.error} onRetry={inbox.reload} /></div>}
+        {!inbox.loading && conversations.length === 0 && <p className="vv-conversation-list-note">Your conversations will appear here.</p>}
+        <div className="vv-conversation-list-items">{conversations.map((thread) => <button type="button" key={thread.id} aria-current={thread.id === selectedId ? 'page' : undefined} className={`vv-conversation-item${thread.id === selectedId ? ' is-selected' : ''}`} onClick={() => { setFailure(''); setMessage(''); setSelectedId(thread.id) }}>
+          <span className="vv-conversation-avatar" aria-hidden="true">{conversationName(thread).trim().charAt(0).toUpperCase()}</span>
+          <span className="vv-conversation-item-copy"><strong>{conversationName(thread)}</strong><small>{thread.lastMessageAt ? `Last message ${fmtWhen(thread.lastMessageAt)}` : 'Start the conversation'}</small></span>
+        </button>)}</div>
+      </aside>
+      <section className="vv-conversation-chat" aria-label="Conversation">
+        <header className="vv-conversation-chat-heading">{nav.id === 'chat' && <button type="button" aria-label="Back to messages" onClick={() => nav.go('messages')}><ArrowLeft size={21} /></button>}<div><h1>{isVendor ? (c?.customerName || selectedThread?.customerName || 'Customer') : (c?.vendorName || selectedThread?.vendorName || 'Vendor')}</h1><p>{isVendor ? 'Customer conversation' : 'Vendor conversation'}</p></div></header>
+        <div className="vv-conversation-messages">
+          {failure && <Banner tone="red" title="Message not sent">{failure}</Banner>}
+          {state.error && <ErrorBox message={state.error} onRetry={state.reload} />}
+          {state.loading && !c && <Loading />}
+          {c && !c.messages?.length && <EmptyState icon={MessageCircle} title="Say hello" body="Messages you send here reach the conversation." />}
+          {c?.messages?.map((item) => <div key={item.id} className={`vv-conversation-bubble${item.mine ? ' is-mine' : ''}`}><p>{item.body}</p><small>{fmtWhen(item.sentAt)}</small></div>)}
+        </div>
+        <div className="vv-conversation-compose"><input aria-label="Message" placeholder="Type a message" value={message} onChange={(event) => setMessage(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter') send() }} /><Button icon={Send} disabled={!c || busy || !message.trim()} onClick={send}>Send</Button></div>
+      </section>
+    </div>
+    </div>
   </Screen>
 }

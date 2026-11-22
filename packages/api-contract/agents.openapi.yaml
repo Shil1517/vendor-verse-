@@ -1,0 +1,91 @@
+openapi: 3.1.0
+info:
+  title: VendorVerse Sales Agent API
+  version: 0.1.0
+  description: Assigned prospective-vendor leads, activities, and basic oversight. Assisted-onboarding consent and commission rules are separate work.
+  x-feature-ids: [F-AGT-01, F-AGT-03, F-AGT-04, F-AGT-05, F-AGT-07]
+servers:
+  - url: /v1
+security:
+  - bearerAuth: []
+paths:
+  /agent/leads:
+    get:
+      operationId: listAssignedLeads
+      x-required-permission: agent.leads
+      responses:
+        "200": { description: Most recent 100 leads assigned to the caller }
+    post:
+      operationId: createAssignedLead
+      x-required-permission: agent.leads
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [prospectName]
+              properties:
+                prospectName: { type: string, minLength: 1, maxLength: 200 }
+                businessName: { type: string, minLength: 1, maxLength: 200 }
+                contactDetails: { type: object }
+      responses:
+        "201": { description: Lead created and assigned to caller }
+  /agent/leads/{leadId}:
+    parameters:
+      - { name: leadId, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      operationId: getAssignedLead
+      x-required-permission: agent.leads
+      responses:
+        "200": { description: Assigned lead and its recent activities }
+        "404": { description: Not assigned to caller }
+    patch:
+      operationId: updateAssignedLeadStatus
+      x-required-permission: agent.leads
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status: { type: string, minLength: 1, maxLength: 100 }
+      responses:
+        "200": { description: Status updated }
+        "404": { description: Not assigned to caller }
+  /agent/leads/{leadId}/activities:
+    post:
+      operationId: addAssignedLeadActivity
+      x-required-permission: agent.leads
+      parameters:
+        - { name: leadId, in: path, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [activityType]
+              properties:
+                activityType: { type: string, enum: [call, message, visit, note] }
+                notes: { type: string, minLength: 1, maxLength: 2000 }
+                followUpAt: { type: string, format: date-time }
+      responses:
+        "201": { description: Activity added }
+  /agent/performance:
+    get:
+      operationId: getAgentPerformance
+      x-required-permission: agent.leads
+      responses:
+        "200": { description: Total leads, linked conversions, and elapsed follow-up activities }
+  /admin/agents/leads:
+    get:
+      operationId: listAdminAgentLeads
+      x-required-permission: agent.oversee
+      responses:
+        "200": { description: Most recent 100 agent leads }
+components:
+  securitySchemes:
+    bearerAuth: { type: http, scheme: bearer, bearerFormat: JWT }

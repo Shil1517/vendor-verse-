@@ -227,13 +227,37 @@ function ResultCard({ listing: l, sample = false, onClick }) {
   )
 }
 
+function vendorsFromListings(listings) {
+  const vendors = new Map()
+  for (const listing of listings) {
+    const vendor = listing.vendor
+    if (vendor?.name && !vendors.has(vendor.id || vendor.name)) vendors.set(vendor.id || vendor.name, { ...vendor, listing })
+  }
+  return [...vendors.values()]
+}
+
+function VendorCard({ vendor, sample }) {
+  const listing = vendor.listing
+  return <Card className="overflow-hidden">
+    <div className="flex items-start gap-4">
+      <div className="grid size-16 shrink-0 place-items-center rounded-2xl bg-brand-50 text-2xl font-bold text-brand-700" aria-hidden="true">{vendor.name.charAt(0)}</div>
+      <div className="min-w-0 flex-1">
+        <div className="flex flex-wrap items-center gap-2"><h3 className="text-lg font-bold text-ink-900">{vendor.name}</h3><Badge tone="gray">Vendor</Badge>{sample && <Badge tone="gray">Sample</Badge>}</div>
+        <p className="mt-1 text-sm text-ink-600">{listing.categoryName}{(listing.city || vendor.city) ? ` · ${listing.city || vendor.city}` : ''}</p>
+        {vendor.roles?.length > 0 && <p className="mt-1 text-xs text-ink-500">{vendor.roles.join(' · ')}</p>}
+        {!sample && <VendorActions vendorId={vendor.id} />}
+      </div>
+    </div>
+  </Card>
+}
+
 export function RemoteExplore({ params = {} }) {
   const nav = useNav()
   const app = useApp()
   const locale = app.locale ?? app.loc ?? {} // web keeps the place in `locale`, mobile in `loc`
   const [q, setQ] = useState(params.q || '')
   const [group, setGroup] = useState(params.group || '') // top-level category picked in the marketplace header
-  const [type, setType] = useState('all')
+  const [type, setType] = useState(params.mode === 'vendors' ? 'vendor' : 'all')
   const [categoryId, setCategoryId] = useState('all')
   const [instantOnly, setInstantOnly] = useState(false)
   const [min, setMin] = useState('')
@@ -242,7 +266,7 @@ export function RemoteExplore({ params = {} }) {
   const country = locale.country || 'IN'
 
   // Picking another header category while this screen is open starts a fresh browse of it.
-  useEffect(() => { setGroup(params.group || ''); setQ(params.q || ''); setCategoryId('all') }, [params.group, params.q])
+  useEffect(() => { setGroup(params.group || ''); setQ(params.q || ''); setCategoryId('all'); setType(params.mode === 'vendors' ? 'vendor' : 'all') }, [params.group, params.q, params.mode])
 
   // Resolve the saved city name to a geography id once.
   const cities = useLoad(() => authService.listCities(country), [country])
@@ -251,7 +275,7 @@ export function RemoteExplore({ params = {} }) {
 
   const filters = useMemo(() => ({
     countryCode: country, cityId, q: q.trim() || undefined, categoryId: categoryId === 'all' ? undefined : categoryId,
-    listingType: type === 'all' ? undefined : type, instantOnly: instantOnly || undefined,
+    listingType: type === 'product' || type === 'service' ? type : undefined, instantOnly: instantOnly || undefined,
     minPriceMinor: min ? Number(min) * 100 : undefined, maxPriceMinor: max ? Number(max) * 100 : undefined,
   }), [country, cityId, q, categoryId, type, instantOnly, min, max])
 
@@ -283,7 +307,7 @@ export function RemoteExplore({ params = {} }) {
     const text = q.trim().toLowerCase()
     return SAMPLE_LISTINGS.filter((l) => {
       if (group === 'New vendors' ? !l.isNew : group && l.group !== group) return false
-      if (type !== 'all' && l.listingType !== type) return false
+      if (type !== 'all' && type !== 'vendor' && l.listingType !== type) return false
       if (categoryId !== 'all' && l.categoryName !== categoryId) return false
       if (instantOnly && !l.instantBooking) return false
       if (min && l.price.maxMinor < Number(min) * 100) return false
@@ -291,6 +315,11 @@ export function RemoteExplore({ params = {} }) {
       return !text || [l.title, l.vendor.name, l.categoryName, l.group, l.city].some((v) => v.toLowerCase().includes(text))
     })
   }, [q, group, type, categoryId, instantOnly, min, max])
+  const resultListings = useSamples ? sampleItems : visibleItems
+  const vendorItems = useMemo(() => vendorsFromListings(resultListings), [resultListings])
+  const showListings = type !== 'vendor'
+  const showVendors = type === 'vendor'
+  const resultCount = (showListings ? resultListings.length : 0) + (showVendors ? vendorItems.length : 0)
   const activeFilterCount = [type !== 'all', categoryId !== 'all', Boolean(min), Boolean(max), instantOnly].filter(Boolean).length
 
   return (
@@ -310,7 +339,7 @@ export function RemoteExplore({ params = {} }) {
               <p className="text-xs font-bold uppercase tracking-[0.14em] text-ink-500">Browse by type</p>
               <span className="text-xs text-ink-400">Choose one</span>
             </div>
-            <Segmented className="bg-ink-50" value={type} onChange={setType} options={[{ id: 'all', label: 'All' }, { id: 'product', label: 'Products' }, { id: 'service', label: 'Services' }]} />
+            <Segmented className="bg-ink-50" value={type} onChange={setType} options={[{ id: 'all', label: 'All' }, { id: 'product', label: 'Products' }, { id: 'service', label: 'Services' }, { id: 'vendor', label: 'Vendors' }]} />
           </div>
 
           {!group && chipOptions.length > 0 && (
@@ -342,20 +371,22 @@ export function RemoteExplore({ params = {} }) {
       </aside>
       <div className="vv-explore-listings space-y-3.5">
         <UniversalPanel q={q} country={country} cityId={cityId} signedIn={Boolean(app.me?.loggedIn)} onCategory={setCategoryId} />
-        <p className="pt-1 text-[13px] font-bold uppercase tracking-wide text-ink-500">Products and services{(useSamples ? sampleItems.length : visibleItems.length) > 0 && ` (${useSamples ? sampleItems.length : visibleItems.length})`}</p>
+        <p className="pt-1 text-[13px] font-bold uppercase tracking-wide text-ink-500">{type === 'vendor' ? 'Vendors' : type === 'product' ? 'Products' : type === 'service' ? 'Services' : 'Products and services'}{resultCount > 0 && ` (${resultCount})`}</p>
         {!useSamples && state.error && <ErrorBox message={state.error} onRetry={() => search()} />}
         {!state.error && !state.loading && !state.marketLive && (
           <Banner tone="amber" title="Not live in this area yet">VendorVerse is not open for search in {locale.city || 'this area'} yet, so nothing is shown. Nothing here is hidden from you.</Banner>
         )}
         {!state.error && state.loading && state.items.length === 0 && <Loading />}
-        {useSamples && sampleItems.map((l) => <ResultCard key={l.id} listing={l} sample />)}
-        {useSamples && sampleItems.length === 0 && (
+        {resultCount > 0 && <div className="vv-result-list vv-result-grid">
+          {showVendors && vendorItems.map((vendor) => <VendorCard key={vendor.id || vendor.name} vendor={vendor} sample={useSamples} />)}
+          {showListings && resultListings.map((l) => <ResultCard key={l.id} listing={l} sample={useSamples} onClick={useSamples ? undefined : () => nav.go('c_listing', { id: l.id })} />)}
+        </div>}
+        {useSamples && resultCount === 0 && (
           <EmptyState icon={Search} title="No matches" body="Try different words or remove a filter." action={<Button size="sm" onClick={() => nav.go('c_rfq_new')}>Request a quote</Button>} />
         )}
-        {!useSamples && !state.loading && !state.error && state.marketLive && visibleItems.length === 0 && (
+        {!useSamples && !state.loading && !state.error && state.marketLive && resultCount === 0 && (
           <EmptyState icon={Search} title="No matches" body="Try different words or remove a filter. Results never include vendors that do not serve your area." action={<Button size="sm" onClick={() => nav.go('c_rfq_new')}>Request a quote</Button>} />
         )}
-        {visibleItems.map((l) => <ResultCard key={l.id} listing={l} onClick={() => nav.go('c_listing', { id: l.id })} />)}
         {state.nextCursor && !state.loading && <Button full variant="secondary" onClick={() => search(state.nextCursor)}>Show more</Button>}
         {state.nextCursor && state.loading && <Loading />}
       </div>

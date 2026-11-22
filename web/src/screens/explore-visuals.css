@@ -74,6 +74,14 @@
 .vv-remote-explore-grid > * {
   min-width: 0;
 }
+.vv-result-list {
+  display: grid;
+  gap: 14px;
+}
+.vv-result-grid {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 360px), 1fr));
+  align-items: stretch;
+}
 .vv-result-card-layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
@@ -87,6 +95,66 @@
 }
 .vv-result-card-body {
   padding: 18px;
+}
+.vv-result-grid .vv-result-card-layout {
+  grid-template-columns: clamp(96px, 26%, 170px) minmax(0, 1fr);
+}
+.vv-result-grid .vv-result-card-image {
+  height: auto;
+  margin: 10px 0 10px 10px;
+  aspect-ratio: 1;
+  align-self: start;
+}
+.vv-result-grid .vv-result-card-body {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  padding: 9px 12px;
+}
+.vv-result-grid .vv-result-card-body > div:first-child > div:first-child > button {
+  font-size: 15px;
+  line-height: 1.25;
+}
+.vv-result-grid .vv-result-card-body > div:first-child > p {
+  margin-top: 2px;
+  font-size: 12px;
+}
+.vv-result-grid .vv-result-card-body > div:first-child > div:last-child {
+  margin-top: 3px;
+  font-size: 11px;
+}
+.vv-result-grid .vv-result-card-body > div:first-child > div:last-child > span:first-child {
+  padding: 2px 7px;
+}
+.vv-result-grid .vv-result-card-body > .mt-3 {
+  margin-top: 6px;
+  padding: 5px 9px;
+}
+.vv-result-grid .vv-result-card-body > .mt-3 > div > p:first-child,
+.vv-result-grid .vv-result-card-body > .mt-3 > span {
+  display: none;
+}
+.vv-result-grid .vv-result-card-body > .mt-3 > div > p:last-child {
+  margin-top: 0;
+  font-size: 14px;
+  line-height: 1.25;
+}
+.vv-result-grid .vv-result-card-body > .mt-2 {
+  margin-top: 3px;
+  font-size: 11px;
+}
+.vv-result-grid .vv-result-card-body > .mt-4 {
+  margin-top: 5px;
+  border-top: 0;
+  padding-top: 0;
+}
+.vv-result-grid .vv-result-card-body > .mt-4 > div:first-child {
+  gap: 6px;
+}
+.vv-result-grid .vv-result-card-body > .mt-4 button {
+  min-height: 32px;
+  padding: 5px 9px;
+  font-size: 12px;
 }
 @media (min-width: 1024px) {
   .vv-remote-explore {

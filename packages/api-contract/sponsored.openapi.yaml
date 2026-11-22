@@ -1,0 +1,82 @@
+openapi: 3.1.0
+info:
+  title: VendorVerse Sponsored Campaign Intake
+  version: 0.1.0
+  description: Draft and review intake. Activation is unavailable while publication gates and commercial rules are incomplete.
+  x-feature-ids: [F-SUB-06]
+servers:
+  - url: /v1
+security:
+  - bearerAuth: []
+paths:
+  /vendors/{vendorId}/sponsored-campaigns:
+    parameters:
+      - { name: vendorId, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      operationId: listOwnSponsoredCampaigns
+      responses:
+        "200": { description: Latest 100 campaigns for owned vendor }
+        "404": { description: Vendor is not owned by caller }
+    post:
+      operationId: createSponsoredDraft
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [placement]
+              properties:
+                listingId: { type: string, format: uuid }
+                placement: { type: string, minLength: 1, maxLength: 100 }
+                configuration: { type: object, additionalProperties: true }
+      responses:
+        "201": { description: Draft campaign created }
+  /vendors/{vendorId}/sponsored-campaigns/{campaignId}/status:
+    patch:
+      operationId: submitOrEndOwnSponsoredCampaign
+      parameters:
+        - { name: vendorId, in: path, required: true, schema: { type: string, format: uuid } }
+        - { name: campaignId, in: path, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status, reason]
+              properties:
+                status: { type: string, enum: [pending_review, ended] }
+                reason: { type: string, minLength: 1, maxLength: 1000 }
+      responses:
+        "200": { description: Campaign updated and audited }
+  /admin/sponsored-campaigns:
+    get:
+      operationId: listSponsoredCampaignsForReview
+      x-required-permission: sponsored.review
+      responses:
+        "200": { description: Latest 100 campaigns }
+  /admin/sponsored-campaigns/{campaignId}/status:
+    patch:
+      operationId: stopSponsoredCampaign
+      x-required-permission: sponsored.review
+      parameters:
+        - { name: campaignId, in: path, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status, reason]
+              properties:
+                status: { type: string, enum: [paused, ended] }
+                reason: { type: string, minLength: 1, maxLength: 1000 }
+      responses:
+        "200": { description: Active campaign paused or campaign ended }
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

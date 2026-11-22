@@ -74,6 +74,17 @@ These routes are also listed in Swagger UI at `/docs`.
 - `GET /v1/discover/listings?countryCode=&cityId=&q=&categoryId=&listingType=&minPriceMinor=&maxPriceMinor=&instantOnly=&limit=&cursor=`, `GET /v1/discover/listings/{listingId}` (F-DSC-02, F-DSC-03, F-DSC-05; public; only eligible listings in a live market, organic ranking, `not_provided` instead of zero)
 - `GET /v1/search?q=&countryCode=&cityId=&types=&limit=&cursor=` (F-DSC-02, D-025; optional bearer. Anonymous: vendors, products, services, categories in a live market. Signed in: also the caller's own RFQs, bookings, contracts and purchase orders, only where the caller is a party; a bad token is 401, a private type without a token is 401; several types return a short page per section, one type can be paged with `cursor`; module `backend/src/search/`, contract `packages/api-contract/search.openapi.yaml`)
 - `GET /v1/me/favorites`, `PUT|DELETE /v1/me/favorites/{vendorId}` (F-DSC-07; public vendors only)
+- `GET|POST /v1/payment-records` (F-PAY-01, F-PAY-02; scoped to a booking, purchase order, contract or accepted terms; parties can view records, vendors may note a Mode A direct receipt, either party may record Mode B invoice or offline terms; informational records only, no funds movement)
+- `POST /v1/reviews`, `GET /v1/reviews/mine`, `POST /v1/reviews/{reviewId}/response`, `GET /v1/vendors/{vendorId}/reviews` (F-TRU-01 and F-TRU-02 partial; buyers review completed transactions once, vendors respond once; public rating average is computed from published reviews, with no rating shown before the first review; moderation rules and badges remain open)
+- `POST /v1/reports`, `GET /v1/me/reports|cases`, `GET /v1/cases/{caseId}`, `POST /v1/cases/{caseId}/appeals`, and `/v1/admin/reports|cases|appeals` triage routes (F-TRU-03 and F-TRU-04 partial; report targets are checked for public visibility or party membership; `cases.manage` is seeded for Super Admin; severity, SLA and state are entered by staff without inventing a fixed vocabulary; evidence, vendor-target appeals, holds and enforcement remain)
+- `GET /v1/admin/audit`, `GET|PATCH /v1/admin/config/{code}`, `GET|PUT /v1/admin/settings/{key}` (F-ADM-05, F-ADM-07, F-ADM-08 partial; Super Admin permissions `audit.read` and `admin.configure` are seeded; decisions and setting writes are audited; settings are stored but runtime consumers such as maintenance mode are not yet wired)
+- `GET /v1/admin/dashboard` (F-ADM-01 partial; Super Admin `admin.dashboard` permission; live counts for verification, listing, reports, appeals, cases, subscription failures, category suggestions and inactive markets)
+- `GET|POST /v1/agent/leads`, `GET|PATCH /v1/agent/leads/{id}`, `POST /v1/agent/leads/{id}/activities`, `GET /v1/agent/performance`, `GET /v1/admin/agents/leads` (F-AGT-01, F-AGT-03 to F-AGT-05, F-AGT-07 partial; `agent.leads` is scoped to the assigned active agent, `agent.oversee` is Super Admin only; assisted-onboarding consent and commission model remain)
+- `GET /v1/plans[/{planId}]`, `GET /v1/vendors/{vendorId}/subscription|lead-usage`, `GET|POST /v1/admin/plans`, `POST /v1/admin/plans/{planId}/versions`, `PATCH /v1/admin/plans/{planId}/status`, `GET /v1/admin/subscriptions` (F-SUB-01, F-SUB-02 and F-SUB-05 partial; plans and terms are configured by an admin, no default prices or limits; checkout and billing callbacks await commercial, tax and provider decisions)
+- `GET /v1/vendors/{vendorId}/invoices[/{invoiceId}]`, `GET /v1/admin/invoices[/{invoiceId}]` (F-SUB-07/F-SUB-08 partial; owner-scoped and `invoices.read` admin reads of existing invoices; tax calculation, numbering and issuance await CFG-16)
+- `GET|POST /v1/vendors/{vendorId}/sponsored-campaigns`, `PATCH /v1/vendors/{vendorId}/sponsored-campaigns/{campaignId}/status`, `GET /v1/admin/sponsored-campaigns`, `PATCH /v1/admin/sponsored-campaigns/{campaignId}/status` (F-SUB-06 partial; owner-scoped draft/submission and admin stop routes; activation unavailable while publication gates and commercial rules are incomplete)
+- `GET|POST /v1/conversations`, `GET /v1/conversations/{id}`, `POST /v1/conversations/{id}/messages` (F-MSG-01; participants only; unsolicited phone/email patterns are masked in stored messages)
+- `GET|POST /v1/conversations/{id}/contact-consents`, `DELETE /v1/conversations/{id}/contact-consents/{scope}` (F-MSG-02; a participant explicitly grants or revokes permission for their own phone and/or email to appear in later messages; past messages remain masked)
 - `POST|GET /v1/remote-bookings`, `GET /v1/remote-bookings/{id}`, `GET /v1/vendors/{vendorId}/remote-bookings` (module `backend/src/remote-bookings/`, the discovery-slice booking API the web and mobile apps call; F-BKG-01, F-BKG-02, F-BKG-03, F-BKG-08, F-BKG-10; send `Idempotency-Key`; instant bookings reserve capacity atomically)
 - `POST /v1/remote-bookings/{id}/accept|decline|start|complete|confirm|cancel`, `POST /v1/remote-bookings/{id}/modifications` and `.../modifications/{modificationId}/accept|decline|withdraw` (F-BKG-04 to F-BKG-07, F-BKG-09; deadlines apply when a booking is read; the response deadline comes from the category configuration key `responseDeadlineHours`, with none set there is no deadline)
 - `GET /v1/me/waitlist`, `POST|DELETE /v1/geo/cities/{cityId}/waitlist` (F-GEO-02)
@@ -84,10 +95,11 @@ These routes are also listed in Swagger UI at `/docs`.
 - `POST /v1/rfqs/{rfqId}/expire`, `GET /v1/rfqs/{rfqId}/vendor-suggestions`, `GET /v1/me/work-orders`, `GET /v1/vendors/{vendorId}/work-orders`, `GET /v1/work-orders/{workOrderId}`, `POST /v1/work-orders/{workOrderId}/actions` (RFQ deadline/no-quote and work-order operations)
 - `POST /v1/bookings`, `POST /v1/booking-series`, `GET /v1/me/bookings`, `GET /v1/vendors/{vendorId}/bookings`, `GET /v1/bookings/{bookingId}` and its events/actions/cancel/modification/completion/conflict routes (F-BKG-01 to F-BKG-09; idempotency key required for creation)
 - `POST /v1/contracts`, `GET /v1/me/contracts`, `GET /v1/vendors/{vendorId}/contracts`, `GET /v1/contracts/{contractId}` and version/accept/decline/milestone routes (F-CON-01, F-CON-02; contract proposals require category configuration)
-- `GET /v1/me/purchase-orders`, `GET /v1/vendors/{vendorId}/purchase-orders`, `GET /v1/purchase-orders/{orderId}`, `POST /v1/purchase-orders/{orderId}/actions`, and dispute routes (F-GDS-03, F-GDS-04, F-GDS-06; orders arise from accepted goods RFQs; no payment APIs or funds movement)
+- `GET /v1/me/purchase-orders`, `GET /v1/vendors/{vendorId}/purchase-orders`, `GET /v1/purchase-orders/{orderId}`, `POST /v1/purchase-orders/{orderId}/actions`, and dispute routes (F-GDS-03, F-GDS-04, F-GDS-06; orders arise from accepted goods RFQs; no funds movement)
 - `GET /v1/taxonomy/industries?countryCode=`
 - `GET /v1/taxonomy/categories?countryCode=&industryId=`
 - `GET /v1/taxonomy/categories/{categoryId}?countryCode=`
+- `POST /v1/taxonomy/suggestions`, `GET /v1/taxonomy/suggestions/mine`, `GET /v1/admin/taxonomy/suggestions`, `POST /v1/admin/taxonomy/suggestions/{suggestionId}/decision` (F-TAX-04; vendor-owned proposals use an active nearby category until review; admin requires `taxonomy.manage` and cannot review their own submission; approval never auto-creates or publishes a category)
 
 The taxonomy routes are public (F-TAX-01, F-TAX-08). They return Active categories whose
 `marketRules` enable the requested market (most specific country/region/city rule wins) and
@@ -107,8 +119,9 @@ contracts and purchase orders. Service RFQs use the category's
 purchase orders. RFQ attachments require uploaded, scan-clean files; real
 storage/scanner providers and client wiring remain outstanding. Notification
 delivery is not implemented for these workflows. Automatic booking, work-order
-and contract milestone closure methods need scheduler integration. Payment APIs
-are excluded; O-06 and O-08 remain open and are not implemented.
+and contract milestone closure methods need scheduler integration. Mode A and B
+payment records are informational only; platform checkout and funds movement are
+excluded. O-06 and O-08 remain open and are not implemented.
 
 Mode switching supports CUSTOMER and VENDOR when a vendor record is owned by
 the identity. BUSINESS returns 409 until its separately verified account
@@ -205,6 +218,7 @@ For demos only, never production (the seed refuses `NODE_ENV=production`):
 
 | Date & time (YYYY-MM-DD HH:MM, local) | Updated by | Change | Reason |
 |---|---|---|---|
+| 2026-11-22 23:06 | Amit | Added Phase 1 review, case, admin, agent, subscription, invoice and sponsored routes | Record the new backend API slices and the decisions that still block activation, issuance and checkout. |
 | 2026-11-16 15:17 | tanya sen | Added: F-VND-07 listing review, media and duplicate APIs | Document the new reasoned review queues, conservative duplicate matching and profile-image moderation routes. |
 | 2026-11-14 12:10 | Sahil Soni | Added: `ALLOW_PRIVILEGED_OTP_SIGNIN` demo flag, `roles` on GET /me, demo admin and sales-agent accounts | Let the team demo the admin and agent screens against the real API until MFA exists. |
 | 2026-11-14 11:31 | Sahil Soni | Modified: demo seed (more categories, vendors, listings) and added demo activity script | Richer demo data so every web screen has content. |

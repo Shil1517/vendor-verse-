@@ -581,12 +581,11 @@ paths:
       summary: Submit a vendor category suggestion
       description: |
         Records the authenticated vendor's proposal for admin review. The
-        vendor identity is derived from server-side ownership, not supplied in
-        the request. The vendor may continue to use the nearest approved
+        vendor identity is verified against server-side ownership. The vendor may continue to use the nearest approved
         category. A suggestion never creates or publishes a category.
       security:
         - bearerAuth: []
-      x-authorization-policy: "Require an authenticated vendor identity and derive its vendor organization server-side; mode selection alone is not authorization."
+      x-authorization-policy: "Require an authenticated vendor identity and verify ownership of the submitted vendorId; mode selection alone is not authorization."
       parameters:
         - $ref: "#/components/parameters/IdempotencyKey"
       requestBody:
@@ -596,7 +595,7 @@ paths:
             schema:
               $ref: "#/components/schemas/CategorySuggestionCreate"
       responses:
-        "202":
+        "201":
           $ref: "#/components/responses/CategorySuggestion"
         "400":
           $ref: "#/components/responses/BadRequest"
@@ -613,17 +612,7 @@ paths:
       summary: List category suggestions for review
       security:
         - bearerAuth: []
-      x-required-role: SUPER_ADMIN
-      parameters:
-        - name: status
-          in: query
-          schema:
-            $ref: "#/components/schemas/SuggestionStatus"
-        - name: cursor
-          in: query
-          description: Opaque cursor from the preceding response.
-          schema:
-            type: string
+      x-required-permission: taxonomy.manage
       responses:
         "200":
           $ref: "#/components/responses/CategorySuggestionPage"
@@ -642,7 +631,7 @@ paths:
         and publication use their separate explicit operations.
       security:
         - bearerAuth: []
-      x-required-role: SUPER_ADMIN
+      x-required-permission: taxonomy.manage
       x-audit: true
       parameters:
         - name: suggestionId
@@ -1093,26 +1082,28 @@ components:
           $ref: "#/components/schemas/LocalizedLabel"
     SuggestionStatus:
       type: string
-      enum: [PENDING_REVIEW, ACCEPTED, REJECTED]
+      enum: [submitted, approved, rejected]
     CategorySuggestionCreate:
       type: object
       additionalProperties: false
-      required: [industryId, proposedName, rationale]
+      required: [vendorId, industryId, proposedPath, nearestCategoryId]
       properties:
+        vendorId:
+          type: string
+          format: uuid
         industryId:
           type: string
-        nearestApprovedCategoryId:
-          type: [string, "null"]
-        proposedName:
+        nearestCategoryId:
           type: string
-          minLength: 1
-        rationale:
-          type: string
-          minLength: 1
-        suggestedAttributes:
+          format: uuid
+        proposedPath:
           type: array
-          items:
-            type: string
+          minItems: 1
+          maxItems: 4
+          items: { type: string, minLength: 1, maxLength: 100 }
+        justification:
+          type: string
+          minLength: 1
     CategorySuggestionDecision:
       type: object
       additionalProperties: false
@@ -1120,40 +1111,50 @@ components:
       properties:
         decision:
           type: string
-          enum: [ACCEPT, REJECT]
+          enum: [approved, rejected]
         reason:
           type: string
           minLength: 1
-        relatedCategoryId:
+        createdCategoryId:
           type: [string, "null"]
-          description: Optional existing category when the decision is based on an equivalent category.
+          description: Optional existing category in the same industry; approval does not create or publish it.
     CategorySuggestion:
       type: object
       additionalProperties: false
-      required: [suggestionId, industryId, proposedName, rationale, status, createdAt]
+      required: [id, submittedByUserId, vendorId, industryId, proposedPath, nearestCategoryId, status, createdAt]
       properties:
-        suggestionId:
+        id:
           type: string
+          format: uuid
+        submittedByUserId:
+          type: string
+          format: uuid
+        vendorId:
+          type: string
+          format: uuid
         industryId:
           type: string
-        nearestApprovedCategoryId:
-          type: [string, "null"]
-        proposedName:
+        nearestCategoryId:
           type: string
-        rationale:
-          type: string
-        suggestedAttributes:
+          format: uuid
+        proposedPath:
           type: array
-          items:
-            type: string
+          items: { type: string }
+        justification:
+          type: [string, "null"]
         status:
           $ref: "#/components/schemas/SuggestionStatus"
         decisionReason:
           type: [string, "null"]
-        relatedCategoryId:
+        createdCategoryId:
+          type: [string, "null"]
+        reviewerUserId:
           type: [string, "null"]
         createdAt:
           type: string
+          format: date-time
+        reviewedAt:
+          type: [string, "null"]
           format: date-time
     CategorySuggestionPage:
       type: object
@@ -1164,8 +1165,6 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/CategorySuggestion"
-        nextCursor:
-          type: [string, "null"]
     CategoryVersion:
       type: object
       additionalProperties: false
