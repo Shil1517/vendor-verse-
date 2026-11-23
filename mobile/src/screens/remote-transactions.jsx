@@ -4,7 +4,7 @@
  * it differs. Used instead of the seed-data screens when VITE_API_BASE_URL is set
  * (see the registry, `live(...)`).
  *
- * Nothing here moves money (no payment API exists) and nothing invents a value: a
+ * Nothing here moves money. Payment records are informational only; nothing invents a value: a
  * missing field is labelled "Not provided". Actions are offered by state and the
  * server decides who may do what, so a refusal shows the server's own message.
  * Disputes need a support case and there is no support-case API yet, so they are not
@@ -17,6 +17,7 @@ import { useApp } from '../store.jsx'
 import { useNav } from '../nav.jsx'
 import { authService } from '../services/authService.js'
 import { ErrorBox, Loading, fmtWhen, minorToText, useLoad } from './remote-discovery.jsx'
+import { RemotePaymentRecords } from './remote-payment-records.jsx'
 
 const PO_STATE = {
   created: ['Awaiting supplier', 'blue'], accepted: ['Accepted', 'teal'], rejected: ['Rejected', 'red'], processing: ['Processing', 'purple'], shipped: ['Shipped', 'purple'],
@@ -155,6 +156,7 @@ export function RemoteOrderDetail({ params = {} }) {
         {o.state === 'shipped' && <Button full variant="secondary" disabled={busy} onClick={act('delivery_exception', 'Delivery exception recorded')}>Report a delivery problem</Button>}
         {o.state === 'created' && <Button full variant="secondary" disabled={busy} onClick={act('cancel', 'Order cancelled')}>Cancel order</Button>}
       </div>
+      <RemotePaymentRecords parentType="purchase_order" parentId={o.id} state={o.state} vendorSide={supplier} />
       <Dialog open={Boolean(ship)} onClose={() => setShip(null)} title="Shipment details" actions={<><Button variant="secondary" full onClick={() => setShip(null)}>Cancel</Button><Button full disabled={busy} onClick={() => { const extra = { ...(ship.carrier.trim() ? { carrier: ship.carrier.trim() } : {}), ...(ship.trackingReference.trim() ? { trackingReference: ship.trackingReference.trim() } : {}) }; setShip(null); run(() => authService.purchaseOrderAction(o.id, 'ship', extra), 'Order shipped') }}>Ship</Button></>}>
         {ship && <div className="space-y-3"><Input label="Carrier (optional)" value={ship.carrier} onChange={(e) => setShip({ ...ship, carrier: e.target.value })} /><Input label="Tracking reference (optional)" value={ship.trackingReference} onChange={(e) => setShip({ ...ship, trackingReference: e.target.value })} /></div>}
       </Dialog>
@@ -213,6 +215,7 @@ export function RemoteContractDetail({ params = {} }) {
         </div>
       )}
       {c.state === 'active' && <Button full variant="secondary" disabled={busy} onClick={act(() => authService.completeContract(c.id), 'Contract completed')}>Complete contract</Button>}
+      <RemotePaymentRecords parentType="contract" parentId={c.id} state={c.state} vendorSide={vendorSide} />
       <Section title={`Milestones (${milestones.length})`} action={c.state === 'active' ? 'Add' : undefined} onAction={() => setMs({ title: '', amount: '', dueAt: '' })}>
         {milestones.length === 0 && <EmptyState icon={FileSignature} title="No milestones" body={c.state === 'active' ? 'Add milestones to track the work.' : 'Milestones can be added once the contract is active.'} />}
         {milestones.map((m) => (

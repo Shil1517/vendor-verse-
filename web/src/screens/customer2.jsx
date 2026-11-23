@@ -18,6 +18,7 @@ import {
 import { ListingCard, VendorRow, VerifiedBadge, useGate, useStartChat } from './shared.jsx'
 import { useSignIn } from './auth.jsx'
 import { authService } from '../services/authService.js'
+import { RemoteWriteReview, RemoteReport, RemoteCases, RemoteCaseDetail } from './remote-trust.jsx'
 import { openAuthDialog } from '../components/MarketplaceAuthDialog.jsx'
 
 const ME_NAME = 'Aarav Mehta'
@@ -476,6 +477,7 @@ export function Notifications() {
 
 /* ================= ISSUES & SUPPORT ================= */
 export function Issues() {
+  if (authService.isRemote) return <RemoteCases />
   const nav = useNav()
   const { disputes } = useApp()
   const mine = disputes.filter((d) => d.raisedBy === ME_NAME)
@@ -492,6 +494,7 @@ export function Issues() {
   )
 }
 export function IssueDetail({ params }) {
+  if (authService.isRemote) return <RemoteCaseDetail params={params} />
   const { disputes } = useApp()
   const d = disputes.find((x) => x.id === params.id) || disputes[0]
   return (
@@ -820,6 +823,7 @@ export function Chat({ params }) {
 
 /* ================= REVIEW a vendor ================= */
 export function WriteReview({ params }) {
+  if (authService.isRemote) return <RemoteWriteReview params={params} />
   const nav = useNav()
   const { me, vendors, bookings, rfqs, reviews, setReviews, reviewed, setReviewed, notify, toast } = useApp()
   const v = vendors.find((x) => x.id === params.vendorId) || vendors.find((x) => x.id === 'v-me')
@@ -860,6 +864,7 @@ export function WriteReview({ params }) {
 
 /* ================= ISSUES & SUPPORT ================= */
 export function IssueNew({ params = {} }) {
+  if (authService.isRemote) return <RemoteReport params={params} />
   const nav = useNav()
   const { me, vendors, threads, bookings, listings, disputes, setDisputes, toast, notify } = useApp()
   const myBookings = bookings.filter((b) => b.customer === (me.name || ME_NAME))

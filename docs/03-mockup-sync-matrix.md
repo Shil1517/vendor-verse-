@@ -201,10 +201,26 @@ These are mockup behaviours that differ between the apps and must be made the sa
 | Verification wording | n/a | "Tier 1 to 4" | "Level L0 to L4" everywhere. |
 | Support wording | Cases (since 2026-10-30; screens renamed c_report, c_cases, c_case, ad_cases, ad_case) | Cases | "Cases". Done on web. |
 
+## 4. Real API client wiring (2026-11-23)
+
+The matrix statuses above measure screen coverage. With `VITE_API_BASE_URL`, web and mobile now use persisted backend routes for the flows below; with it unset, the local demo remains available.
+
+| Feature area | Web and mobile live routes | Remaining client or backend gap |
+|---|---|---|
+| Trust (F-TRU-01 to F-TRU-04) | Eligible review creation, own/public review reads, one-time vendor response, report intake, reporter cases and appeals, admin case triage | Review moderation, evidence, vendor-target cases/appeals and enforcement are not available. |
+| Revenue (F-SUB-01 to F-SUB-08) | Plan catalog, vendor subscription/lead-use reads, existing invoices, sponsored draft/submit/list, admin subscription/plan/sponsored monitoring | Checkout, invoice issuance and sponsored activation await commercial, tax and provider rules. |
+| Agents (F-AGT-01, F-AGT-05, F-AGT-07) | Assigned leads, activities, follow-ups, performance and admin oversight | Assisted onboarding, tasks and commissions remain unavailable on the live path. |
+| Admin (F-ADM-01, F-ADM-04 to F-ADM-08) | Queue counts, cases, audit, reports, settings, configuration decisions, role catalog and reason-audited staff-role assignments by user ID | Detailed analytics, user directory, account-state management and runtime maintenance behavior remain. Privileged sign-in is blocked until MFA is defined. |
+| Messaging (F-MSG-01 and F-MSG-02) | Public vendor profile starts a conversation; list/detail/send on both apps, contact-share consent grant/revoke, server-masked contact details | Real-time delivery and richer linked-transaction chat remain. |
+| Payment records (F-PAY-01 and F-PAY-02) | Purchase-order and contract detail screens show history and allow eligible parties to add informational Mode A / B records | Booking and accepted-terms records need client entry points. Phase 2 checkout, wallet, refunds and payout demos must not represent live Phase 1 payment processing. |
+
 ## Change Log
 
 | Date & time (YYYY-MM-DD HH:MM, local) | Updated by | Change | Reason |
 |---|---|---|---|
+| 2026-11-23 07:47 | Codex | Updated admin RBAC live wiring and user-management gap | Both apps now use role APIs and no longer show demo user-state controls on the live path. |
+| 2026-11-23 07:42 | Codex | Updated Mode A / B client wiring and remaining entry points | Contract and purchase-order detail screens now read and add informational payment records. |
+| 2026-11-23 07:32 | Codex | Documented real-API wiring for trust, revenue, agent, admin and messaging screens on web and mobile | The screen statuses above describe mockup coverage; live persistence is tracked separately below. |
 | 2026-11-22 22:17 | Amit | Modified: F-VND-05 to F-VND-08 duplicate rows | Resolve committed conflict markers, retain the newer API notes and the current listing-review status, and restore one row per feature. |
 | 2026-11-20 15:52 | Sahil Soni | Modified: web customer workspace sidebar (c_dash, c_saved, c_activity, c_orders, c_contract, c_review, c_cases, c_settings); Removed from sidebar only: Activity group, Marketplace home, Explore, Messages, My account, My reviews | Owner wanted a minimal, grouped sidebar matching the My account shortcuts (Saved & compare, Quote requests, Purchase orders, Contracts, Rate a vendor, Cases, Account settings, which also holds Language, Notifications and Privacy & security). Messages, My account and My reviews stay reachable from the dashboard and My account page; no screen, route or behaviour removed |
 | 2026-11-20 15:35 | Sahil Soni | Modified: web customer account layout (c_dash, c_activity, c_saved, c_orders, c_reviews, c_cases, c_profile, c_settings, messages) | Owner asked for a sidebar and content pane like the vendor workspace. Layout only: same screens, routes, data and actions; no new behaviour |

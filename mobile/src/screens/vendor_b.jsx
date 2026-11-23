@@ -14,6 +14,9 @@ import { BookingCard, bkTimeline, ModeChip, LangButton } from './shared.jsx'
 import { RfqCard, qLabel } from './customer_rfq.jsx'
 import { hist } from './customer_book.jsx'
 import { useMyVendor } from './vendor_a.jsx'
+import { authService } from '../services/authService.js'
+import { RemoteSubscription, RemotePlans, RemoteSponsor } from './remote-revenue.jsx'
+import { RemoteVendorReviews, RemoteTrustUnavailable } from './remote-trust.jsx'
 import { ContractCard } from './contracts.jsx'
 import { PhaseTag } from '../ui.jsx'
 import { FileSignature, Wallet as WalletIcon, Building2, Inbox, Package } from 'lucide-react'
@@ -229,6 +232,7 @@ export function VendorRfq({ params }) {
 
 /* ================= SUBSCRIPTION (spec §11) ================= */
 export function Subscription() {
+  if (authService.isRemote) return <RemoteSubscription />
   const nav = useNav()
   const { settings, setSubStatus, patchVendor, listings, published, subEvents, setSubEvents, addAudit, notify, toast, invoices, taxes } = useApp()
   const v = useMyVendor()
@@ -291,6 +295,7 @@ export function Subscription() {
 }
 
 export function Plans() {
+  if (authService.isRemote) return <RemotePlans />
   const nav = useNav()
   const { settings, patchVendor, setSubStatus, toast, listings, published } = useApp()
   const v = useMyVendor()
@@ -315,6 +320,7 @@ export function Plans() {
 
 /* ================= SPONSORED VISIBILITY (spec §11.3, SC-034) ================= */
 export function Sponsor({ params = {} }) {
+  if (authService.isRemote) return <RemoteSponsor />
   const nav = useNav()
   const { campaigns, setCampaigns, listings, published, patchListing, toast, vendor } = useApp()
   const v = useMyVendor()
@@ -354,6 +360,7 @@ export function Sponsor({ params = {} }) {
 
 /* ================= REVIEWS ================= */
 export function VendorReviews() {
+  if (authService.isRemote) return <RemoteVendorReviews />
   const nav = useNav()
   const { reviews, setReviews, toast } = useApp()
   const v = useMyVendor()
@@ -380,6 +387,7 @@ export function VendorReviews() {
 
 /* ================= MODERATION CASES & APPEALS (spec §12.2, §12.4) ================= */
 export function VendorCases() {
+  if (authService.isRemote) return <RemoteTrustUnavailable title="Vendor cases and appeals" />
   const nav = useNav()
   const { cases, appeals, setAppeals, patchCase, toast } = useApp()
   const v = useMyVendor()

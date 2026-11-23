@@ -6,6 +6,8 @@ import {
 import { useApp } from '../store.jsx'
 import { useNav } from '../nav.jsx'
 import { authService } from '../services/authService.js'
+import { RemoteAdminDashboard, RemoteAdminCases, RemoteAdminCaseDetail } from './remote-admin.jsx'
+import { RemoteTrustUnavailable } from './remote-trust.jsx'
 import { CATS, cat, REPORT, ME } from '../data.jsx'
 import {
   Screen, Card, Section, Button, Thumb, Chips, Segmented, Sheet, Dialog, Input, Select, Toggle, Badge, Banner, EmptyState, Stat, KV, cx, Pill, IconBtn, StatusBadge, ListRow, Group, Timeline, Avatar, DocTile,
@@ -19,6 +21,7 @@ const SEV_ORDER = { critical: 0, high: 1, medium: 2, low: 3 }
 
 /* ================= DASHBOARD ================= */
 export function AdminDashboard() {
+  if (authService.isRemote) return <RemoteAdminDashboard />
   const nav = useNav()
   const { vendors, listings, cases, appeals, reviews, users, me, companies } = useApp()
   const pendC = Object.values(companies).filter((c) => ['submitted', 'more_info'].includes(c.status)).length
@@ -61,6 +64,7 @@ export function AdminDashboard() {
 }
 
 export function Approvals() {
+  if (authService.isRemote) return <RemoteAdminDashboard />
   const nav = useNav()
   const { vendors, listings, cases, appeals, reviews, users, campaigns, companies } = useApp()
   const cards = [
@@ -289,6 +293,7 @@ export function AdminListing({ params }) {
 
 /* ================= CASES: trust & safety + support (spec §12, §13) ================= */
 export function AdminCases({ params = {} }) {
+  if (authService.isRemote) return <RemoteAdminCases />
   const nav = useNav()
   const { cases } = useApp()
   const [tab, setTab] = useState(params.tab || 'trust')
@@ -314,6 +319,7 @@ export function AdminCases({ params = {} }) {
 }
 
 export function AdminCase({ params }) {
+  if (authService.isRemote) return <RemoteAdminCaseDetail params={params} />
   const nav = useNav()
   const { cases, patchCase, toast, addAudit, notify, me, patchListing, patchVendor, staff, setThreads } = useApp()
   const d = cases.find((x) => x.id === (params.id || 'CS-212'))
@@ -380,6 +386,7 @@ export function AdminCase({ params }) {
 
 /* ================= REVIEW MODERATION & APPEALS ================= */
 export function AdminReviews() {
+  if (authService.isRemote) return <RemoteTrustUnavailable title="Review moderation" />
   const { reviews, setReviews, appeals, patchAppeal, patchCase, toast, addAudit, me, cases } = useApp()
   const [tab, setTab] = useState('reviews')
   const [rs, setRs] = useState(null)

@@ -8,6 +8,9 @@ import { P2Badge, Page, Facts, Links, Checklist, SampleBadge } from './blocks.js
 import { AppealQueue } from './p1-depth.jsx'
 import { computePublicationGates } from '../services/publicationGates.js'
 import { TRUST_LEVELS as TRUST_LEVELS_SVC, levelBadges } from '../services/verification.js'
+import { authService } from '../services/authService.js'
+import { RemoteAdminConfig } from './remote-admin.jsx'
+import { RemoteMyReviews, RemoteTrustUnavailable } from './remote-trust.jsx'
 
 /* ============ vendor onboarding by type (F-VND-01, F-VND-02) ============ */
 const COUNTRY_CODE = { India: 'IN' }
@@ -114,6 +117,7 @@ export function ReviewNotEligible() {
   </Page>
 }
 export function MyReviews() {
+  if (authService.isRemote) return <RemoteMyReviews />
   const { reviews, me } = useApp()
   const mine = reviews.filter((r) => r.by === me.name || r.by === 'Meera Kapoor').slice(0, 3)
   return <Page title="My reviews" subtitle="Reviews you wrote">
@@ -121,6 +125,7 @@ export function MyReviews() {
   </Page>
 }
 export function AdminReviews() {
+  if (authService.isRemote) return <RemoteTrustUnavailable title="Review moderation" />
   const { reviews, setReviews, addAudit, toast } = useApp()
   const [hidden, setHidden] = useState([])
   return <Page title="Review moderation" subtitle="Reported reviews and appeals">
@@ -199,6 +204,7 @@ export function AgentPerms() {
 /* ============ admin: config register, maintenance ============ */
 const CFG = [['CFG-01', 'Plan names and entitlements', 'Product'], ['CFG-02', 'Plan prices', 'Business'], ['CFG-03', 'Response deadlines', 'Operations'], ['CFG-04', 'Cancellation policy defaults', 'Operations'], ['CFG-05', 'Review window', 'Trust'], ['CFG-06', 'Case SLA targets', 'Support'], ['CFG-07', 'Sponsored pricing', 'Business'], ['CFG-08', 'Data retention and export', 'Legal'], ['CFG-09', 'Tax rules per country', 'Finance'], ['CFG-10', 'Notification providers and templates', 'Product'], ['CFG-11', 'Search ranking weights', 'Product'], ['CFG-12', 'Verification evidence per category', 'Trust']]
 export function ConfigRegister() {
+  if (authService.isRemote) return <RemoteAdminConfig />
   const [done, setDone] = useState({})
   return <Page title="Open configuration register" subtitle="Values nobody has decided yet">
     <Banner tone="blue">Nothing here is invented. Each item stays open until its owner decides.</Banner>

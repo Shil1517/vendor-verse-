@@ -9,6 +9,7 @@ import { P2Badge } from './blocks.jsx'
 import { useApp } from '../store.jsx'
 import { useNav } from '../nav.jsx'
 import { authService } from '../services/authService.js'
+import { RemoteAdminDashboard, RemoteAdminCases, RemoteAdminCaseDetail, RemoteAdminAudit, RemoteAdminSettings, RemoteAdminAgents, RemoteAdminReports, RemoteAdminRoles, RemoteAdminUsers } from './remote-admin.jsx'
 import { CATS, cat, REPORT, ME } from '../data.jsx'
 import {
   Screen, Card, Section, Button, Thumb, Chips, Segmented, Sheet, Dialog, Input, Select, Toggle, Badge, Banner, EmptyState, Stat, KV, fmt, cx,
@@ -20,6 +21,7 @@ const INDUSTRIES = ['Construction & Infrastructure', 'Electrical & Energy', 'Off
 
 /* ================= DASHBOARD ================= */
 export function AdminDashboard() {
+  if (authService.isRemote) return <RemoteAdminDashboard />
   const nav = useNav()
   const { vendors, rfqs, listings, disputes, users, agents, leads, threads } = useApp()
   const pendV = vendors.filter((v) => ['submitted', 'info'].includes(v.status)).length
@@ -135,6 +137,7 @@ export function AdminRfqWorkspace({ params = {} }) {
 }
 
 export function AdminSettings() {
+  if (authService.isRemote) return <RemoteAdminSettings />
   const { settings, setSettings, addAudit, toast } = useApp()
   const [draft, setDraft] = useState({ ...settings, coupons: settings.coupons || [] })
   const updatePlan = (id, field, value) => setDraft({ ...draft, plans: draft.plans.map((p) => p.id === id ? { ...p, [field]: field === 'price' ? Number(value.replace(/\D/g, '')) : value } : p) })
@@ -148,6 +151,7 @@ export function AdminSettings() {
 }
 
 export function Approvals() {
+  if (authService.isRemote) return <RemoteAdminDashboard />
   const nav = useNav()
   const { vendors, listings, disputes, commissions } = useApp()
   const cards = [
@@ -412,6 +416,7 @@ const PERMS = [
   ['View reports & audit logs', [0, 0, 0, 1]],
 ]
 export function UsersScreen({ params = {} }) {
+  if (authService.isRemote) return <RemoteAdminUsers params={params} />
   const nav = useNav()
   const { users } = useApp()
   const [q, setQ] = useState('')
@@ -427,6 +432,7 @@ export function UsersScreen({ params = {} }) {
   )
 }
 export function UserDetail({ params }) {
+  if (authService.isRemote) return <RemoteAdminUsers params={params} />
   const nav = useNav()
   const { users, patchUser, addAudit, toast } = useApp()
   const u = users.find((x) => x.id === (params.id || 'u1'))
@@ -442,6 +448,7 @@ export function UserDetail({ params }) {
   )
 }
 export function Roles() {
+  if (authService.isRemote) return <RemoteAdminRoles />
   return (
     <Screen title="Roles & permissions" subtitle="Enforced by the backend">
       <Banner tone="blue">Screens, records and actions are restricted by role. Vendor data is isolated per organisation; Sales Agents have no approval or settings permissions by default.</Banner>
@@ -520,6 +527,7 @@ export function AdminCategory({ params = {} }) {
 
 /* ================= SALES AGENTS ================= */
 export function AdminAgents() {
+  if (authService.isRemote) return <RemoteAdminAgents />
   const nav = useNav()
   const { agents, leads } = useApp()
   return (
@@ -578,6 +586,7 @@ export function AdminAgent({ params }) {
 
 /* ================= DISPUTES ================= */
 export function AdminDisputes() {
+  if (authService.isRemote) return <RemoteAdminCases />
   const nav = useNav()
   const { disputes } = useApp()
   const [f, setF] = useState('open')
@@ -592,6 +601,7 @@ export function AdminDisputes() {
 
 /* ================= REPORTS ================= */
 export function AdminReports() {
+  if (authService.isRemote) return <RemoteAdminReports />
   const { toast, vendors, agents, addAudit, rfqs } = useApp()
   const [range, setRange] = useState('30')
   const [c, setC] = useState('all')
@@ -636,6 +646,7 @@ export function AdminReports() {
 
 /* ================= AUDIT LOG ================= */
 export function AuditLog() {
+  if (authService.isRemote) return <RemoteAdminAudit />
   const { audit } = useApp()
   const [f, setF] = useState('all')
   const [q, setQ] = useState('')
@@ -690,6 +701,7 @@ export function AdminMore() {
 
 
 export function AdminDispute({ params }) {
+  if (authService.isRemote) return <RemoteAdminCaseDetail params={params} />
   const { disputes, patchDispute, addAudit, notify, toast, stamp, patchVendor, vendors } = useApp()
   const d = disputes.find((x) => x.id === (params.id || 'DSP-204'))
   const [dlg, setDlg] = useState(null)

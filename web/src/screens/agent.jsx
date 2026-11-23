@@ -11,6 +11,8 @@ import {
   Pill, IconBtn, StatusBadge, ListRow, Group, Timeline, Avatar, DocTile, Stepper, HBar, Checkbox, SearchBar, SOFT,
 } from '../ui.jsx'
 import { NotifBell } from './shared.jsx'
+import { authService } from '../services/authService.js'
+import { RemoteAgentHome, RemoteAgentLeads, RemoteAgentLeadNew, RemoteAgentLeadDetail, RemoteAgentLogActivity, RemoteAgentFollowups, RemoteAgentUnavailable } from './remote-agent.jsx'
 
 const parseD = (s) => (s ? new Date(s) : null)
 const TODAY = new Date('19 Oct 2026')
@@ -167,6 +169,7 @@ function AgentLeadAnalytics({ leads }) {
 
 /* ================= HOME ================= */
 export function AgentHome() {
+  if (authService.isRemote) return <RemoteAgentHome />
   const nav = useNav()
   const { leads, commissions, me, t } = useApp()
   const today = leads.filter((l) => dueKind(l.next?.date) === 'today' || dueKind(l.next?.date) === 'overdue')
@@ -195,6 +198,7 @@ export function AgentHome() {
 
 /* ================= LEADS ================= */
 export function Leads({ params = {} }) {
+  if (authService.isRemote) return <RemoteAgentLeads />
   const nav = useNav()
   const { leads, patchLead, toast } = useApp()
   const [q, setQ] = useState('')
@@ -252,6 +256,7 @@ export function Leads({ params = {} }) {
 }
 
 export function LeadNew() {
+  if (authService.isRemote) return <RemoteAgentLeadNew />
   const nav = useNav()
   const { leads, setLeads, toast } = useApp()
   const [f, setF] = useState({ type: 'vendor', name: '', contact: '', phone: '', cat: 'elec', city: 'Jaipur', source: 'Field visit', priority: 'Medium', notes: '', date: '2026-10-21' })
@@ -286,6 +291,7 @@ export function LeadNew() {
 }
 
 export function LeadDetail({ params }) {
+  if (authService.isRemote) return <RemoteAgentLeadDetail params={params} />
   const nav = useNav()
   const { leads, patchLead, toast, vendors } = useApp()
   const l = leads.find((x) => x.id === (params.id || 'ld1'))
@@ -328,6 +334,7 @@ export function LeadDetail({ params }) {
 }
 
 export function LogActivity({ params }) {
+  if (authService.isRemote) return <RemoteAgentLogActivity params={params} />
   const nav = useNav()
   const { leads, patchLead, toast } = useApp()
   const l = leads.find((x) => x.id === (params.id || 'ld1'))
@@ -353,6 +360,7 @@ export function LogActivity({ params }) {
 
 /* ================= FOLLOW-UPS ================= */
 export function Followups() {
+  if (authService.isRemote) return <RemoteAgentFollowups />
   const nav = useNav()
   const { leads, patchLead, toast } = useApp()
   const [tab, setTab] = useState('today')
@@ -380,6 +388,7 @@ export function Followups() {
 /* ================= ASSISTED ONBOARDING ================= */
 const ADOCS = ['GST Registration Certificate', 'PAN Card', 'Shop & Establishment Licence', 'Cancelled Cheque / Bank Proof']
 export function Onboard({ params }) {
+  if (authService.isRemote) return <RemoteAgentUnavailable title="Assisted onboarding" />
   const nav = useNav()
   const { leads, patchLead, setVendors, notify, toast, stamp } = useApp()
   const l = leads.find((x) => x.id === (params.id || 'ld1'))
@@ -439,6 +448,7 @@ export function Onboard({ params }) {
 
 /* ================= EARNINGS ================= */
 export function AgentEarnings() {
+  if (authService.isRemote) return <RemoteAgentUnavailable title="Commissions" />
   const { commissions, settings } = useApp()
   const sum = (st) => commissions.filter((c) => st.includes(c.status)).reduce((s, c) => s + c.amount, 0)
   const tone = { pending: 'amber', awaiting: 'amber', approved: 'blue', paid: 'green', rejected: 'red' }

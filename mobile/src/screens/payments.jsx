@@ -10,6 +10,8 @@ import {
   Screen, Card, Section, Button, Chips, Segmented, Sheet, Input, Select, Toggle, Badge, Banner, EmptyState, Stat, KV, cx, Pill, StatusBadge, ListRow, Group, Timeline, PhaseBanner, PhaseTag, ReasonSheet, HBar, Checkbox,
 } from '../ui.jsx'
 import { useMyVendor } from './vendor_a.jsx'
+import { authService } from '../services/authService.js'
+import { RemoteCheckoutUnavailable, RemoteInvoice } from './remote-revenue.jsx'
 
 const M_ICON = { upi: Smartphone, card: CreditCard, bank: Landmark, wallet: Wallet, lc: FileText }
 const DAY0 = new Date('19 Oct 2026')
@@ -68,6 +70,7 @@ function FailedCard({ reason, onRetry, onChange, extra }) {
 
 /* ================= PLAN CHECKOUT (MVP — subscription) ================= */
 export function PlanCheckout({ params = {} }) {
+  if (authService.isRemote) return <RemoteCheckoutUnavailable />
   const nav = useNav()
   const { settings, taxes, patchVendor, invoices, setInvoices, notify, toast, addAudit, setSubStatus } = useApp()
   const v = useMyVendor()
@@ -131,6 +134,7 @@ export function PlanCheckout({ params = {} }) {
 
 /* ================= INVOICE DOCUMENT (subscription or payment) ================= */
 export function Invoice({ params = {} }) {
+  if (authService.isRemote) return <RemoteInvoice params={params} />
   const { invoices, payments, toast, vendor } = useApp()
   let d = invoices.find((x) => x.id === params.id)
   if (!d && params.pay) {

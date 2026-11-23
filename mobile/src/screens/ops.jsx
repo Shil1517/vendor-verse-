@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { UserPlus, Check, X, Globe, ShieldCheck, Ban, Star, Clock, ClipboardList } from 'lucide-react'
 import { useApp } from '../store.jsx'
 import { useNav } from '../nav.jsx'
+import { authService } from '../services/authService.js'
+import { RemoteMyReviews } from './remote-trust.jsx'
 import { GEO, country } from '../globaldata.jsx'
 import { ROLES_TEAM, AGENT_CAN, AGENT_CANNOT, COUNTRY_PACKS, packOf } from '../mvpdata.jsx'
 import { Screen, Card, Button, Banner, Input, Select, Sheet, KV, Pill, Segmented, ListRow, Avatar, Money, EmptyState, PhaseTag, Badge, Chips, cx } from '../ui.jsx'
@@ -102,6 +104,7 @@ export function AdminCountry({ params = {} }) {
 
 /* ---------- customer: reviews I gave and ones still pending ---------- */
 export function MyReviews() {
+  if (authService.isRemote) return <RemoteMyReviews />
   const nav = useNav()
   const { bookings, reviewed, reviews, me, vendor } = useApp()
   const done = bookings.filter((b) => b.customer === me.name && b.state === 'closed')

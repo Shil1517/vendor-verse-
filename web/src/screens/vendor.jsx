@@ -11,6 +11,7 @@ import { faGaugeHigh, faHeart, faClipboardList, faBoxOpen, faFileSignature, faCo
 import { useApp } from '../store.jsx'
 import { useNav } from '../nav.jsx'
 import { authService } from '../services/authService.js'
+import { RemoteVendorReviews } from './remote-trust.jsx'
 import { CATS, cat, listing as findListing, calcPrice, VENDOR_TX, PAYOUTS, SLOTS, ME } from '../data.jsx'
 import {
   Screen, Card, Section, Button, Thumb, Chips, Segmented, Sheet, Dialog, Input, Select, Toggle, Badge, Rating, Banner, EmptyState, Stat, KV, fmt, cx,
@@ -1583,6 +1584,7 @@ export function Performance() {
 }
 
 export function VendorReviews() {
+  if (authService.isRemote) return <RemoteVendorReviews />
   const { me, reviews, setReviews, toast } = useApp()
   const mine = reviews.filter((r) => r.target === me.vendorId)
   const [reply, setReply] = useState(null)

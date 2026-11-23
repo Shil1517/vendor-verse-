@@ -12,9 +12,12 @@ import {
   HBar, BarChart, SearchBar, SOFT, ReasonSheet, Missing, Spark, SponsoredTag,
 } from '../ui.jsx'
 import { NotifBell, VerifiedBadge, LangButton } from './shared.jsx'
+import { authService } from '../services/authService.js'
+import { RemoteAdminSubscriptions, RemoteAdminSponsored, RemoteAdminPlans, RemoteAdminSettings, RemoteAdminAudit, RemoteAdminAgents, RemoteAdminConfig, RemoteAdminRoles, RemoteAdminUsers } from './remote-admin.jsx'
 
 /* ================= SUBSCRIPTION MONITORING (spec §11.2, §13.1) ================= */
 export function AdminSubs() {
+  if (authService.isRemote) return <RemoteAdminSubscriptions />
   const nav = useNav()
   const { vendors, subEvents } = useApp()
   const [f, setF] = useState('risk')
@@ -38,6 +41,7 @@ export function AdminSubs() {
 }
 
 export function AdminSub({ params }) {
+  if (authService.isRemote) return <RemoteAdminSubscriptions params={params} />
   const { vendors, patchVendor, subEvents, setSubEvents, toast, addAudit, listings, published, me, notify } = useApp()
   const v = vendors.find((x) => x.id === (params.id || 'v17'))
   const [sheet, setSheet] = useState(null)
@@ -67,6 +71,7 @@ export function AdminSub({ params }) {
 
 /* ================= SPONSORED AUDIT ================= */
 export function AdminSponsored() {
+  if (authService.isRemote) return <RemoteAdminSponsored />
   const { campaigns, listings, vendor, patchCampaign, patchListing, toast, addAudit, me } = useApp()
   return (
     <Screen title="Sponsored campaigns">
@@ -84,6 +89,7 @@ export function AdminSponsored() {
 
 /* ================= USERS ================= */
 export function UsersScreen({ params = {} }) {
+  if (authService.isRemote) return <RemoteAdminUsers params={params} />
   const nav = useNav()
   const { users } = useApp()
   const [q, setQ] = useState('')
@@ -137,6 +143,7 @@ const MATRIX = [
   ['Read audit records', 'Own exposed activity', 'Own relevant activity', 'Assigned sales activity', 'Global authorized access'],
 ]
 export function Roles() {
+  if (authService.isRemote) return <RemoteAdminRoles />
   const { staff, setStaff, toast, addAudit, me } = useApp()
   const [tab, setTab] = useState('matrix')
   const [sheet, setSheet] = useState(null)
@@ -205,6 +212,7 @@ export function AdminCategory({ params }) {
 
 /* ================= PLANS (sample values) ================= */
 export function AdminPlans() {
+  if (authService.isRemote) return <RemoteAdminPlans />
   const { settings, setSettings, toast, addAudit, me } = useApp()
   const [plans, setPlans] = useState(settings.plans)
   const set = (i, k, v) => setPlans(plans.map((p, j) => (j === i ? { ...p, [k]: v } : p)))
@@ -225,6 +233,7 @@ export function AdminPlans() {
 
 /* ================= PLATFORM SETTINGS ================= */
 export function AdminSettings() {
+  if (authService.isRemote) return <RemoteAdminSettings />
   const { settings, setSettings, toast, addAudit, me } = useApp()
   const [s, setS] = useState(settings)
   const [lang, setLang] = useState('en')
@@ -269,6 +278,7 @@ export function AdminAnalytics() {
 
 /* ================= AUDIT LOG (spec §13, §16) ================= */
 export function AuditLog() {
+  if (authService.isRemote) return <RemoteAdminAudit />
   const { audit } = useApp()
   const [f, setF] = useState('all')
   const [q, setQ] = useState('')
@@ -297,6 +307,7 @@ export function AuditLog() {
 
 /* ================= SALES AGENTS (oversight; no commission engine in R1) ================= */
 export function AdminAgents() {
+  if (authService.isRemote) return <RemoteAdminAgents />
   const nav = useNav()
   const { agents } = useApp()
   return (
@@ -323,6 +334,7 @@ export function AdminAgent({ params }) {
 
 /* ================= OPEN CONFIGURATION REGISTER (spec §23) ================= */
 export function AdminCfg() {
+  if (authService.isRemote) return <RemoteAdminConfig />
   return (
     <Screen title="Open configuration">
       <Banner tone="blue">These items don’t reopen confirmed product decisions. They’re configuration and implementation details to settle in discovery or before the dependent feature ships. The mockup uses clearly-marked sample values where it must show something.</Banner>
