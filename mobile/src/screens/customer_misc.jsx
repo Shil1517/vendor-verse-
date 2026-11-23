@@ -7,6 +7,8 @@ import { useApp } from '../store.jsx'
 import { useNav } from '../nav.jsx'
 import { remoteInbox, useInbox } from '../useInbox.js'
 import { authService } from '../services/authService.js'
+import { RemoteWriteReview, RemoteReport, RemoteCases, RemoteCaseDetail } from './remote-trust.jsx'
+import { RemoteMessages, RemoteChat } from './remote-messages.jsx'
 import { cat, CATS, REPORT_REASONS, serves, AVAIL_LABEL } from '../data.jsx'
 import {
   Screen, Card, Section, Button, Thumb, Chips, Segmented, Sheet, Dialog, Input, Select, Toggle, Rating, Banner, EmptyState, SearchBar, KV, cx, Pill, IconBtn, StatusBadge, Stars, ListRow, Group, Timeline,
@@ -170,6 +172,7 @@ export function Notifications() {
 
 /* ================= MESSAGES (customer ↔ vendor, linked to a transaction) ================= */
 export function Messages() {
+  if (authService.isRemote) return <RemoteMessages />
   const nav = useNav()
   const start = useStartChat()
   const { me, threads, vendors, listings, published, vendor, companies } = useApp()
@@ -228,6 +231,7 @@ export function Messages() {
 }
 
 export function Chat({ params }) {
+  if (authService.isRemote) return <RemoteChat params={params} />
   const nav = useNav()
   const { me, threads, setThreads, listings, vendors, toast, contactShare, setContactShare, bookings } = useApp()
   const tk = me.role === 'business' ? 'business' : me.role === 'vendor' ? 'vendor' : 'customer'
@@ -327,6 +331,7 @@ export function Chat({ params }) {
 
 /* ================= REVIEW — only after a recorded booking or accepted quote (spec §12.1, SC-030) ================= */
 export function WriteReview({ params }) {
+  if (authService.isRemote) return <RemoteWriteReview params={params} />
   const nav = useNav()
   const { vendors, bookings, rfqs, reviews, setReviews, reviewed, setReviewed, notify, toast, me, vendor } = useApp()
   const v = vendors.find((x) => x.id === params.vendorId) || vendor('v6')
@@ -369,6 +374,7 @@ export function WriteReview({ params }) {
 
 /* ================= REPORT / SUPPORT CASE (spec §12.2–12.3) ================= */
 export function Report({ params = {} }) {
+  if (authService.isRemote) return <RemoteReport params={params} />
   const nav = useNav()
   const { cases, setCases, notify, toast, me, vendors } = useApp()
   const kind = params.kind || 'report'
@@ -403,6 +409,7 @@ export function Report({ params = {} }) {
   )
 }
 export function Cases() {
+  if (authService.isRemote) return <RemoteCases />
   const nav = useNav()
   const { cases, me } = useApp()
   const mine = cases.filter((c) => c.raisedBy === me.name)
@@ -420,6 +427,7 @@ export function Cases() {
   )
 }
 export function CaseDetail({ params }) {
+  if (authService.isRemote) return <RemoteCaseDetail params={params} />
   const nav = useNav()
   const { cases, patchCase, toast } = useApp()
   const d = cases.find((x) => x.id === params.id) || cases[0]

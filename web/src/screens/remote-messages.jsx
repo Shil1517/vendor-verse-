@@ -105,12 +105,26 @@ export function RemoteChat({ params = {}, initialConversations }) {
   const [message, setMessage] = useState('')
   const [busy, setBusy] = useState(false)
   const [failure, setFailure] = useState('')
+  const [contactScope, setContactScope] = useState('phone')
+  const [ownUserId, setOwnUserId] = useState('')
+  const consents = useLoad(() => selectedId ? authService.apiRequest(`/conversations/${encodeURIComponent(selectedId)}/contact-consents`).then((r) => r.ok ? { ok: true, consents: r.data.consents } : r) : Promise.resolve({ ok: true, consents: [] }), [selectedId])
+  useEffect(() => { authService.apiRequest('/me').then((r) => { if (r.ok) setOwnUserId(r.data?.userId || '') }) }, [])
   useEffect(() => {
     if (!me.loggedIn || !selectedId) return undefined
     const timer = setInterval(() => state.reload(), 5000)
     return () => clearInterval(timer)
   }, [me.loggedIn, selectedId]) // eslint-disable-line react-hooks/exhaustive-deps
   const c = state.data?.conversation?.id === selectedId ? state.data.conversation : null
+  const hasContactScope = consents.data?.consents?.some((item) => item.userId === ownUserId && item.scope === contactScope)
+  const changeConsent = async () => {
+    if (!c || !ownUserId || busy) return
+    setBusy(true); setFailure('')
+    const path = `/conversations/${encodeURIComponent(c.id)}/contact-consents${hasContactScope ? `/${contactScope}` : ''}`
+    const result = await authService.apiRequest(path, { method: hasContactScope ? 'DELETE' : 'POST', body: hasContactScope ? undefined : { scope: contactScope } })
+    setBusy(false)
+    if (!result.ok) return setFailure(result.message || 'Could not update contact sharing.')
+    consents.reload()
+  }
   const selectedThread = conversations.find((thread) => thread.id === selectedId)
   const send = async () => {
     if (!c || !message.trim() || busy) return
@@ -146,9 +160,10 @@ export function RemoteChat({ params = {}, initialConversations }) {
           {state.error && <ErrorBox message={state.error} onRetry={state.reload} />}
           {state.loading && !c && <Loading />}
           {c && !c.messages?.length && <EmptyState icon={MessageCircle} title="Say hello" body="Messages you send here reach the conversation." />}
-          {c?.messages?.map((item) => <div key={item.id} className={`vv-conversation-bubble${item.mine ? ' is-mine' : ''}`}><p>{item.body}</p><small>{fmtWhen(item.sentAt)}</small></div>)}
+          {c?.messages?.map((item) => <div key={item.id} className={`vv-conversation-bubble${item.mine ? ' is-mine' : ''}`}><p>{item.body}</p><small>{fmtWhen(item.sentAt)}{item.contactFiltered ? ' · Contact details hidden' : ''}</small></div>)}
         </div>
         <div className="vv-conversation-compose"><input aria-label="Message" placeholder="Type a message" value={message} onChange={(event) => setMessage(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter') send() }} /><Button icon={Send} disabled={!c || busy || !message.trim()} onClick={send}>Send</Button></div>
+        {c && <div className="vv-conversation-compose"><span>Contact details in messages are hidden until you allow sharing.</span><select aria-label="Contact detail type" value={contactScope} onChange={(event) => setContactScope(event.target.value)}><option value="phone">Phone</option><option value="email">Email</option><option value="phone_and_email">Phone and email</option></select>{consents.error && <span>{consents.error}</span>}<Button disabled={busy || consents.loading || !ownUserId || !!consents.error} onClick={changeConsent}>{hasContactScope ? 'Stop sharing' : 'Allow sharing'}</Button></div>}
       </section>
     </div>
     </div>

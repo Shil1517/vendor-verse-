@@ -4,6 +4,10 @@ import { Badge, Banner, Button, Card, EmptyState, Group, HBar, ListRow, Section,
 import { useApp } from '../store.jsx'
 import { useNav } from '../nav.jsx'
 import { Page, SampleBadge } from './blocks.jsx'
+import { authService } from '../services/authService.js'
+import { RemoteAgentPerformance } from './remote-agent.jsx'
+import { RemoteSubscription } from './remote-revenue.jsx'
+import { RemoteTrustUnavailable } from './remote-trust.jsx'
 
 /* Depth ported from the mobile mockup (read-only reference): subscription lifecycle with billing events,
    lead and listing usage, moderation cases and appeals, and agent conversion performance. */
@@ -38,6 +42,7 @@ export function UsageMeter({ compact }) {
 
 /* ============ F-SUB-02 subscription lifecycle with billing events (v_sub) ============ */
 export function Subscription() {
+  if (authService.isRemote) return <RemoteSubscription />
   const nav = useNav()
   const { me, vendor, patchVendor, listings, subEvents, setSubEvents, addAudit, notify, toast, settings } = useApp()
   const v = vendor(me.vendorId)
@@ -95,6 +100,7 @@ export function Subscription() {
 
 /* ============ F-TRU-04 moderation and appeals (v_cases) ============ */
 export function VendorCases() {
+  if (authService.isRemote) return <RemoteTrustUnavailable title="Vendor cases and appeals" />
   const nav = useNav()
   const { me, vendor, disputes, patchDispute, appeals, setAppeals, addAudit, toast } = useApp()
   const v = vendor(me.vendorId)
@@ -145,6 +151,7 @@ export function AppealQueue() {
 
 /* ============ F-AGT-05 conversion performance (a_perf, a tab) ============ */
 export function AgentPerformance() {
+  if (authService.isRemote) return <RemoteAgentPerformance />
   const nav = useNav()
   const { leads, vendors } = useApp()
   const total = leads.length || 1

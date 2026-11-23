@@ -5,6 +5,9 @@ import { useApp } from '../store.jsx'
 import { useNav } from '../nav.jsx'
 import { ME } from '../data.jsx'
 import { Page, Facts, Links, SampleBadge } from './blocks.jsx'
+import { authService } from '../services/authService.js'
+import { RemotePlans, RemoteCheckoutUnavailable, RemoteSponsor, RemoteInvoice } from './remote-revenue.jsx'
+import { RemoteAdminPlans, RemoteAdminSponsored, RemoteAdminSubscriptions } from './remote-admin.jsx'
 
 /* ============ F-BIZ-01 business account (D-005): separate account type ============ */
 
@@ -30,6 +33,7 @@ export function Team() {
 export const planList = (settings) => settings.plans.filter((p) => p.active)
 
 export function Plans() {
+  if (authService.isRemote) return <RemotePlans />
   const { settings, me, vendor } = useApp()
   const nav = useNav()
   const cur = vendor(me.vendorId)?.plan
@@ -41,6 +45,7 @@ export function Plans() {
 
 const SUB_STATES = ['Active', 'Renewal upcoming', 'Payment failed (3-day grace)', 'Expired', 'Cancelled — ends at period end', 'Restored']
 export function Checkout({ params = {} }) {
+  if (authService.isRemote) return <RemoteCheckoutUnavailable />
   const { me, patchVendor, toast } = useApp()
   const nav = useNav()
   const [ok, setOk] = useState(false)
@@ -55,6 +60,7 @@ export function Checkout({ params = {} }) {
 }
 
 export function CheckoutDown({ params = {} }) {
+  if (authService.isRemote) return <RemoteCheckoutUnavailable />
   const { toast } = useApp()
   const nav = useNav()
   return <Page title="Downgrade" subtitle={`To ${params.plan || 'Starter'} at period end`}>
@@ -64,6 +70,7 @@ export function CheckoutDown({ params = {} }) {
 }
 
 export function Sponsor() {
+  if (authService.isRemote) return <RemoteSponsor />
   const { toast } = useApp()
   const [on, setOn] = useState(false)
   return <Page title="Sponsored visibility" subtitle="Promote a listing">
@@ -75,6 +82,7 @@ export function Sponsor() {
   </Page>
 }
 export function AdminSponsored() {
+  if (authService.isRemote) return <RemoteAdminSponsored />
   const { toast } = useApp()
   const [rows, setRows] = useState([{ id: 'sp1', vendor: 'Sharma Electricals & Hardware', city: 'Jaipur', status: 'pending' }, { id: 'sp2', vendor: 'BrightSpark Home Services', city: 'Jaipur', status: 'live' }])
   return <Page title="Sponsored campaigns" subtitle="Review and monitor">
@@ -83,6 +91,7 @@ export function AdminSponsored() {
 }
 
 export function AdminPlans() {
+  if (authService.isRemote) return <RemoteAdminPlans />
   const { settings, setSettings, addAudit, toast } = useApp()
   return <Page title="Plans and entitlements" subtitle="Values are samples until CFG-01 / CFG-02" footer={<Button full onClick={() => { addAudit('Edited plan entitlements', 'Plans', 'setting'); toast('Entitlements saved') }}>Save</Button>}>
     {settings.plans.map((p) => <Card key={p.id} className="space-y-3"><div className="flex items-center justify-between"><p className="font-bold">{p.name}</p><SampleBadge /></div><div className="flex gap-3"><Input label="Listings" value={String(p.listings)} onChange={(e) => setSettings({ ...settings, plans: settings.plans.map((x) => (x.id === p.id ? { ...x, listings: e.target.value } : x)) })} /><Input label="Leads / month" value={String(p.leads)} onChange={(e) => setSettings({ ...settings, plans: settings.plans.map((x) => (x.id === p.id ? { ...x, leads: e.target.value } : x)) })} /></div></Card>)}
@@ -90,6 +99,7 @@ export function AdminPlans() {
 }
 
 export function AdminSubs() {
+  if (authService.isRemote) return <RemoteAdminSubscriptions />
   const { vendors } = useApp()
   const nav = useNav()
   const rows = vendors.filter((v) => v.status === 'approved').slice(0, 8)
@@ -98,6 +108,7 @@ export function AdminSubs() {
   </Page>
 }
 export function AdminSub({ params = {} }) {
+  if (authService.isRemote) return <RemoteAdminSubscriptions params={params} />
   const { vendor, toast, addAudit } = useApp()
   const v = vendor(params.id || 'v-me')
   return <Page title={v.name} subtitle="Billing events">
@@ -108,6 +119,7 @@ export function AdminSub({ params = {} }) {
 }
 
 export function Invoice() {
+  if (authService.isRemote) return <RemoteInvoice />
   return <Page title="Tax invoice" subtitle="INV-2026-0142">
     <Facts rows={[['Billed to', 'Sharma Electricals & Hardware'], ['GSTIN', '08ABCPS1234F1Z5'], ['Item', 'Subscription — plan fee (sample)'], ['Tax', 'Shown by country on the real invoice'], ['Reverse charge', 'Applies for foreign buyers where required']]} />
     <Banner tone="gray">Amounts appear once plan prices are decided.</Banner>
