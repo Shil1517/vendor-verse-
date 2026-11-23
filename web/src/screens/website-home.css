@@ -1532,3 +1532,4 @@
   .vv-hero-trust span svg { width: clamp(34px, 5vh, 46px); height: clamp(34px, 5vh, 46px); }
 }
 @media (min-width: 821px) { .vv-mock-home .vv-mock-hero h1 { max-width: 8.4em; } }
+.vv-hero-trust b { font-variant-numeric: tabular-nums; }

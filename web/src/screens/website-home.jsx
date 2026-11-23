@@ -21,6 +21,30 @@ const LANDING_SHOWCASE = [
   { src: '/screens/global-business-network-interface.png', alt: 'VendorVerse global business network with trusted vendors and worldwide connections' },
 ]
 
+function CountUp({ to, suffix = '', decimals = 0, duration = 3600 }) {
+  const ref = useRef(null)
+  const [value, setValue] = useState(0)
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return undefined
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches || !('IntersectionObserver' in window)) { setValue(to); return undefined }
+    let frame = 0
+    const run = () => {
+      const start = performance.now()
+      const tick = (now) => {
+        const t = Math.min(1, (now - start) / duration)
+        setValue(to * (1 - Math.pow(1 - t, 3)))
+        if (t < 1) frame = requestAnimationFrame(tick)
+      }
+      frame = requestAnimationFrame(tick)
+    }
+    const observer = new IntersectionObserver(([entry]) => { if (entry.isIntersecting) { observer.disconnect(); run() } }, { threshold: .4 })
+    observer.observe(el)
+    return () => { observer.disconnect(); cancelAnimationFrame(frame) }
+  }, [to, duration])
+  return <span ref={ref} aria-label={`${to}${suffix}`}>{value.toFixed(decimals)}{suffix}</span>
+}
+
 function HeroMotion() {
   const stageRef = useRef(null)
   const tiltRef = useRef(null)
@@ -117,7 +141,7 @@ const HOME_PRODUCTS = [
 ]
 const HOME_SEARCHES = ['Interior fit-out', 'Event planning', 'Home cleaning', 'Web development', 'Packaging supplier', 'Freight and logistics']
 const HERO_POPULAR = ['Web Development', 'Construction', 'Digital Marketing', 'Suppliers']
-const HERO_TRUST = [[Users, '10K+', 'Trusted Vendors'], [Handshake, '50K+', 'Businesses Served'], [Globe, '100+', 'Countries Worldwide'], [Star, '4.8/5', 'Customer Rating']]
+const HERO_TRUST = [[Users, { to: 10, suffix: 'K+' }, 'Trusted Vendors'], [Handshake, { to: 50, suffix: 'K+' }, 'Businesses Served'], [Globe, { to: 100, suffix: '+' }, 'Countries Worldwide'], [Star, { to: 4.8, suffix: '/5', decimals: 1 }, 'Customer Rating']]
 const HOME_PLACES = [['Use my current location','Asks for permission'],['Bhopal, India','Live'],['Indore, India','Not live yet'],['Dubai, UAE','Not live yet'],['Remote or worldwide','Remote-capable vendors']]
 const formatMinorPrice = (price) => {
   if (price?.state === 'on_request') return 'Price on request'
@@ -246,7 +270,7 @@ export function WebsiteHome() {
         <div className="vv-mock-hero-actions"><button className="vv-mock-hero-primary" onClick={()=>nav.go('c_categories')}>Browse Categories <ArrowRight size={18}/></button><button className="vv-hero-demo" onClick={()=>toast('The demo video is not available yet.')}><span><Play size={16} fill="currentColor"/></span>Watch Demo</button></div>
       </div>
       <div className="vv-mock-hero-art"><HomeHeroIllustration/></div>
-      <ul className="vv-hero-trust" aria-label="Why VendorVerse">{HERO_TRUST.map(([Icon,title,body])=><li key={body}><span><Icon size={46} strokeWidth={1.7} fill={Icon===Star||Icon===Users?'currentColor':'none'}/></span><div><b>{title}</b><small>{body}</small></div></li>)}</ul>
+      <ul className="vv-hero-trust" aria-label="Why VendorVerse">{HERO_TRUST.map(([Icon,title,body])=><li key={body}><span><Icon size={46} strokeWidth={1.7} fill={Icon===Star||Icon===Users?'currentColor':'none'}/></span><div><b><CountUp {...title}/></b><small>{body}</small></div></li>)}</ul>
     </section>
     <main className="vv-mock-content">
       <section className="vv-mock-category-section"><div className="vv-mock-section-heading vv-mock-category-heading"><h2>Explore categories</h2><div><button aria-label="Previous categories" disabled={categoryEdges.start} onClick={()=>slide(categoryRail,-1,setCategoryEdges)}><ChevronLeft/></button><button aria-label="Next categories" disabled={categoryEdges.end} onClick={()=>slide(categoryRail,1,setCategoryEdges)}><ChevronRight/></button></div></div><div className="vv-mock-category-rail" ref={categoryRail} onScroll={()=>updateEdges(categoryRail,setCategoryEdges)}>{categories.map((category)=><button className="vv-mock-category" key={category.image} onClick={()=>nav.go('c_explore',category.id?{categoryId:category.id}:{q:category.search})}><span className="vv-mock-category-art"><img src={`/category-images/${category.image}`} alt="" loading="lazy" /></span><b>{category.name}</b></button>)}</div></section>

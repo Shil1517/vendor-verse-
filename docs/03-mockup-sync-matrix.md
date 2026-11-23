@@ -218,6 +218,7 @@ The matrix statuses above measure screen coverage. With `VITE_API_BASE_URL`, web
 
 | Date & time (YYYY-MM-DD HH:MM, local) | Updated by | Change | Reason |
 |---|---|---|---|
+| 2026-11-23 18:40 | Sahil Soni | Modified: F-DSC-01 web home hero stat strip counts up | Owner request; numbers animate once when the strip scrolls into view and show final values for reduced-motion users. |
 | 2026-11-23 18:20 | Sahil Soni | Modified: F-DSC-01 web home hero sizing on laptop screens | Hero was taller than a laptop window so the buttons and stat strip were cut off; it now sizes from the viewport height. |
 | 2026-11-23 18:00 | Sahil Soni | Modified: F-DSC-01 web home hero small-screen layout | Hero was cut off on narrow displays; search, image and stat strip now fit phone and tablet widths. |
 | 2026-11-23 17:30 | Sahil Soni | Modified: F-DSC-01 web home hero matched exactly to owner design (vendor photo, slanted frame, stat strip, Watch Demo) | Owner asked for the exact design. The stat figures (10K+, 50K+, 100+, 4.8/5) come from that design, are not backed by data yet and need confirming; Watch Demo has no video and only shows a toast. |
