@@ -10,8 +10,9 @@
  *    updated RFQs, and says so when there are more.
  */
 import { useCallback, useEffect, useState } from 'react'
-import { AlertTriangle, BarChart3, CalendarCheck, Check, ChevronRight, FileText, Package, Plus, Send, ShieldCheck, Store } from 'lucide-react'
-import { Button, EmptyState, Screen } from '../ui.jsx'
+import { AlertTriangle, BarChart3, CalendarCheck, Check, ChevronRight, ClipboardList, Clock, FileText, Package, Plus, Receipt, Send, ShieldCheck, Star, Store } from 'lucide-react'
+import { Button, EmptyState, Screen, Stat } from '../ui.jsx'
+import { Links, Page } from './blocks.jsx'
 import { useApp } from '../store.jsx'
 import { useNav } from '../nav.jsx'
 import { authService } from '../services/authService.js'
@@ -193,4 +194,63 @@ export function RemoteVendorDashboard() {
       </section>
     </div>
   </div></VendorWorkspace>
+}
+
+
+/* ---------- customer dashboard: every count is read from the signed-in customer's own records ---------- */
+const OPEN_BOOKING_STATES = ['requested', 'confirmed', 'in_progress', 'completed_awaiting']
+
+async function loadCustomerDashboard() {
+  const [bookings, rfqs, orders, contracts] = await Promise.all([
+    authService.listMyBookings(),
+    authService.listMyRfqs(),
+    authService.listMyPurchaseOrders(),
+    authService.listMyContracts(),
+  ])
+  for (const r of [bookings, rfqs, orders, contracts]) if (!r.ok) return r
+  return { ok: true, bookings: bookings.bookings, rfqs: rfqs.rfqs, orders: orders.purchaseOrders, contracts: contracts.contracts }
+}
+
+export function RemoteCustomerDashboard() {
+  const nav = useNav()
+  const { me } = useApp()
+  const load = useCallback(() => loadCustomerDashboard(), [])
+  const dash = useLoad(load, [load])
+  const d = dash.data
+  const stats = d && [
+    ['Open bookings', Clock, (d.bookings || []).filter((b) => OPEN_BOOKING_STATES.includes(b.state)).length, () => nav.go('c_activity', { tab: 'bookings' })],
+    ['Active RFQs', ClipboardList, (d.rfqs || []).filter((r) => r.state === 'open').length, () => nav.go('c_activity', { tab: 'rfqs' })],
+    ['Purchase orders', Receipt, (d.orders || []).length, () => nav.go('c_orders')],
+    ['Contracts', FileText, (d.contracts || []).length, () => nav.go('c_activity', { tab: 'contracts' })],
+  ]
+  const actions = [
+    [ClipboardList, 'Request a quotation', 'Services or goods', 'c_rfq_new'],
+    [Store, 'Find a supplier', 'Suppliers and manufacturers', 'c_explore_suppliers'],
+    [Star, 'My reviews', 'Ratings you have given', 'c_reviews'],
+  ]
+  return <Page title="Dashboard" subtitle={me?.name}>
+    <div className="vv-cdash">
+      {dash.loading && !d && <Loading />}
+      {dash.error && <ErrorBox message={dash.error} onRetry={dash.reload} />}
+      {d && <section aria-label="Your activity" className="vv-cdash-stats">
+        {stats.map(([label, Icon, value, go]) => (
+          <button key={label} type="button" onClick={go} className="vv-cdash-stat">
+            <span className="vv-cdash-stat-icon"><Icon size={18} /></span>
+            <span className="vv-cdash-stat-value">{value}</span>
+            <span className="vv-cdash-stat-label">{label}</span>
+          </button>
+        ))}
+      </section>}
+      <h2 className="vv-cdash-heading">Quick actions</h2>
+      <section className="vv-cdash-actions">
+        {actions.map(([Icon, title, desc, id]) => (
+          <button key={id} type="button" onClick={() => nav.go(id)} className="vv-cdash-action">
+            <span className="vv-cdash-action-icon"><Icon size={22} /></span>
+            <span className="vv-cdash-action-text"><b>{title}</b><small>{desc}</small></span>
+            <ChevronRight size={18} className="vv-cdash-action-arrow" />
+          </button>
+        ))}
+      </section>
+    </div>
+  </Page>
 }

@@ -7,8 +7,8 @@
  * is labelled, never shown as zero (F-DSC-05).
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { CalendarClock, Heart, MapPin, MessageCircle, Search, Zap } from 'lucide-react'
-import { Badge, Banner, Button, Card, Chips, EmptyState, Input, KV, ListRow, Screen, Section, Segmented, SearchBar, Toggle, cx } from '../ui.jsx'
+import { CalendarClock, GitCompare, Heart, MapPin, MessageCircle, Search, ShieldCheck, Star, Zap } from 'lucide-react'
+import { Avatar, Badge, Banner, Button, Card, Chips, EmptyState, Input, KV, ListRow, Screen, Section, Segmented, SearchBar, Toggle, cx } from '../ui.jsx'
 import { useApp } from '../store.jsx'
 import { useNav } from '../nav.jsx'
 import { authService } from '../services/authService.js'
@@ -155,7 +155,7 @@ const RESULT_IMAGES = {
   'Event catering': '/category-images/event-catering.jpg',
 }
 
-function VendorActions({ vendorId, listingId }) {
+function VendorActions({ vendorId, listingId, compact = false }) {
   const nav = useNav()
   const { me } = useApp()
   const [busy, setBusy] = useState(false)
@@ -176,6 +176,14 @@ function VendorActions({ vendorId, listingId }) {
       setBusy(false)
     }
   }
+
+  if (compact) return <div className="shrink-0">
+    <div className="flex gap-1.5">
+      <button type="button" onClick={() => nav.go('c_vendor', { id: vendorId, listingId })} className="inline-flex h-8 items-center rounded-lg border border-ink-200 bg-white px-3 text-xs font-semibold text-ink-800 transition hover:border-brand-600 hover:bg-brand-50 hover:text-brand-800 focus-visible:outline-2 focus-visible:outline-brand-600">View profile</button>
+      <button type="button" disabled={busy} onClick={message} className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-brand-700 px-3 text-xs font-semibold text-white transition hover:bg-brand-800 focus-visible:outline-2 focus-visible:outline-brand-600 disabled:cursor-wait disabled:opacity-60"><MessageCircle size={13} aria-hidden="true" />{busy ? 'Opening…' : 'Message'}</button>
+    </div>
+    {failure && <p role="alert" className="mt-1 text-xs text-red-700">{failure}</p>}
+  </div>
 
   return <div className="mt-4 border-t border-ink-100 pt-4">
     <div className="flex flex-wrap gap-2.5">
@@ -238,15 +246,31 @@ function vendorsFromListings(listings) {
 
 function VendorCard({ vendor, sample }) {
   const listing = vendor.listing
-  return <Card className="overflow-hidden">
-    <div className="flex items-start gap-4">
-      <div className="grid size-16 shrink-0 place-items-center rounded-2xl bg-brand-50 text-2xl font-bold text-brand-700" aria-hidden="true">{vendor.name.charAt(0)}</div>
+  const city = listing.city || vendor.city
+  const rating = Number(vendor.ratingAvg ?? vendor.rating)
+  const reviews = vendor.reviewCount ?? vendor.ratingCount
+  const hasRating = Number.isFinite(rating) && rating > 0
+  return <Card className="p-3.5 transition duration-200 hover:border-brand-600/40 hover:shadow-md">
+    <div className="flex items-center gap-3">
+      <div className="grid size-11 shrink-0 place-items-center rounded-xl bg-brand-50 text-lg font-bold text-brand-700" aria-hidden="true">{vendor.name.charAt(0).toUpperCase()}</div>
       <div className="min-w-0 flex-1">
-        <div className="flex flex-wrap items-center gap-2"><h3 className="text-lg font-bold text-ink-900">{vendor.name}</h3><Badge tone="gray">Vendor</Badge>{sample && <Badge tone="gray">Sample</Badge>}</div>
-        <p className="mt-1 text-sm text-ink-600">{listing.categoryName}{(listing.city || vendor.city) ? ` · ${listing.city || vendor.city}` : ''}</p>
-        {vendor.roles?.length > 0 && <p className="mt-1 text-xs text-ink-500">{vendor.roles.join(' · ')}</p>}
-        {!sample && <VendorActions vendorId={vendor.id} />}
+        <div className="flex items-center gap-2">
+          <h3 className="truncate text-[15px] font-bold leading-tight text-ink-900">{vendor.name}</h3>
+          {sample && <Badge tone="gray">Sample</Badge>}
+        </div>
+        <p className="mt-0.5 truncate text-[13px] font-medium text-ink-700">{listing.categoryName}</p>
       </div>
+      <span className="inline-flex shrink-0 items-center gap-1 text-xs font-semibold text-ink-600">
+        <Star size={13} aria-hidden="true" className={hasRating ? 'fill-amber-400 text-amber-400' : 'text-ink-300'} />
+        {hasRating ? <>{rating.toFixed(1)}{reviews ? <span className="font-normal text-ink-500">({reviews})</span> : null}</> : <span className="font-normal text-ink-500">No ratings yet</span>}
+      </span>
+    </div>
+    <div className="mt-2.5 flex items-center justify-between gap-2">
+      <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-xs text-ink-500">
+        {city && <span className="inline-flex items-center gap-1"><MapPin size={12} aria-hidden="true" />{city}</span>}
+        {vendor.roles?.map((role) => <span key={role} className="rounded-full bg-ink-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-ink-600">{role.replaceAll('_', ' ')}</span>)}
+      </div>
+      {!sample && <VendorActions vendorId={vendor.id} compact />}
     </div>
   </Card>
 }
@@ -716,4 +740,53 @@ export function RemoteVendorBookings() {
   if (mine.loading) return <Screen title="Work" back={false}><Loading /></Screen>
   if (mine.error) return <Screen title="Work" back={false}><ErrorBox message={mine.error} onRetry={mine.reload} /></Screen>
   return <BookingList title="Work" back={false} load={load} detail="v_booking" empty={vendorId ? 'Booking requests for your listings appear here.' : 'Register your business to receive bookings.'} />
+}
+
+
+/** Saved & compare with the real favourites API (F-DSC-07): only vendors can be saved today, so that is all the Saved tab lists. */
+export function RemoteSaved({ params = {} }) {
+  const nav = useNav()
+  const { toast } = useApp()
+  const [tab, setTab] = useState(params.tab || 'saved')
+  const load = useCallback(() => authService.listFavorites(), [])
+  const saved = useLoad(load, [load])
+  const [removed, setRemoved] = useState([])
+  const items = (saved.data?.favorites || []).filter((f) => !removed.includes(f.vendorId))
+
+  const remove = async (vendorId) => {
+    setRemoved((ids) => [...ids, vendorId])
+    const r = await authService.removeFavorite(vendorId)
+    if (!r.ok) {
+      setRemoved((ids) => ids.filter((id) => id !== vendorId))
+      toast(r.message || 'Could not remove this vendor. Try again.')
+    }
+  }
+
+  return <Screen title="Saved & compare">
+    <Segmented value={tab} onChange={setTab} options={[{ id: 'saved', label: 'Saved', count: saved.data ? items.length : undefined }, { id: 'compare', label: 'Compare' }]} />
+    {tab === 'saved' && <>
+      {saved.loading && !saved.data && <Loading />}
+      {saved.error && <ErrorBox message={saved.error} onRetry={saved.reload} />}
+      {saved.data && (items.length ? <div className="vv-saved-grid">
+        {items.map((f) => {
+          const covers = Object.values(RESULT_IMAGES)
+          const cover = covers[[...f.vendorId].reduce((n, ch) => n + ch.charCodeAt(0), 0) % covers.length]
+          return <Card key={f.vendorId} onClick={() => nav.go('c_vendor', { id: f.vendorId })} className="!p-0 min-w-0 overflow-hidden transition hover:-translate-y-0.5 hover:shadow-lg">
+            <div className="relative h-28 w-full bg-cover bg-center" style={{ backgroundImage: `linear-gradient(90deg, rgba(8,45,55,.45), rgba(8,45,55,.05)), url(${cover})` }}>
+              <button type="button" aria-label={`Remove ${f.name} from saved`} onClick={(e) => { e.stopPropagation(); remove(f.vendorId) }} className="absolute right-2.5 top-2.5 grid size-8 place-items-center rounded-full bg-white/90 text-rose-500 shadow transition hover:bg-white"><Heart size={16} className="fill-current" /></button>
+            </div>
+            <div className="flex min-w-0 items-center gap-3 p-4">
+              <div className="grid size-14 shrink-0 place-items-center rounded-2xl border-4 border-white bg-white shadow"><Avatar name={f.name || 'Vendor'} size={42} /></div>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-bold">{f.name || 'Vendor'}</p>
+                {f.roles?.length > 0 && <p className="mt-0.5 truncate text-xs uppercase tracking-wide text-ink-500">{f.roles.map((r) => r.replaceAll('_', ' ')).join(' · ')}</p>}
+                <div className="mt-1.5"><Badge tone="green"><ShieldCheck size={11} />Verified</Badge></div>
+              </div>
+            </div>
+          </Card>
+        })}
+      </div> : <EmptyState icon={Heart} title="Nothing saved yet" body="Tap the heart on any vendor to keep it here." action={<Button size="sm" onClick={() => nav.go('c_explore')}>Explore</Button>} />)}
+    </>}
+    {tab === 'compare' && <EmptyState icon={GitCompare} title="Compare is not available for live listings yet" body="Saved vendors can be opened and messaged from the Saved tab. Side-by-side comparison of listings is not connected to the live service yet." />}
+  </Screen>
 }

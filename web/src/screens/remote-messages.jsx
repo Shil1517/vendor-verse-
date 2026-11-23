@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react'
-import { ArrowLeft, ArrowUpRight, Globe2, MessageCircle, Send, Store } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
+import { ArrowLeft, ArrowUpRight, Globe2, MessageCircle, Send, ShieldCheck, Store } from 'lucide-react'
 import { Banner, Button, EmptyState, Screen } from '../ui.jsx'
 import { useApp } from '../store.jsx'
 import { useNav } from '../nav.jsx'
@@ -107,6 +107,7 @@ export function RemoteChat({ params = {}, initialConversations }) {
   const [failure, setFailure] = useState('')
   const [contactScope, setContactScope] = useState('phone')
   const [ownUserId, setOwnUserId] = useState('')
+  const endRef = useRef(null)
   const consents = useLoad(() => selectedId ? authService.apiRequest(`/conversations/${encodeURIComponent(selectedId)}/contact-consents`).then((r) => r.ok ? { ok: true, consents: r.data.consents } : r) : Promise.resolve({ ok: true, consents: [] }), [selectedId])
   useEffect(() => { authService.apiRequest('/me').then((r) => { if (r.ok) setOwnUserId(r.data?.userId || '') }) }, [])
   useEffect(() => {
@@ -137,7 +138,10 @@ export function RemoteChat({ params = {}, initialConversations }) {
     state.reload()
     inbox.reload()
   }
+  const lastMessageId = c?.messages?.[c.messages.length - 1]?.id
+  useEffect(() => { endRef.current?.scrollIntoView({ block: 'end' }) }, [lastMessageId, selectedId])
   const isVendor = c?.viewerRole === 'vendor' || me.role === 'vendor'
+  const headName = isVendor ? (c?.customerName || selectedThread?.customerName) : (c?.vendorName || selectedThread?.vendorName)
   const conversationName = (thread) => isVendor ? (thread.customerName || thread.vendorName || 'Customer') : (thread.vendorName || 'Vendor')
   return <Screen headerless pad={false} scrollClass="vv-conversation-scroll">
     <div className="vv-conversation-page">
@@ -154,16 +158,17 @@ export function RemoteChat({ params = {}, initialConversations }) {
         </button>)}</div>
       </aside>
       <section className="vv-conversation-chat" aria-label="Conversation">
-        <header className="vv-conversation-chat-heading">{nav.id === 'chat' && <button type="button" aria-label="Back to messages" onClick={() => nav.go('messages')}><ArrowLeft size={21} /></button>}<div><h1>{isVendor ? (c?.customerName || selectedThread?.customerName || 'Customer') : (c?.vendorName || selectedThread?.vendorName || 'Vendor')}</h1><p>{isVendor ? 'Customer conversation' : 'Vendor conversation'}</p></div></header>
+        <header className="vv-conversation-chat-heading">{nav.id === 'chat' && <button type="button" aria-label="Back to messages" onClick={() => nav.go('messages')}><ArrowLeft size={21} /></button>}{headName && <span className="vv-conversation-avatar vv-conversation-avatar-lg" aria-hidden="true">{headName.trim().charAt(0).toUpperCase()}</span>}<div><h1>{headName || (isVendor ? 'Customer' : 'Vendor')}</h1><p>{isVendor ? 'Customer conversation' : 'Vendor conversation'}</p></div></header>
         <div className="vv-conversation-messages">
           {failure && <Banner tone="red" title="Message not sent">{failure}</Banner>}
           {state.error && <ErrorBox message={state.error} onRetry={state.reload} />}
           {state.loading && !c && <Loading />}
           {c && !c.messages?.length && <EmptyState icon={MessageCircle} title="Say hello" body="Messages you send here reach the conversation." />}
           {c?.messages?.map((item) => <div key={item.id} className={`vv-conversation-bubble${item.mine ? ' is-mine' : ''}`}><p>{item.body}</p><small>{fmtWhen(item.sentAt)}{item.contactFiltered ? ' · Contact details hidden' : ''}</small></div>)}
+          <div ref={endRef} />
         </div>
-        <div className="vv-conversation-compose"><input aria-label="Message" placeholder="Type a message" value={message} onChange={(event) => setMessage(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter') send() }} /><Button icon={Send} disabled={!c || busy || !message.trim()} onClick={send}>Send</Button></div>
-        {c && <div className="vv-conversation-compose"><span>Contact details in messages are hidden until you allow sharing.</span><select aria-label="Contact detail type" value={contactScope} onChange={(event) => setContactScope(event.target.value)}><option value="phone">Phone</option><option value="email">Email</option><option value="phone_and_email">Phone and email</option></select>{consents.error && <span>{consents.error}</span>}<Button disabled={busy || consents.loading || !ownUserId || !!consents.error} onClick={changeConsent}>{hasContactScope ? 'Stop sharing' : 'Allow sharing'}</Button></div>}
+        <div className="vv-conversation-compose"><input aria-label="Message" placeholder="Type a message" value={message} onChange={(event) => setMessage(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter') send() }} /><button type="button" className="vv-conversation-send" aria-label="Send message" disabled={!c || busy || !message.trim()} onClick={send}><Send size={18} /><span>Send</span></button></div>
+        {c && <div className="vv-conversation-consent"><ShieldCheck size={18} /><span className="vv-conversation-consent-text"><b>Contact details are private</b><small>Hidden in messages until you allow sharing.</small></span><select aria-label="Contact detail type" value={contactScope} onChange={(event) => setContactScope(event.target.value)}><option value="phone">Phone</option><option value="email">Email</option><option value="phone_and_email">Phone and email</option></select>{consents.error && <span>{consents.error}</span>}<Button disabled={busy || consents.loading || !ownUserId || !!consents.error} onClick={changeConsent}>{hasContactScope ? 'Stop sharing' : 'Allow sharing'}</Button></div>}
       </section>
     </div>
     </div>

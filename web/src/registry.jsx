@@ -21,6 +21,7 @@ import * as RR from './screens/remote-rfq.jsx'
 import * as RT from './screens/remote-transactions.jsx'
 import * as RL from './screens/remote-listings.jsx'
 import * as RDB from './screens/remote-dashboard.jsx'
+import * as RSET from './screens/remote-settings.jsx'
 import { authService } from './services/authService.js'
 
 /* With the real API (VITE_API_BASE_URL) these screens read and write through it; otherwise the seed-data screen is used. */
@@ -56,7 +57,7 @@ export const SCREENS = Object.fromEntries([
   R('c_rfq', live(RR.RemoteRfqDetail, C2.RfqDetail), 'shared', 'RFQ & compare quotations', ['FR-08', 'FR-15'], { defaultParams: { id: 'RFQ-311' } }),
   R('c_work_order', RT.RemoteCustomerWorkOrder, 'customer', 'Work order', ['FR-08']),
   R('v_work_order', RT.RemoteVendorWorkOrder, 'vendor', 'Work order (vendor)', ['FR-08']),
-  R('c_saved', C2.Saved, 'customer', 'Saved & compare', ['FR-05']),
+  R('c_saved', live(RD.RemoteSaved, C2.Saved), 'customer', 'Saved & compare', ['FR-05']),
   R('messages', live(RM.RemoteMessages, C2.Messages), 'shared', 'Messages (customer and vendor)', ['FR-10'], { tab: true }),
   R('chat', live(RM.RemoteChat, C2.Chat), 'shared', 'Chat', ['FR-10'], { defaultParams: { id: 't1' } }),
   R('notifications', C2.Notifications, 'shared', 'Notifications', ['FR-10']),
@@ -66,7 +67,7 @@ export const SCREENS = Object.fromEntries([
   R('c_case', C2.IssueDetail, 'customer', 'Case status', ['FR-11', 'FR-15'], { defaultParams: { id: 'DSP-204' } }),
   R('c_profile', C2.Profile, 'customer', 'Profile', ['FR-01'], { tab: true }),
   R('c_profile_edit', C2.ProfileEdit, 'customer', 'Edit profile', ['FR-01']),
-  R('c_settings', C2.CustomerSettings, 'customer', 'Settings, privacy & sessions', ['FR-01', 'FR-10']),
+  R('c_settings', live(RSET.RemoteCustomerSettings, C2.CustomerSettings), 'customer', 'Settings, privacy & sessions', ['FR-01', 'FR-10']),
 
   // ---- vendor ----
   R('v_dash', live(RDB.RemoteVendorDashboard, V.VendorDashboard), 'vendor', 'Dashboard', ['FR-03', 'FR-08', 'FR-10'], { tab: true, bar: 'ink' }),
@@ -155,7 +156,7 @@ export const SCREENS = Object.fromEntries([
   R('c_contract', live(RT.RemoteContractDetail, BK.ContractCustomer), 'customer', 'Contract', [], { defaultParams: { id: 'CON-501' } }),
   R('c_review_no', MS.ReviewNotEligible, 'customer', 'Review not available yet'),
   R('c_reviews', MS.MyReviews, 'customer', 'My reviews'),
-  R('c_dash', MS.CustomerDashboard, 'customer', 'Customer dashboard'),
+  R('c_dash', live(RDB.RemoteCustomerDashboard, MS.CustomerDashboard), 'customer', 'Customer dashboard'),
   R('ui_states', ACC.UiStates, 'shared', 'UI states'),
   R('invoice', BZ.Invoice, 'shared', 'Tax invoice'),
   R('fees', BZ.Fees, 'shared', 'Fees explained'),
