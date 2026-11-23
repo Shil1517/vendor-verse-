@@ -11,14 +11,14 @@ const CALLING_CODES = [
 
 /* Lets any screen open the marketplace sign-in / sign-up popup (hosted in WebHeader). */
 export const OPEN_AUTH_EVENT = 'vv:open-auth'
-export const openAuthDialog = (mode = 'signin') => window.dispatchEvent(new CustomEvent(OPEN_AUTH_EVENT, { detail: { mode } }))
+export const openAuthDialog = (mode = 'signin', role = 'customer') => window.dispatchEvent(new CustomEvent(OPEN_AUTH_EVENT, { detail: { mode, role } }))
 
-export function MarketplaceAuthDialog({ mode, onClose, onChangeMode }) {
+export function MarketplaceAuthDialog({ mode, initialRole = 'customer', onClose, onChangeMode }) {
   const nav = useNav()
   const { toast } = useApp()
   const dialogRef = useRef(null)
   const [loginMethod, setLoginMethod] = useState('phone')
-  const [selectedRole, setSelectedRole] = useState('customer')
+  const [selectedRole, setSelectedRole] = useState(initialRole === 'vendor' ? 'vendor' : 'customer')
   const [countryCode, setCountryCode] = useState('+91')
   const [loginContact, setLoginContact] = useState('')
   const [form, setForm] = useState({ name: '', phone: '', email: '', biz: '', agree: false })
