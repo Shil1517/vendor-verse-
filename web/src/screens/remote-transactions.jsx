@@ -26,7 +26,7 @@ const CONTRACT_STATE = { proposed: ['Proposed', 'blue'], negotiating: ['Negotiat
 const MILESTONE_STATE = { pending: ['Pending', 'gray'], in_progress: ['In progress', 'purple'], completed_awaiting: ['Awaiting confirmation', 'amber'], closed: ['Closed', 'green'], disputed: ['Disputed', 'red'] }
 const WORK_STATE = { created: ['Created', 'blue'], in_progress: ['In progress', 'purple'], completed_awaiting: ['Awaiting confirmation', 'amber'], closed: ['Closed', 'green'], cancelled: ['Cancelled', 'gray'] }
 
-const StateBadge = ({ map, s }) => { const [label, tone] = map[s] || [String(s).replace(/_/g, ' '), 'gray']; return <Badge tone={tone}>{label}</Badge> }
+const StateBadge = ({ map, s }) => { const [label, tone] = map[s] || [String(s).replace(/_/g, ' '), 'gray']; return <Badge tone={tone} className="vv-purchase-order-status">{label}</Badge> }
 const text = (v) => (typeof v === 'string' && v.trim() ? v : null)
 const money = (minor, currency = 'INR') => minorToText(minor, currency) || 'Not provided'
 const short = (id) => String(id).slice(0, 8)
@@ -105,7 +105,7 @@ function OrderRows({ items, detail, empty }) {
   const nav = useNav()
   if (!items.length) return <EmptyState icon={Package} title="No purchase orders" body={empty} />
   return items.map((o) => (
-    <Card key={o.id} onClick={() => nav.go(detail, { id: o.id })}>
+    <Card key={o.id} onClick={() => nav.go(detail, { id: o.id })} className="vv-purchase-order-card">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0"><p className="truncate text-[15px] font-bold text-ink-900">{poTitle(o)}</p><p className="truncate text-xs text-ink-500">{poTotal(o)} · {fmtWhen(o.createdAt)}</p></div>
         <StateBadge map={PO_STATE} s={o.state} />
@@ -122,7 +122,7 @@ export function RemoteOrders({ side = 'customer' }) {
   const orders = useLoad(load, [load])
   const detail = side === 'vendor' ? 'v_order' : 'c_order'
   return (
-    <Screen title="Purchase orders" subtitle={side === 'vendor' ? 'Orders placed with you' : 'Orders you placed'}>
+    <Screen title="Purchase orders" subtitle={side === 'vendor' ? 'Orders placed with you' : 'Orders you placed'} headerClass="vv-purchase-orders-header" scrollClass="vv-purchase-orders-scroll" bg="bg-[#f8f5ee]">
       {(orders.loading || (side === 'vendor' && mine.loading)) && !orders.data && <Loading />}
       {orders.error && <ErrorBox message={orders.error} onRetry={orders.reload} />}
       {orders.data && <OrderRows items={orders.data.purchaseOrders} detail={detail} empty={side === 'vendor' ? 'Orders from accepted goods quotes appear here.' : 'Accept a goods quote on an RFQ to create an order.'} />}
@@ -142,7 +142,7 @@ export function RemoteOrderDetail({ params = {} }) {
   const act = (action, done, extra) => () => run(() => authService.purchaseOrderAction(o.id, action, extra), done)
   const lines = Array.isArray(o.terms?.lines) ? o.terms.lines : []
   return (
-    <Screen title={poTitle(o)} subtitle={supplier ? 'You are the supplier' : 'You are the buyer'} right={<StateBadge map={PO_STATE} s={o.state} />}>
+    <Screen title={poTitle(o)} subtitle={supplier ? 'You are the supplier' : 'You are the buyer'} right={<StateBadge map={PO_STATE} s={o.state} />} headerClass="vv-purchase-orders-header" scrollClass="vv-purchase-orders-scroll" bg="bg-[#f8f5ee]">
       {failure && <Banner tone="red" title="Could not update">{failure}</Banner>}
       <Card><KV rows={[['Total', poTotal(o)], ['Ordered', fmtWhen(o.createdAt)], ['Reference', short(o.id)]]} /></Card>
       {lines.length > 0 && <Section title="Items"><Card><div className="space-y-1 text-sm text-ink-700">{lines.map((l, i) => <p key={i}>{l.description}: {l.quantity}{l.unit ? ` ${l.unit}` : ''} × {money(l.unitPriceMinor, o.terms.currency)} = {money(l.lineTotalMinor, o.terms.currency)}</p>)}</div></Card></Section>}

@@ -25,6 +25,7 @@ import './screens/admin-dashboard-visuals.css'
 import './screens/dashboard-reference.css'
 import './layout.css'
 import './workspace-themes.css'
+import './screens/purchase-orders.css'
 
 const INITIAL_ROUTE = screenForLocation(window.location, SCREENS)
 

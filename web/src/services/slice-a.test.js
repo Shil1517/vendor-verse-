@@ -11,6 +11,10 @@ describe('authService (F-ACC-01)', () => {
     expect(Object.values(OTP_POLICY).every((v) => v === null)).toBe(true)
   })
   it('generates a 6-digit code', () => expect(randomOtp()).toMatch(/^\d{6}$/))
+  it('provides contract list compatibility in mock mode', async () => {
+    const s = createAuthService(fixed())
+    expect(await s.listMyContracts()).toEqual({ ok: true, contracts: [] })
+  })
   it('rejects invalid contact', async () => {
     const r = await createAuthService().requestOtp('abc')
     expect(r.code).toBe(AUTH_ERRORS.INVALID_CONTACT)

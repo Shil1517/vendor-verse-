@@ -148,6 +148,270 @@
 .vv-customer-portal .vv-screen-scroll > .vv-profile-edit-page { width: min(100% - 48px, 880px); padding: 15px 0 28px; }
 .vv-profile-edit-intro { display: flex; align-items: center; gap: 10px; padding: 0 2px 9px; border-bottom: 1px solid #e4ddd0; }.vv-profile-edit-intro h1,.vv-profile-edit-section-heading h2 { margin: 0; font-family: "Bricolage Grotesque", "Figtree", "Segoe UI", sans-serif; font-weight: 700; letter-spacing: -.035em; color: #0e1b2c; }.vv-profile-edit-intro h1 { font-size: 22px; }.vv-profile-edit-intro p:not(.vv-profile-eyebrow) { max-width: 500px; margin: 1px 0 0; color: #737b86; font-size: 11px; }
 .vv-profile-edit-form { margin-top: 12px; padding: 15px 20px 17px; border: 1px solid #e4ddd0; border-radius: 18px; background: #fff; box-shadow: 0 12px 28px rgba(14, 27, 44, .045); }.vv-profile-edit-section-heading h2 { font-size: 19px; }.vv-profile-edit-section-heading.is-location { margin-top: 15px; padding-top: 14px; border-top: 1px solid #eee9e1; }.vv-profile-edit-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 14px; margin-top: 9px; }.vv-profile-edit-grid > :last-child:nth-child(odd) { grid-column: 1 / -1; }.vv-profile-edit-grid input,.vv-profile-edit-grid select { height: 38px !important; }.vv-profile-edit-grid textarea { min-height: 48px !important; padding-top: 6px; padding-bottom: 6px; }.vv-profile-edit-error { margin: 8px 0 0; border-radius: 10px; background: #fff1f2; padding: 6px 9px; color: #b42335; font-size: 12px; font-weight: 600; }.vv-profile-edit-save { display: flex; width: min(100%, 832px); margin-inline: auto; justify-content: flex-end; }.vv-profile-edit-save button { min-width: 170px; background: #0e1b2c; }.vv-profile-edit-save button:hover { background: #8a6420; }
+
+/* Scoped premium finish for the signed-in Customer Profile page. */
+.vv-customer-portal .vv-screen-scroll:has(> .vv-profile-page) {
+  background: linear-gradient(180deg, #fffdf8 0, #faf7ef 220px, #f7f4ed 100%) !important;
+}
+
+.vv-profile-page .vv-profile-hero {
+  position: relative;
+  min-height: 118px;
+  padding: 24px 26px;
+  border: 1px solid #ddd0b4;
+  border-radius: 22px;
+  background:
+    radial-gradient(circle at 92% 18%, rgba(198, 169, 112, .16), transparent 180px),
+    linear-gradient(118deg, #fff 0%, #fdfbf6 72%, #f8f2e5 100%);
+  box-shadow: 0 18px 42px -26px rgba(96, 78, 45, .42), 0 2px 8px rgba(96, 78, 45, .04);
+  overflow: hidden;
+}
+
+.vv-profile-page .vv-profile-hero::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 4px;
+  background: linear-gradient(180deg, #c6a86a, #8a6420);
+}
+
+.vv-profile-page .vv-profile-hero-copy {
+  position: relative;
+  z-index: 1;
+}
+
+.vv-profile-page .vv-profile-eyebrow {
+  color: #9a7334;
+  font-size: 10px;
+  letter-spacing: .16em;
+}
+
+.vv-profile-page .vv-profile-identity {
+  gap: 14px;
+}
+
+.vv-profile-page .vv-profile-identity > :first-child {
+  width: 50px !important;
+  height: 50px !important;
+  border: 3px solid #fff;
+  background: #8a6420 !important;
+  box-shadow: 0 8px 20px -10px rgba(96, 78, 45, .52), 0 0 0 1px #dfd2b7;
+  color: #fff !important;
+  font-size: 18px !important;
+}
+
+.vv-profile-page .vv-profile-identity h1 {
+  color: #342a1d;
+  font-size: clamp(24px, 2.4vw, 29px);
+  line-height: 1.08;
+}
+
+.vv-profile-page .vv-profile-identity p {
+  color: #81745f;
+  font-size: 13px;
+}
+
+.vv-profile-page .vv-profile-identity .mt-2 {
+  border: 1px solid #dfcfa9;
+  background: #f7f0df !important;
+  color: #80612a !important;
+  --tw-ring-color: #dfcfa9;
+  font-size: 10px;
+}
+
+.vv-profile-page .vv-profile-hero > .vv-button {
+  position: relative;
+  z-index: 1;
+  min-height: 38px;
+  border: 1px solid #d3c49f;
+  background: #fffdf8;
+  color: #80612a;
+  box-shadow: 0 5px 14px -10px rgba(96, 78, 45, .4);
+}
+
+.vv-profile-page .vv-profile-hero > .vv-button:hover {
+  border-color: #bda777;
+  background: #f7f0df;
+  color: #6f5018;
+}
+
+.vv-profile-page .vv-profile-section {
+  margin-top: 36px;
+}
+
+.vv-profile-page .vv-profile-section-heading {
+  align-items: center;
+  margin-bottom: 14px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #e8dfcf;
+}
+
+.vv-profile-page .vv-profile-section-heading h2 {
+  color: #342a1d;
+  font-size: 24px;
+  line-height: 1.15;
+}
+
+.vv-profile-page .vv-profile-section-heading button {
+  min-height: 34px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  color: #80612a;
+  transition: background .16s ease, color .16s ease;
+}
+
+.vv-profile-page .vv-profile-section-heading button:hover {
+  background: #f7f0df;
+  color: #6f5018;
+}
+
+.vv-profile-page .vv-profile-actions {
+  gap: 14px;
+}
+
+.vv-profile-page .vv-profile-action {
+  min-height: 92px;
+  padding: 17px 18px;
+  border: 1px solid #dfd3b9;
+  border-radius: 16px;
+  background: #fffdf8;
+  box-shadow: 0 10px 24px -18px rgba(96, 78, 45, .5);
+  transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease, background .18s ease;
+}
+
+.vv-profile-page .vv-profile-action:hover {
+  transform: translateY(-3px);
+  border-color: #c1aa7a;
+  background: #fff;
+  box-shadow: 0 16px 28px -18px rgba(96, 78, 45, .48);
+}
+
+.vv-profile-page .vv-profile-action:focus-visible {
+  outline: 2px solid #a67a2c;
+  outline-offset: 3px;
+}
+
+.vv-profile-page .vv-profile-action b {
+  color: #342a1d;
+  font-size: 15px;
+}
+
+.vv-profile-page .vv-profile-action small {
+  color: #81745f;
+}
+
+.vv-profile-page .vv-profile-action > svg {
+  color: #a58b5a;
+}
+
+.vv-profile-page .vv-profile-action-icon,
+.vv-profile-page .vv-profile-action-icon.is-rose,
+.vv-profile-page .vv-profile-action-icon.is-violet,
+.vv-profile-page .vv-profile-action-icon.is-gold,
+.vv-profile-page .vv-profile-action-icon.is-sky {
+  border: 1px solid #e1d2b1;
+  background: #f7f0df !important;
+  color: #80612a !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .72);
+}
+
+.vv-profile-page .vv-profile-columns {
+  column-gap: 18px;
+}
+
+.vv-profile-page .vv-profile-card-section .vv-profile-section-heading {
+  margin-bottom: 10px;
+}
+
+.vv-profile-page .vv-profile-card-section .vv-profile-section-heading h2 {
+  color: #342a1d;
+  font-size: 21px;
+}
+
+.vv-profile-page .vv-profile-card-section > div:last-child {
+  border: 1px solid #dfd3b9;
+  border-radius: 16px;
+  background: #fffdf8;
+  box-shadow: 0 12px 26px -20px rgba(96, 78, 45, .5);
+}
+
+.vv-profile-page .vv-profile-card-section button {
+  min-height: 68px;
+  padding-inline: 16px;
+  transition: background .16s ease;
+}
+
+.vv-profile-page .vv-profile-card-section button:hover {
+  background: #faf7ef;
+}
+
+.vv-profile-page .vv-profile-card-section button > span:first-child {
+  border: 1px solid #e1d2b1;
+  background: #f7f0df !important;
+  color: #80612a !important;
+  box-shadow: none;
+}
+
+.vv-profile-page .vv-profile-card-section button > span:first-child svg {
+  color: #80612a !important;
+  stroke: #80612a !important;
+}
+
+.vv-profile-page .vv-profile-vendor-callout {
+  margin-top: 36px;
+  padding: 26px 28px;
+  border: 1px solid #ddd0b4;
+  background: linear-gradient(118deg, #fff 0%, #fbf8f1 72%, #f4eddf 100%);
+  color: #342a1d;
+  box-shadow: 0 16px 34px -26px rgba(96, 78, 45, .48);
+}
+
+.vv-profile-page .vv-profile-vendor-callout::after {
+  border-color: #c6a86a;
+  opacity: .12;
+}
+
+.vv-profile-page .vv-profile-vendor-callout .vv-profile-eyebrow {
+  color: #9a7334;
+}
+
+.vv-profile-page .vv-profile-vendor-callout h2 {
+  color: #342a1d;
+}
+
+.vv-profile-page .vv-profile-vendor-callout p:not(.vv-profile-eyebrow) {
+  color: #81745f;
+}
+
+.vv-profile-page .vv-profile-vendor-callout > button,
+.vv-profile-page .vv-profile-vendor-callout > button:hover {
+  border: 1px solid #80612a;
+  background: #80612a;
+  color: #fff;
+  box-shadow: 0 8px 18px -12px rgba(96, 78, 45, .5);
+}
+
+.vv-profile-page .vv-profile-vendor-callout > button:hover {
+  background: #6f5018;
+}
+
+.vv-profile-page .vv-profile-footer-actions {
+  margin-top: 30px;
+}
+
+.vv-profile-page .vv-profile-footer-actions button {
+  color: #81745f;
+}
+
+.vv-profile-page .vv-profile-footer-actions button:hover,
+.vv-profile-page .vv-profile-logout {
+  color: #342a1d !important;
+}
+
+.vv-profile-page .vv-profile-version {
+  color: #9a927f;
+}
+
 @media (max-width: 700px) { .vv-customer-portal .vv-screen-scroll > .vv-profile-page,.vv-customer-portal .vv-screen-scroll > .vv-profile-edit-page { width: 100%; padding: 25px 16px 35px; }.vv-profile-hero { align-items: flex-start; padding: 22px; }.vv-profile-identity { align-items: flex-start; gap: 13px; }.vv-profile-identity h1 { font-size: 25px; }.vv-profile-hero .vv-button { padding-inline: 10px; }.vv-profile-actions,.vv-profile-columns,.vv-profile-edit-grid { grid-template-columns: 1fr; }.vv-profile-section { margin-top: 31px; }.vv-profile-section-heading h2 { font-size: 22px; }.vv-profile-vendor-callout { align-items: flex-start; flex-direction: column; padding: 24px; }.vv-profile-vendor-callout h2 { font-size: 24px; }.vv-profile-vendor-callout::after { right: -116px; top: -112px; }.vv-profile-footer-actions { justify-content: flex-start; gap: 5px 15px; }.vv-profile-edit-intro { align-items: flex-start; gap: 14px; padding-bottom: 23px; }.vv-profile-edit-intro h1 { font-size: 27px; }.vv-profile-edit-form { margin-top: 23px; padding: 22px 18px 26px; }.vv-profile-edit-section-heading h2 { font-size: 21px; }.vv-profile-edit-save { justify-content: stretch; }.vv-profile-edit-save button { width: 100%; } }
 
 .vv-customer-route > .relative.flex.h-full.flex-col { min-width: 0; }

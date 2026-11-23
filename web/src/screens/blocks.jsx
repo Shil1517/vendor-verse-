@@ -13,8 +13,8 @@ export function Phase2Notice({ children }) {
 }
 
 /* Page: a Screen with an optional Phase 2 badge in the header. */
-export function Page({ title, subtitle, phase2, right, children, footer, overlay, back = true }) {
-  return <Screen title={title} subtitle={subtitle} back={back} overlay={overlay} right={<>{right}{phase2 ? <span className="px-2"><P2Badge /></span> : null}</>} footer={footer}>
+export function Page({ title, subtitle, phase2, right, children, footer, overlay, back = true, headerClass, scrollClass, bg }) {
+  return <Screen title={title} subtitle={subtitle} back={back} overlay={overlay} right={<>{right}{phase2 ? <span className="px-2"><P2Badge /></span> : null}</>} footer={footer} headerClass={headerClass} scrollClass={scrollClass} bg={bg}>
     {phase2 && <Phase2Notice />}
     {children}
   </Screen>

@@ -190,8 +190,8 @@ export function WorkOrder({ params = {} }) {
 export function CustomerOrders() {
   const { orders, listings } = useApp()
   const nav = useNav()
-  return <Page title="Purchase orders" subtitle="Goods and supplier orders">
-    {orders.length === 0 ? <EmptyState icon={Package} title="No purchase orders" /> : <Group>{orders.map((o, i) => <ListRow key={o.id} icon={Package} title={`${o.id} · ${listings.find((l) => l.id === o.listingId)?.title || 'Order'}`} subtitle={`${o.qty} units · ${o.date}`} right={<StatusBadge s={o.status} />} onClick={() => nav.go('c_order', { id: o.id })} last={i === orders.length - 1} />)}</Group>}
+  return <Page title="Purchase orders" subtitle="Goods and supplier orders" headerClass="vv-purchase-orders-header" scrollClass="vv-purchase-orders-scroll" bg="bg-[#f8f5ee]">
+    {orders.length === 0 ? <EmptyState icon={Package} title="No purchase orders" /> : <Group className="vv-purchase-order-list">{orders.map((o, i) => <ListRow key={o.id} icon={Package} title={`${o.id} · ${listings.find((l) => l.id === o.listingId)?.title || 'Order'}`} subtitle={`${o.qty} units · ${o.date}`} right={<StatusBadge s={o.status} className="vv-purchase-order-status" />} onClick={() => nav.go('c_order', { id: o.id })} last={i === orders.length - 1} />)}</Group>}
   </Page>
 }
 
@@ -203,7 +203,7 @@ export function VendorOrder({ params = {} }) {
   const flow = ['placed', 'confirmed', 'packed', 'shipped', 'delivered']
   const next = flow[flow.indexOf(o.status) + 1]
   const go = (status, note) => { patchOrder(o.id, (x) => ({ status, history: [...x.history, { s: status, at: stamp(), note }] })); toast(note) }
-  return <Page title={o.id} subtitle={`Customer: ${o.customer}`} right={<StatusBadge s={o.status} />}>
+  return <Page title={o.id} subtitle={`Customer: ${o.customer}`} right={<StatusBadge s={o.status} className="vv-purchase-order-status" />} headerClass="vv-purchase-orders-header" scrollClass="vv-purchase-orders-scroll" bg="bg-[#f8f5ee]">
     <Facts rows={[['Quantity', o.qty], ['Ship to', o.address], ['Payment', 'Terms agreed directly with the buyer']]} />
     <Card><Timeline steps={flow.map((s) => ({ label: s[0].toUpperCase() + s.slice(1), done: flow.indexOf(s) <= flow.indexOf(o.status), current: s === o.status }))} /></Card>
     <div className="flex flex-wrap gap-2">

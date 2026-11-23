@@ -144,7 +144,11 @@ export function createAuthService({ provider = mockProvider, policy = OTP_POLICY
     return { ok: true }
   }
 
-  return { requestOtp, verifyOtp, endSession: async () => {} }
+  async function listMyContracts() {
+    return { ok: true, contracts: [] }
+  }
+
+  return { requestOtp, verifyOtp, endSession: async () => {}, listMyContracts }
 }
 
 const MODE_ROLES = { CUSTOMER: 'customer', VENDOR: 'vendor', BUSINESS: 'business' }
