@@ -21,6 +21,7 @@ import * as RR from './screens/remote-rfq.jsx'
 import * as RT from './screens/remote-transactions.jsx'
 import * as RL from './screens/remote-listings.jsx'
 import * as RDB from './screens/remote-dashboard.jsx'
+import * as RPF from './screens/remote-performance.jsx'
 import * as RSET from './screens/remote-settings.jsx'
 import { authService } from './services/authService.js'
 
@@ -36,9 +37,7 @@ export const SCREENS = Object.fromEntries([
   // ---- auth ----
   R('splash', Auth.Splash, 'auth', 'Splash', ['FR-01'], { bar: 'brand-dark' }),
   R('welcome', Auth.Welcome, 'auth', 'Welcome & language', ['FR-01'], { bar: 'brand' }),
-  R('login', Auth.Login, 'auth', 'Log in (phone / email)', ['FR-01', 'FR-02']),
-  R('otp', Auth.Otp, 'auth', 'OTP verification', ['FR-01', 'FR-02'], { defaultParams: { contact: '+91 98290 00001', role: 'customer' } }),
-  R('register', Auth.Register, 'auth', 'Create account', ['FR-01', 'FR-03']),
+  R('ad_login', Auth.AdminLogin, 'auth', 'Admin sign in (secret page)', ['FR-01'], { hidden: true }),
   R('scope_review', ScopeReview, 'auth', 'MVP scope review', ['FR-05', 'FR-15']),
 
   // ---- customer ----
@@ -60,7 +59,6 @@ export const SCREENS = Object.fromEntries([
   R('c_saved', live(RD.RemoteSaved, C2.Saved), 'customer', 'Saved & compare', ['FR-05']),
   R('messages', live(RM.RemoteMessages, C2.Messages), 'shared', 'Messages (customer and vendor)', ['FR-10'], { tab: true }),
   R('chat', live(RM.RemoteChat, C2.Chat), 'shared', 'Chat', ['FR-10'], { defaultParams: { id: 't1' } }),
-  R('notifications', C2.Notifications, 'shared', 'Notifications', ['FR-10']),
   R('c_review', C2.WriteReview, 'customer', 'Rate a vendor', ['FR-11'], { defaultParams: { vendorId: 'v-me' } }),
   R('c_report', C2.IssueNew, 'customer', 'Report a problem (case)', ['FR-11']),
   R('c_cases', C2.Issues, 'customer', 'Cases', ['FR-11']),
@@ -81,7 +79,7 @@ export const SCREENS = Object.fromEntries([
   R('v_work', live(RR.RemoteVendorWork, V.VendorQuotes), 'vendor', 'Work', ['FR-08'], { tab: true }),
   R('v_orders', live(RT.RemoteVendorOrders, V.VendorOrders), 'vendor', 'Purchase orders', ['FR-09', 'FR-15']),
   R('v_rfq', live(RR.RemoteVendorRfq, V.VendorRfq), 'vendor', 'Submit / revise quotation', ['FR-08', 'FR-15'], { defaultParams: { id: 'RFQ-315' } }),
-  R('v_perf', V.Performance, 'vendor', 'Performance reports', ['FR-13']),
+  R('v_perf', live(RPF.RemoteVendorPerformance, V.Performance), 'vendor', 'Performance reports', ['FR-13']),
   R('v_reviews', V.VendorReviews, 'vendor', 'Customer reviews', ['FR-11']),
   R('v_more', V.VendorMore, 'vendor', 'More', ['FR-02'], { tab: true }),
   R('v_profile', V.VendorProfile, 'vendor', 'Business profile & plan', ['FR-03', 'FR-14']),

@@ -8,7 +8,7 @@ const PRODUCT_PATHS = {
   c_settings: '/account/settings', c_sessions: '/account/sessions', c_delete: '/account/delete',
   c_export: '/account/data-export', c_notif_prefs: '/account/notifications/preferences',
   login: '/login', register: '/signup', welcome: '/welcome', otp: '/verify',
-  messages: '/messages', chat: '/messages/:id', notifications: '/notifications',
+  messages: '/messages', chat: '/messages/:id',
   v_dash: '/vendor/dashboard', v_listings: '/vendor/listings', v_listing_edit: '/vendor/listings/:id/edit',
   v_work: '/vendor/requests', v_orders: '/vendor/orders', v_profile: '/vendor/profile',
   v_reviews: '/vendor/reviews', v_verify: '/vendor/verification', v_register: '/vendor/signup',

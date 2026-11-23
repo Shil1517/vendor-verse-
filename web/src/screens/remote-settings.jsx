@@ -5,7 +5,8 @@
  * Language is a device setting and stays local.
  */
 import { useCallback, useEffect, useState } from 'react'
-import { Download, Laptop, LogOut, Trash2 } from 'lucide-react'
+import { Download, Laptop, LogOut, Trash2, UserRound } from 'lucide-react'
+import { useNav } from '../nav.jsx'
 import { Badge, Banner, Button, Card, Dialog, Group, ListRow, Screen, Section, Segmented, Toggle } from '../ui.jsx'
 import { useApp } from '../store.jsx'
 import { authService } from '../services/authService.js'
@@ -17,6 +18,7 @@ const deviceName = (d = {}) => d.name || d.userAgent || 'Signed-in device'
 const openRequest = (requests, type) => (requests || []).find((r) => r.type === type && ['requested', 'verified', 'in_progress'].includes(r.status))
 
 export function RemoteCustomerSettings() {
+  const nav = useNav()
   const { lang, setLang, toast } = useApp()
   const [prefs, setPrefs] = useState(DEFAULT_ON)
   const [confirmDelete, setConfirmDelete] = useState(false)
@@ -85,6 +87,7 @@ export function RemoteCustomerSettings() {
       title="Settings & privacy"
       overlay={<Dialog open={confirmDelete} onClose={() => setConfirmDelete(false)} title="Request account deletion?" actions={<><Button variant="secondary" className="flex-1" onClick={() => setConfirmDelete(false)}>Cancel</Button><Button variant="danger" className="flex-1" disabled={busy} onClick={() => { setConfirmDelete(false); dataRequest('deletion', 'Deletion request submitted') }}>Request deletion</Button></>}><p>Open bookings, orders, RFQs or contracts must be closed first, and some records are kept where the law requires it. You can cancel the request while it is pending.</p></Dialog>}
     >
+      <Section title="Profile"><Group><ListRow icon={UserRound} title="Edit profile" subtitle="Name, photo and contact details" onClick={() => nav.go('c_profile_edit')} last /></Group></Section>
       <Section title="Language"><Segmented value={lang} onChange={setLang} options={[{ id: 'en', label: 'English' }, { id: 'hi', label: 'हिन्दी' }]} /></Section>
 
       <Section title="Notifications">

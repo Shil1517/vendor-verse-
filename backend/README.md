@@ -42,6 +42,7 @@ These routes are also listed in Swagger UI at `/docs`.
 - `GET /v1/health/ready`
 - `POST /v1/auth/otp/request`
 - `POST /v1/auth/otp/verify`
+- `POST /v1/auth/admin/login` (Super Admin admin ID and password; needs `ALLOW_PRIVILEGED_OTP_SIGNIN=true`; create the account with `npm run db:seed:admin` after setting `ADMIN_LOGIN_ID` and `ADMIN_PASSWORD` in `.env`)
 - `POST /v1/auth/mfa/verify` (returns 503; no MFA method is implemented)
 - `POST /v1/auth/refresh`
 - `POST /v1/auth/logout`
@@ -218,6 +219,7 @@ For demos only, never production (the seed refuses `NODE_ENV=production`):
 
 | Date & time (YYYY-MM-DD HH:MM, local) | Updated by | Change | Reason |
 |---|---|---|---|
+| 2026-11-23 15:22 | Sahil Soni | Added: `POST /v1/auth/admin/login`, `admin_credentials` table (migration 019) and `npm run db:seed:admin` | Owner decision D-027: Super Admin signs in with an admin ID and password. |
 | 2026-11-22 23:06 | Amit | Added Phase 1 review, case, admin, agent, subscription, invoice and sponsored routes | Record the new backend API slices and the decisions that still block activation, issuance and checkout. |
 | 2026-11-16 15:17 | tanya sen | Added: F-VND-07 listing review, media and duplicate APIs | Document the new reasoned review queues, conservative duplicate matching and profile-image moderation routes. |
 | 2026-11-14 12:10 | Sahil Soni | Added: `ALLOW_PRIVILEGED_OTP_SIGNIN` demo flag, `roles` on GET /me, demo admin and sales-agent accounts | Let the team demo the admin and agent screens against the real API until MFA exists. |

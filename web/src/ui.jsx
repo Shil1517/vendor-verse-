@@ -145,7 +145,7 @@ export function IconBtn({ children, className, label, ...p }) {
 }
 
 /* ---------- layout ---------- */
-export function Screen({ title, subtitle, back = true, right, children, footer, overlay, pad = true, bg = 'bg-ink-50', headerless, headerClass, scrollClass = '' }) {
+export function Screen({ title, subtitle, back = true, right, children, footer, overlay, pad = true, bg = 'bg-ink-50', headerless, headerClass, scrollClass = '', onBack }) {
   const nav = useNav()
   const [scrolled, setScrolled] = useState(false)
   return (
@@ -153,7 +153,7 @@ export function Screen({ title, subtitle, back = true, right, children, footer, 
       {!headerless && (
         <header className={cx('z-10 flex h-14 shrink-0 items-center gap-1 border-b bg-white/95 px-2 backdrop-blur transition-shadow duration-200', scrolled ? 'border-transparent shadow-[0_6px_16px_-8px_rgba(20,40,75,0.28)]' : 'border-ink-100', headerClass)}>
           {back ? (
-            <IconBtn label="Back" onClick={nav.back}><ArrowLeft size={21} /></IconBtn>
+            <IconBtn label={onBack ? 'Back to home' : 'Back'} data-home={onBack ? 'true' : undefined} onClick={onBack || nav.back}><ArrowLeft size={21} /></IconBtn>
           ) : <div className="w-2" />}
           <div className="min-w-0 flex-1">
             <h1 className="truncate text-[17px] font-bold leading-tight text-ink-900">{title}</h1>

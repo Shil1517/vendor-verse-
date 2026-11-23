@@ -24,6 +24,7 @@ import { AuthenticatedUser } from "./authenticated-user.decorator";
 import { OTP_DELIVERY_PROVIDER } from "./auth.constants";
 import { OtpRequestDto } from "./dto/otp-request.dto";
 import { OtpDeliveryProvider } from "./otp-delivery.provider";
+import { DUMMY_PASSWORD_HASH, verifyPassword } from "./password";
 
 interface ChallengeRow {
   id: string;
@@ -281,6 +282,60 @@ export class AuthService {
       );
     }
     return result.credentials;
+  }
+
+  /** Super Admin sign-in with an admin ID and password. Same demo-only gate as the privileged OTP sign-in
+   * (ALLOW_PRIVILEGED_OTP_SIGNIN) because MFA is not built yet. Every failure answers the same 401. */
+  async adminLogin(request: {
+    loginId: string;
+    password: string;
+  }): Promise<SessionCredentials> {
+    if (!this.config.get("ALLOW_PRIVILEGED_OTP_SIGNIN", { infer: true })) {
+      throw new ServiceUnavailableException(
+        "Privileged sign-in is blocked until MFA is implemented",
+      );
+    }
+    const loginId = request.loginId.trim().toLowerCase();
+    await this.rateLimit.consume(
+      "admin_login",
+      this.signValue(loginId, this.config.get("OTP_VERIFIER_SECRET", { infer: true })),
+      this.config.get("OTP_VERIFY_MAX", { infer: true }),
+      this.config.get("OTP_REQUEST_WINDOW_SECONDS", { infer: true }),
+      "Too many sign-in attempts",
+    );
+    const found = await this.database.query<{
+      user_id: string;
+      password_hash: string;
+      account_status: string;
+      is_admin: boolean;
+    }>(
+      `SELECT credential.user_id, credential.password_hash, user_account.account_status,
+              EXISTS (SELECT 1 FROM user_role_assignments AS assignment
+                      WHERE assignment.user_id = credential.user_id
+                        AND assignment.role_code = 'SUPER_ADMIN'
+                        AND assignment.revoked_at IS NULL) AS is_admin
+       FROM admin_credentials AS credential
+       JOIN users AS user_account ON user_account.id = credential.user_id
+       WHERE credential.login_id = $1`,
+      [loginId],
+    );
+    const row = found.rows[0];
+    const matches = verifyPassword(
+      request.password,
+      row?.password_hash ?? DUMMY_PASSWORD_HASH,
+    );
+    if (!row || !matches || row.account_status !== "active" || !row.is_admin) {
+      throw new UnauthorizedException("Invalid admin ID or password");
+    }
+    return this.database.transaction(async (client) => {
+      await client.query(
+        `INSERT INTO audit_events
+           (actor_user_id, actor_role, action, target_type, target_id, reason)
+         VALUES ($1, 'SUPER_ADMIN', 'auth.admin_password_login', 'user', $2, 'Admin password sign-in')`,
+        [row.user_id, row.user_id],
+      );
+      return this.createSession(client, row.user_id);
+    });
   }
 
   async verifyMfa(_request: {

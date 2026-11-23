@@ -3,14 +3,16 @@
  * VITE_API_BASE_URL is set (see the registry, `live(...)`).
  *
  * Every number comes from an API the backend has today: the vendor's listings, the RFQs
- * sent to it, its own quotes on those RFQs and its booking requests. Nothing is invented:
- *  - there is no messaging or enquiry-analytics API yet, so the unread-messages tile and the
- *    "customer enquiries" trend are not shown (they stay on the seed-data dashboard);
+ * sent to it, its own quotes on those RFQs, its booking requests and its conversations.
+ * Nothing is invented:
+ *  - the conversations API has no unread count and there is no enquiry-analytics API yet, so
+ *    the tile counts conversations (not unread) and the "customer enquiries" trend is not
+ *    shown (it stays on the seed-data dashboard);
  *  - the RFQ funnel is built from the vendor's own quotes, looked up for its 25 most recently
  *    updated RFQs, and says so when there are more.
  */
 import { useCallback, useEffect, useState } from 'react'
-import { AlertTriangle, BarChart3, CalendarCheck, Check, ChevronRight, ClipboardList, Clock, FileText, Package, Plus, Receipt, Send, ShieldCheck, Star, Store } from 'lucide-react'
+import { AlertTriangle, BarChart3, CalendarCheck, Check, ChevronRight, ClipboardList, Clock, FileText, MessageCircle, Package, Plus, Receipt, Send, ShieldCheck, Star, Store, UserRound } from 'lucide-react'
 import { Button, EmptyState, Screen, Stat } from '../ui.jsx'
 import { Links, Page } from './blocks.jsx'
 import { useApp } from '../store.jsx'
@@ -19,7 +21,7 @@ import { authService } from '../services/authService.js'
 import { ErrorBox, Loading, useLoad } from './remote-discovery.jsx'
 import { VendorWorkspace } from './vendor.jsx'
 
-const QUOTE_LOOKUP_LIMIT = 25
+export const QUOTE_LOOKUP_LIMIT = 25
 const LISTING_STATUS = [
   ['approved', 'Live'], ['pending_review', 'In review'], ['changes_requested', 'Changes requested'],
   ['draft', 'Draft'], ['paused', 'Paused'], ['rejected', 'Rejected'], ['unpublished', 'Unpublished'],
@@ -27,16 +29,17 @@ const LISTING_STATUS = [
 
 /** Loads the core data the dashboard shows; fails with the first error so nothing is shown half-true.
  *  Quote lookups (one request per RFQ) are loaded afterwards so the page can paint first. */
-async function loadDashboard(country) {
+export async function loadDashboard(country) {
   const mine = await authService.listMyVendors()
   if (!mine.ok) return mine
   const vendor = mine.vendors?.[0] || null
   if (!vendor) return { ok: true, vendor: null }
-  const [listings, rfqs, bookings, categories] = await Promise.all([
+  const [listings, rfqs, bookings, categories, conversations] = await Promise.all([
     authService.listVendorListings(vendor.id),
     authService.listVendorRfqs(vendor.id),
     authService.listVendorBookings(vendor.id),
     authService.listCategories({ countryCode: country }),
+    authService.listConversations(),
   ])
   for (const r of [listings, rfqs, bookings]) if (!r.ok) return r
   return {
@@ -45,6 +48,7 @@ async function loadDashboard(country) {
     listings: listings.listings,
     rfqs: rfqs.rfqs,
     bookings: bookings.bookings,
+    conversations: conversations.ok ? conversations.conversations.filter((c) => c.viewerRole === 'vendor') : null,
     categoryNames: new Map((categories.ok ? categories.categories : []).map((c) => [c.categoryId, c.name])),
     lookupCapped: rfqs.rfqs.length > QUOTE_LOOKUP_LIMIT,
   }
@@ -81,7 +85,7 @@ export function RemoteVendorDashboard() {
   const d = dash.data
   if (!d?.vendor) return <VendorWorkspace><Screen title="Vendor" back={false}><EmptyState icon={Store} title="Complete your registration" action={<Button onClick={() => nav.go('v_register')}>Start</Button>} /></Screen></VendorWorkspace>
 
-  const { vendor, listings, rfqs, bookings, categoryNames } = d
+  const { vendor, listings, rfqs, bookings, conversations, categoryNames } = d
   const myQuotes = quotes.map
   const quotesReady = quotes.ready
   const businessName = vendor.tradingName || vendor.legalName
@@ -105,6 +109,7 @@ export function RemoteVendorDashboard() {
     { label: 'Quotes sent', value: quotesReady ? quoted.length : '…', icon: Send, caption: quotesReady ? `${accepted.length} accepted` : 'Checking your quotes', route: 'v_work' },
     { label: 'Live listings', value: live.length, icon: Package, caption: `${listings.length} total listings`, route: 'v_listings' },
     { label: 'Booking requests', value: bookingRequests.length, icon: CalendarCheck, caption: 'Awaiting your response', route: 'v_work' },
+    ...(conversations ? [{ label: 'Conversations', value: conversations.length, icon: MessageCircle, caption: 'Customer chats', route: 'messages' }] : []),
   ]
   const funnelRows = [{ label: 'Requests', value: rfqs.length }, { label: 'Quotes sent', value: quotesReady ? quoted.length : '…' }, { label: 'Accepted', value: quotesReady ? accepted.length : '…' }]
   const verified = vendor.roles?.some((role) => role.status === 'verified')
@@ -118,6 +123,7 @@ export function RemoteVendorDashboard() {
       </div>
       <div className="vx-perf-actions">
         {verified && <span className="vx-perf-pill"><ShieldCheck size={14} /> Verified business</span>}
+        <Button size="sm" variant="secondary" icon={UserRound} onClick={() => nav.go('v_profile')}>Edit profile</Button>
         <Button size="sm" variant="secondary" icon={BarChart3} onClick={() => nav.go('v_perf')}>Performance</Button>
         <Button size="sm" icon={Plus} onClick={() => nav.go('v_listing_edit')}>Add listing</Button>
       </div>
@@ -227,6 +233,7 @@ export function RemoteCustomerDashboard() {
     [ClipboardList, 'Request a quotation', 'Services or goods', 'c_rfq_new'],
     [Store, 'Find a supplier', 'Suppliers and manufacturers', 'c_explore_suppliers'],
     [Star, 'My reviews', 'Ratings you have given', 'c_reviews'],
+    [UserRound, 'Edit profile', 'Name, photo and contact details', 'c_profile_edit'],
   ]
   return <Page title="Dashboard" subtitle={me?.name}>
     <div className="vv-cdash">

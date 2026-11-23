@@ -13,7 +13,7 @@ import { pathForScreen, screenForLocation } from './screen-routes.js'
 import { Logo } from './screens/auth.jsx'
 import { VendorWorkspace, CUSTOMER_WORKSPACE_IDS } from './screens/vendor.jsx'
 import { NotifBell } from './screens/shared.jsx'
-import { MarketplaceAuthDialog, OPEN_AUTH_EVENT } from './components/MarketplaceAuthDialog.jsx'
+import { MarketplaceAuthDialog, OPEN_AUTH_EVENT, openAuthDialog } from './components/MarketplaceAuthDialog.jsx'
 import { LocationDialog } from './components/LocationDialog.jsx'
 import { FRS, NFR, MVP, PHASE2, ACCEPTANCE, DECISIONS, ROLE_TABLE } from './specs.js'
 import { cx, SearchBar } from './ui.jsx'
@@ -172,7 +172,7 @@ function ScreenHost({ onMenu }) {
   const customerWorkspaceRoute = me.role === 'customer' && CUSTOMER_WORKSPACE_IDS.includes(nav.id)
   const workspaceRoute = vendorWorkspaceRoute || businessWorkspaceRoute || customerWorkspaceRoute
   const vendorMessagesRoute = nav.id === 'messages' && (me.role === 'vendor' || me.role === 'business')
-  const agentWorkspaceRoute = me.role === 'agent' && (reg.role === 'agent' || nav.id === 'notifications')
+  const agentWorkspaceRoute = me.role === 'agent' && reg.role === 'agent'
   const adminWorkspaceRoute = ['ad_dash', 'ad_approvals', 'ad_users', 'ad_reports', 'ad_more'].includes(nav.id)
   const FORM_IDS = ['c_book_new', 'c_book_instant', 'c_book_series', 'c_book_modify', 'c_booking_done', 'c_rfq_new', 'c_rfq_edit', 'c_rfq_none', 'c_rfq_goods', 'c_order_new', 'c_order_exc', 'c_review', 'c_review_no', 'c_report', 'c_profile_edit', 'c_settings', 'c_notif_prefs', 'c_delete', 'c_export', 'c_sessions', 'c_contact_share', 'c_location', 'c_location_wait', 'c_cat_suggest', 'c_contract_new', 'c_company_order', 'acct_state', 'ui_states', 'v_register']
   const formRoute = FORM_IDS.includes(nav.id) || (!customerRoute && !workspaceRoute && !agentWorkspaceRoute && !adminWorkspaceRoute && !['auth'].includes(reg.role) && !['v_explore', 'vb_explore', 'c_explore_suppliers', 'messages', 'chat', 'ad_vendors', 'ad_listings', 'ad_cases', 'ad_agents', 'ad_categories', 'ad_audit', 'ad_customers', 'ad_analytics', 'ad_coupons'].includes(nav.id))
@@ -218,7 +218,7 @@ function Directory({ onJump, onClose }) {
   const [q, setQ] = useState('')
   const grp = me.role || 'customer'
   const list = useMemo(() => {
-    const all = Object.values(SCREENS)
+    const all = Object.values(SCREENS).filter((s) => !s.hidden)
     if (q) return all.filter((s) => (s.title + s.id + s.fr.join(' ')).toLowerCase().includes(q.toLowerCase()))
     return all.filter((s) => s.role === grp || (s.role === 'shared' && (grp === 'customer' || grp === 'vendor')))
   }, [grp, q])
@@ -246,8 +246,8 @@ function Directory({ onJump, onClose }) {
       </div>
       <div className="space-y-1 border-t border-ink-100 p-3">
         <button onClick={() => { onJump('scope_review'); onClose?.() }} className="w-full rounded-xl px-3 py-2.5 text-left text-sm font-bold text-brand-700 hover:bg-brand-50">MVP scope & roadmap review</button>
-        <button onClick={() => { onJump('login'); onClose?.() }} className="w-full rounded-xl px-3 py-2.5 text-left text-sm font-semibold text-brand-700 hover:bg-brand-50">Sign in</button>
-        <button onClick={() => { onJump('register'); onClose?.() }} className="w-full rounded-xl px-3 py-2.5 text-left text-sm font-semibold text-ink-600 hover:bg-ink-50">Create account</button>
+        <button onClick={() => { openAuthDialog('signin'); onClose?.() }} className="w-full rounded-xl px-3 py-2.5 text-left text-sm font-semibold text-brand-700 hover:bg-brand-50">Sign in</button>
+        <button onClick={() => { openAuthDialog('signup'); onClose?.() }} className="w-full rounded-xl px-3 py-2.5 text-left text-sm font-semibold text-ink-600 hover:bg-ink-50">Create account</button>
       </div>
     </div>
   )
@@ -302,11 +302,14 @@ function WebHeader({ onMenu, hideTabs, workspaceHeader = false, workspaceTheme =
   const [headerLanguage, setHeaderLanguage] = useState(lang)
   const [headerSearch, setHeaderSearch] = useState(nav.params?.q || '')
   const [authDialog, setAuthDialog] = useState(null)
+  const accountHome = me.role === 'customer' || !me.role ? 'c_dash' : HOME[me.role] || 'c_dash'
   useEffect(() => setHeaderSearch(nav.params?.q || ''), [nav.id, nav.params?.q])
   useEffect(() => {
     const open = (event) => setAuthDialog({
       mode: event.detail?.mode === 'signup' ? 'signup' : 'signin',
       role: event.detail?.role === 'vendor' ? 'vendor' : 'customer',
+      next: event.detail?.next,
+      nextParams: event.detail?.nextParams,
     })
     window.addEventListener(OPEN_AUTH_EVENT, open)
     return () => window.removeEventListener(OPEN_AUTH_EVENT, open)
@@ -336,8 +339,7 @@ function WebHeader({ onMenu, hideTabs, workspaceHeader = false, workspaceTheme =
             <select className="vv-mock-header-select" aria-label="Language" value={headerLanguage} onChange={(e) => { const value = e.target.value; setHeaderLanguage(value); setLang(value); document.documentElement.dir = 'ltr' }}><option value="en">English</option><option value="hi">हिन्दी</option></select>
             <NotifBell role={me.role || 'customer'} dropdown className="vv-mock-header-notifications !rounded-[10px]" />
             {!me.loggedIn ? <button className="vv-mock-header-primary" onClick={() => setAuthDialog({ mode: 'signup', role: 'customer' })}>Get started</button> : <>
-              {['vendor', 'business'].includes(me.role) && <button className="vv-mock-header-link" onClick={() => nav.reset(HOME[me.role] || 'v_dash')}>{me.role === 'business' ? 'Workspace' : 'Dashboard'}</button>}
-              <button className="vv-mock-header-link" onClick={() => nav.go('c_profile')}>My account</button>
+              <button className="vv-mock-header-link" onClick={() => nav.reset(accountHome)}>My account</button>
             </>}
           </div>
         </> : <>
@@ -352,14 +354,14 @@ function WebHeader({ onMenu, hideTabs, workspaceHeader = false, workspaceTheme =
           <button onClick={() => (authService.isRemote ? setLocationOpen(true) : nav.go('c_location'))} className="hidden max-w-[210px] truncate rounded-xl bg-ink-50 px-3 py-2 text-left text-xs font-bold text-ink-700 hover:bg-brand-50 sm:block" title={t('searchLocation')}><MapPin size={14} className="mr-1 inline text-brand-700" />{locale.city || 'Jaipur'}{locale.pincode ? ` ${locale.pincode}` : ''}, {locale.state || 'Rajasthan'}, {locale.countryName || 'India'}</button>
           <button onClick={() => setLang(lang === 'en' ? 'hi' : 'en')} className="hidden h-10 items-center gap-2 rounded-xl px-2.5 text-sm font-semibold text-ink-600 hover:bg-ink-50 sm:flex" aria-label="Switch language"><Globe size={17} /><span>{lang === 'en' ? 'EN' : 'हि'}</span></button>
           <NotifBell role={me.role || 'customer'} dropdown />
-          {!me.loggedIn && <button onClick={() => nav.go('login')} className="h-10 rounded-xl bg-brand-600 px-4 text-sm font-bold text-white shadow-sm hover:bg-brand-700">Sign in</button>}
+          {!me.loggedIn ? <button onClick={() => openAuthDialog('signup')} className="h-10 rounded-xl bg-brand-600 px-4 text-sm font-bold text-white shadow-sm hover:bg-brand-700">Get started</button> : <button onClick={() => nav.reset(accountHome)} className="h-10 rounded-xl bg-brand-600 px-4 text-sm font-bold text-white shadow-sm hover:bg-brand-700">My account</button>}
         </div>
         </>}
       </div>
       {mockMarketplaceHeader && marketplaceCategories && <nav className="vv-mock-category-nav" aria-label="Categories"><div className="vv-category-nav-items"><MarketplaceCategoriesMenu nav={nav} />{MARKETPLACE_CATEGORIES.map(([category, icon]) => <button key={category} className={cx(nav.id === 'c_explore' && nav.params?.group === category && 'is-active')} onClick={() => nav.go('c_explore', { group: category })}><FontAwesomeIcon icon={icon} aria-hidden="true" /><span>{category}</span></button>)}</div></nav>}
       <div className="sr-only" aria-live="polite">{screen.title}</div>
       {authService.isRemote && <LocationDialog open={locationOpen} onClose={() => setLocationOpen(false)} />}
-      {authDialog && <MarketplaceAuthDialog mode={authDialog.mode} initialRole={authDialog.role} onClose={() => setAuthDialog(null)} onChangeMode={(mode) => setAuthDialog((current) => ({ ...current, mode }))} />}
+      {authDialog && <MarketplaceAuthDialog mode={authDialog.mode} initialRole={authDialog.role} next={authDialog.next} nextParams={authDialog.nextParams} onClose={() => setAuthDialog(null)} onChangeMode={(mode) => setAuthDialog((current) => ({ ...current, mode }))} />}
     </header>
   )
 }
@@ -420,10 +422,11 @@ function Shell() {
   const { w } = useViewport()
   const [drawer, setDrawer] = useState(false)
   const [routeInitialized, setRouteInitialized] = useState(false)
+  const firstUrlSync = useRef(true)
   const [agentSidebarCollapsed, setAgentSidebarCollapsed] = useState(false)
   const [adminSidebarCollapsed, setAdminSidebarCollapsed] = useState(false)
   const desktop = w >= 768
-  const showAgentSidebar = me.role === 'agent' && ((SCREENS[nav.id] || {}).role === 'agent' || nav.id === 'notifications')
+  const showAgentSidebar = me.role === 'agent' && (SCREENS[nav.id] || {}).role === 'agent'
   const adminSidebarIds = ADMIN_SIDEBAR.flatMap((group) => group.items.map((item) => item.id)).concat(['ad_approvals', 'ad_more', 'ad_vendors', 'ad_vendor', 'ad_vendor_new', 'ad_listings', 'ad_listing', 'ad_users', 'ad_user', 'ad_roles', 'ad_category', 'ad_agent', 'ad_case', 'ad_sub', 'ad_cat_new'])
   const showAdminSidebar = me.role === 'admin' && adminSidebarIds.includes(nav.id)
   const showBusinessWorkspace = me.role === 'business' && ['b_home', 'b_company', 'b_services', 'b_messages', 'b_more'].includes(nav.id)
@@ -445,7 +448,7 @@ function Shell() {
     if (id === 'c_home') { nav.reset('c_home', reg.defaultParams || {}); return }
     const role = reg.role === 'shared' ? (me.role || 'customer') : reg.role
     const canOpen = PUBLIC_MARKETPLACE_ROUTES.has(id) || canOpenRoute(me, role)
-    if (!canOpen) { nav.reset('login', { role, next: id, nextParams: reg.defaultParams || {} }); return }
+    if (!canOpen) { nav.reset('c_home'); openAuthDialog('signin', role, { next: id, nextParams: reg.defaultParams || {} }); return }
     nav.reset(id, reg.defaultParams || {})
   }
 
@@ -454,15 +457,21 @@ function Shell() {
     if (SCREENS[INITIAL_ROUTE.id]) {
       const { id, params } = INITIAL_ROUTE
       const reg = SCREENS[id]
-      if (id === 'login' && params.next === 'c_explore') {
-        nav.reset('c_explore')
-        window.history.replaceState({ route: 'c_explore' }, '', pathForScreen('c_explore'))
-      } else if (reg.role === 'auth' || PUBLIC_MARKETPLACE_ROUTES.has(id)) nav.reset(id, params)
+      if (reg.role === 'auth' || PUBLIC_MARKETPLACE_ROUTES.has(id)) nav.reset(id, params)
       else {
         const role = reg.role === 'shared' ? (me.role || 'customer') : reg.role
         if (canOpenRoute(me, role)) nav.reset(id, params)
-        else nav.reset('login', { role, next: id, nextParams: params })
+        else {
+          nav.reset('c_home')
+          setTimeout(() => openAuthDialog('signin', role, { next: id, nextParams: params }), 0)
+        }
       }
+    } else if (/^\/(login|signup)\/?$/i.test(window.location.pathname)) {
+      // The old full-page sign-in and sign-up were removed; their URLs open the sign-in popup on the home page.
+      const query = Object.fromEntries(new URLSearchParams(window.location.search))
+      const mode = /signup/i.test(window.location.pathname) ? 'signup' : 'signin'
+      const target = SCREENS[query.next] && !['auth'].includes(SCREENS[query.next].role) ? query.next : undefined
+      setTimeout(() => openAuthDialog(mode, query.role, target ? { next: target } : {}), 0)
     }
     setRouteInitialized(true)
   }, [])
@@ -470,8 +479,10 @@ function Shell() {
     if (!routeInitialized) return
     const next = pathForScreen(nav.id, nav.params)
     if (`${window.location.pathname}${window.location.search}` !== next || window.location.hash) {
-      window.history.pushState({ route: nav.id }, '', next)
+      // The first sync replaces the entry, so a removed or unknown URL (for example /notifications) is not kept in history.
+      window.history[firstUrlSync.current ? 'replaceState' : 'pushState']({ route: nav.id }, '', next)
     }
+    firstUrlSync.current = false
   }, [routeInitialized, nav.id, nav.params])
   // Browser back/forward follows the readable URL.
   useEffect(() => {

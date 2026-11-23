@@ -275,7 +275,8 @@ function VendorCard({ vendor, sample }) {
   </Card>
 }
 
-export function RemoteExplore({ params = {} }) {
+/** `supplierOnly` (vendor Supplier shop): only vendors holding the chosen role (F-DSC-04), and never the seed-data samples. */
+export function RemoteExplore({ params = {}, supplierOnly = false }) {
   const nav = useNav()
   const app = useApp()
   const locale = app.locale ?? app.loc ?? {} // web keeps the place in `locale`, mobile in `loc`
@@ -284,6 +285,7 @@ export function RemoteExplore({ params = {} }) {
   const [type, setType] = useState(params.mode === 'vendors' ? 'vendor' : 'all')
   const [categoryId, setCategoryId] = useState('all')
   const [instantOnly, setInstantOnly] = useState(false)
+  const [vendorRole, setVendorRole] = useState('SUPPLIER')
   const [min, setMin] = useState('')
   const [max, setMax] = useState('')
   const [state, setState] = useState({ loading: true, error: '', items: [], nextCursor: null, marketLive: true })
@@ -301,7 +303,8 @@ export function RemoteExplore({ params = {} }) {
     countryCode: country, cityId, q: q.trim() || undefined, categoryId: categoryId === 'all' ? undefined : categoryId,
     listingType: type === 'product' || type === 'service' ? type : undefined, instantOnly: instantOnly || undefined,
     minPriceMinor: min ? Number(min) * 100 : undefined, maxPriceMinor: max ? Number(max) * 100 : undefined,
-  }), [country, cityId, q, categoryId, type, instantOnly, min, max])
+    vendorRole: supplierOnly ? vendorRole : undefined,
+  }), [country, cityId, q, categoryId, type, instantOnly, min, max, supplierOnly, vendorRole])
 
   const search = useCallback(async (cursor) => {
     setState((s) => ({ ...s, loading: true, error: '', ...(cursor ? {} : { items: [] }) }))
@@ -322,7 +325,7 @@ export function RemoteExplore({ params = {} }) {
   const groupSubs = group && group !== 'New vendors' ? SAMPLE_GROUPS[group] || [] : null
   // The API has flat categories; the header groups them by name, so apply the group here.
   const visibleItems = useMemo(() => (groupSubs ? state.items.filter((l) => groupSubs.includes(l.categoryName)) : state.items), [state.items, groupSubs])
-  const useSamples = !state.loading && visibleItems.length === 0 && (Boolean(state.error) || state.marketLive)
+  const useSamples = !supplierOnly && !state.loading && visibleItems.length === 0 && (Boolean(state.error) || state.marketLive)
   const sampleCategories = Object.entries(SAMPLE_GROUPS).filter(([g]) => !group || group === 'New vendors' || g === group).flatMap(([, subs]) => subs)
   const chipOptions = realCategories.length > 0
     ? realCategories.filter((c) => !groupSubs || groupSubs.includes(c.name)).map((c) => ({ id: c.categoryId, label: c.name }))
@@ -365,6 +368,13 @@ export function RemoteExplore({ params = {} }) {
             </div>
             <Segmented className="bg-ink-50" value={type} onChange={setType} options={[{ id: 'all', label: 'All' }, { id: 'product', label: 'Products' }, { id: 'service', label: 'Services' }, { id: 'vendor', label: 'Vendors' }]} />
           </div>
+
+          {supplierOnly && (
+            <div>
+              <p className="mb-2.5 text-xs font-bold uppercase tracking-[0.14em] text-ink-500">Business type</p>
+              <Segmented className="bg-ink-50" value={vendorRole} onChange={setVendorRole} options={[{ id: 'SUPPLIER', label: 'Suppliers' }, { id: 'MANUFACTURER', label: 'Manufacturers' }]} />
+            </div>
+          )}
 
           {!group && chipOptions.length > 0 && (
             <div>
