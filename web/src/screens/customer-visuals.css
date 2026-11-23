@@ -37,8 +37,8 @@
   background: #fffdf9 !important;
   box-shadow: 0 5px 16px rgba(74, 54, 24, .06);
 }
-.vv-customer-route .vv-notif-anchor { position: relative; }
-.vv-customer-route .vv-notif-dropdown {
+.vv-notif-anchor { position: relative; }
+.vv-notif-dropdown {
   position: absolute;
   top: calc(100% + 12px);
   right: -12px;
@@ -50,26 +50,26 @@
   background: #fffdf9;
   box-shadow: 0 18px 42px rgba(54, 39, 15, .16);
 }
-.vv-customer-route .vv-notif-dropdown-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 15px 16px 12px; border-bottom: 1px solid #eee7da; }
-.vv-customer-route .vv-notif-dropdown-head p { margin: 0; color: #2a2116; font: 700 16px/1.2 "Bricolage Grotesque", "Figtree", sans-serif; }
-.vv-customer-route .vv-notif-dropdown-head span { display: block; margin-top: 3px; color: #8b7b65; font-size: 11px; }
-.vv-customer-route .vv-notif-dropdown-head button,
-.vv-customer-route .vv-notif-footer { border: 0; background: none; color: #8a6420; font-size: 12px; font-weight: 700; }
-.vv-customer-route .vv-notif-list { max-height: 330px; overflow-y: auto; padding: 5px; }
-.vv-customer-route .vv-notif-row { display: flex; width: 100%; gap: 10px; padding: 11px; border: 0; border-radius: 11px; background: #f7f0e2; color: #2a2116; text-align: left; }
-.vv-customer-route .vv-notif-row + .vv-notif-row { margin-top: 3px; }
-.vv-customer-route .vv-notif-row.is-read { background: transparent; }
-.vv-customer-route .vv-notif-row:hover { background: #f1e5cd; }
-.vv-customer-route .vv-notif-dot { width: 7px; height: 7px; flex: none; margin-top: 5px; border-radius: 999px; background: #8a6420; }
-.vv-customer-route .vv-notif-row.is-read .vv-notif-dot { background: #d8cdbb; }
-.vv-customer-route .vv-notif-row b,
-.vv-customer-route .vv-notif-row small,
-.vv-customer-route .vv-notif-row em { display: block; }
-.vv-customer-route .vv-notif-row b { font-size: 12px; }
-.vv-customer-route .vv-notif-row small { margin-top: 2px; color: #6f6251; font-size: 11px; line-height: 1.35; }
-.vv-customer-route .vv-notif-row em { margin-top: 4px; color: #a3927b; font-size: 10px; font-style: normal; }
-.vv-customer-route .vv-notif-empty { margin: 0; padding: 28px 16px; color: #8b7b65; font-size: 12px; text-align: center; }
-.vv-customer-route .vv-notif-footer { width: 100%; padding: 12px 16px; border-top: 1px solid #eee7da; text-align: center; }
+.vv-notif-dropdown-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 15px 16px 12px; border-bottom: 1px solid #eee7da; }
+.vv-notif-dropdown-head p { margin: 0; color: #2a2116; font: 700 16px/1.2 "Bricolage Grotesque", "Figtree", sans-serif; }
+.vv-notif-dropdown-head span { display: block; margin-top: 3px; color: #8b7b65; font-size: 11px; }
+.vv-notif-dropdown-head button,
+.vv-notif-footer { border: 0; background: none; color: #8a6420; font-size: 12px; font-weight: 700; }
+.vv-notif-list { max-height: 330px; overflow-y: auto; padding: 5px; }
+.vv-notif-row { display: flex; width: 100%; gap: 10px; padding: 11px; border: 0; border-radius: 11px; background: #f7f0e2; color: #2a2116; text-align: left; }
+.vv-notif-row + .vv-notif-row { margin-top: 3px; }
+.vv-notif-row.is-read { background: transparent; }
+.vv-notif-row:hover { background: #f1e5cd; }
+.vv-notif-dot { width: 7px; height: 7px; flex: none; margin-top: 5px; border-radius: 999px; background: #8a6420; }
+.vv-notif-row.is-read .vv-notif-dot { background: #d8cdbb; }
+.vv-notif-row b,
+.vv-notif-row small,
+.vv-notif-row em { display: block; }
+.vv-notif-row b { font-size: 12px; }
+.vv-notif-row small { margin-top: 2px; color: #6f6251; font-size: 11px; line-height: 1.35; }
+.vv-notif-row em { margin-top: 4px; color: #a3927b; font-size: 10px; font-style: normal; }
+.vv-notif-empty { margin: 0; padding: 28px 16px; color: #8b7b65; font-size: 12px; text-align: center; }
+.vv-notif-footer { width: 100%; padding: 12px 16px; border-top: 1px solid #eee7da; text-align: center; }
 .vv-customer-route .text-brand-500,
 .vv-customer-route .text-brand-600,
 .vv-customer-route .text-brand-700,
