@@ -476,7 +476,6 @@ export function AgentProfile() {
         <Card><p className="mb-2 text-sm font-bold">Monthly target</p><HBar label="Vendors onboarded" value={2} max={5} right="2 / 5" /><div className="mt-3"><HBar label="Customers registered" value={1} max={4} right="1 / 4" color="bg-sky-500" /></div></Card>
         <Group>
           <ListRow icon={Globe} tone="sky" title="Language" subtitle={lang === 'en' ? 'English' : 'हिन्दी'} onClick={() => setLang(lang === 'en' ? 'hi' : 'en')} />
-          <ListRow icon={Bell} tone="orange" title="Notifications" onClick={() => nav.go('notifications')} />
           <ListRow icon={ShieldCheck} tone="emerald" title="Permissions" subtitle="View assigned leads · no approval rights" onClick={() => nav.go('a_perms')} />
           <ListRow icon={ShieldCheck} tone="teal" title="Onboarding tasks" subtitle="Assigned by Super Admin" onClick={() => nav.go('a_tasks')} />
           <ListRow icon={ShieldCheck} tone="amber" title="Commissions" subtitle="Model not decided yet (O-03)" onClick={() => nav.go('a_earnings')} />

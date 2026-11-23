@@ -161,6 +161,7 @@ A feature is done when: the spec row has one phase; the matrix maps its web and 
 
 | Date & time (YYYY-MM-DD HH:MM, local) | Updated by | Change | Reason |
 |---|---|---|---|
+| 2026-11-23 15:22 | Sahil Soni | Modified: privileged sign-in note (Super Admin ID and password, `POST /v1/auth/admin/login`, `admin_credentials` table, migration 019) | Owner decision D-027. Same demo flag and no MFA yet; password stored only as a salted scrypt hash. |
 | 2026-11-16 16:05 | Sahil Soni | Modified: current-state summary (listing screens) | Web and mobile call the listing, publication-gate, availability and capacity APIs through `remote-listings.jsx`. |
 | 2026-11-16 15:10 | Sahil Soni | Modified: current-state summary (client methods without screens) | Added tested web and mobile client methods for listing management, availability, capacity, service areas, waitlist, geo lists, taxonomy detail and file download links; screens are not wired yet. |
 | 2026-11-16 14:45 | Sahil Soni | Modified: current-state summary (transaction screens) | Web and mobile call the work-order, contract and purchase-order APIs through `remote-transactions.jsx`; local booking methods exist without screens. |

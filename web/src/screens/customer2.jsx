@@ -4,7 +4,7 @@ import {
   User, Heart, Globe, Bell, Lock, LogOut, ChevronRight, Check, GitCompare, CreditCard, HelpCircle, Smartphone, Trash2, CircleDollarSign,
   Clock, Wallet, Store, BadgeCheck, TrendingDown, Zap, ImagePlus,
 } from 'lucide-react'
-import { Info, CheckCheck } from 'lucide-react'
+import { Info, CheckCheck, UserRound } from 'lucide-react'
 import { P2Badge } from './blocks.jsx'
 import { useApp } from '../store.jsx'
 import { useNav } from '../nav.jsx'
@@ -427,52 +427,6 @@ export function Saved({ params = {} }) {
 
 /* ================= NOTIFICATIONS (shared) ================= */
 const NTONE = { order: ['amber', Package], booking: ['sky', CalendarCheck], rfq: ['violet', FileText], payment: ['emerald', Wallet], review: ['rose', Star], onboarding: ['teal', BadgeCheck], followup: ['orange', Clock], dispute: ['rose', ShieldAlert], listing: ['indigo', Package] }
-const NDEST = {
-  customer: { order: ['messages'], booking: ['messages'], rfq: ['c_activity'], payment: ['messages'], review: ['messages'] },
-  vendor: { order: ['messages'], booking: ['messages'], rfq: ['v_work'], onboarding: ['v_listings'], payment: ['v_more'], review: ['v_reviews'] },
-  agent: { onboarding: ['a_leads'], followup: ['a_followups'], payment: ['a_earnings'] },
-  admin: { onboarding: ['ad_vendors'], dispute: ['ad_cases'], listing: ['ad_listings'], payment: ['ad_reports'] },
-}
-export function Notifications() {
-  const nav = useNav()
-  const { me, notifs, setNotifs, prefs } = useApp()
-  const role = me.role || 'customer'
-  const inbox = useInbox(role)
-  const list = remoteInbox ? inbox.rows : notifs[role] || []
-  const fresh = list.filter((n) => !n.read)
-  const old = list.filter((n) => n.read)
-  const open = (n) => {
-    if (remoteInbox) {
-      if (!n.read) inbox.markRead(n.id)
-      if (n.to) nav.go(n.to[0], n.to[1] || {})
-      return
-    }
-    setNotifs((s) => ({ ...s, [role]: s[role].map((x) => (x.id === n.id ? { ...x, read: true } : x)) }))
-    const d = NDEST[role]?.[n.type]
-    if (d) nav.go(d[0], d[1] || {})
-  }
-  const Row = ({ n }) => {
-    const [tone, I] = NTONE[n.type] || ['slate', Bell]
-    return (
-      <button onClick={() => open(n)} className={cx('flex w-full items-start gap-3 rounded-2xl p-3.5 text-left ring-1 ring-inset', n.read ? 'bg-white ring-ink-100' : 'bg-brand-50/60 ring-brand-100')}>
-        <span className={cx('grid size-10 shrink-0 place-items-center rounded-xl', SOFT[tone])}><I size={19} /></span>
-        <span className="min-w-0 flex-1"><span className="flex items-center justify-between gap-2"><span className="text-sm font-bold">{n.title}</span><span className="shrink-0 text-[11px] text-ink-400">{n.time}</span></span><span className="mt-0.5 block text-[13px] leading-snug text-ink-600">{n.body}</span></span>
-        {!n.read && <span className="mt-1.5 size-2 shrink-0 rounded-full bg-brand-600" />}
-      </button>
-    )
-  }
-  return (
-    <Screen title="Notifications" right={fresh.length > 0 ? <button onClick={() => (remoteInbox ? inbox.markAll() : setNotifs((s) => ({ ...s, [role]: s[role].map((x) => ({ ...x, read: true })) })))} className="mr-2 text-[13px] font-bold text-brand-700">Mark all read</button> : null}>
-      {remoteInbox && inbox.error && <p className="text-center text-sm text-red-600">{inbox.error}</p>}
-      {list.length === 0 && !inbox.loading && !inbox.error && <EmptyState icon={Bell} title="You’re all caught up" />}
-      {fresh.length > 0 && <Section title="New"><div className="space-y-2">{fresh.map((n) => <Row key={n.id} n={n} />)}</div></Section>}
-      {old.length > 0 && <Section title="Earlier"><div className="space-y-2">{old.map((n) => <Row key={n.id} n={n} />)}</div></Section>}
-      {remoteInbox && inbox.more && <button onClick={inbox.loadMore} disabled={inbox.loading} className="mx-auto block text-[13px] font-bold text-brand-700">Load older</button>}
-      <p className="text-center text-xs text-ink-400">In-app notifications are on. Email, SMS and WhatsApp depend on provider readiness.</p>
-    </Screen>
-  )
-}
-
 /* ================= REVIEW ================= */
 
 /* ================= ISSUES & SUPPORT ================= */
@@ -638,6 +592,7 @@ export function CustomerSettings() {
       title="Settings & privacy"
       overlay={<Dialog open={del} onClose={() => setDel(false)} title="Delete your account?" actions={<><Button variant="secondary" className="flex-1" onClick={() => setDel(false)}>Cancel</Button><Button variant="danger" className="flex-1" onClick={() => { setDel(false); setMe({ role: null, loggedIn: false, guest: false, vendorId: 'v-me', name: '' }); nav.reset('welcome'); toast('Deletion requested') }}>Delete</Button></>}><p>Your profile will be removed after a 30-day grace period. Order and payment records are retained for tax and legal compliance as per the retention policy.</p></Dialog>}
     >
+      <Section title="Profile"><Group><ListRow icon={UserRound} title="Edit profile" subtitle="Name, photo and contact details" onClick={() => nav.go('c_profile_edit')} last /></Group></Section>
       <Section title="Language"><Segmented value={lang} onChange={setLang} options={[{ id: 'en', label: 'English' }, { id: 'hi', label: 'हिन्दी' }]} /></Section>
       <Section title="Notifications">
         <Card className="space-y-1">
