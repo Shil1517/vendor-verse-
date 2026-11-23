@@ -30,6 +30,12 @@ import './workspace-themes.css'
 const INITIAL_ROUTE = screenForLocation(window.location, SCREENS)
 const PUBLIC_MARKETPLACE_ROUTES = new Set(['c_home', 'c_categories', 'c_category', 'c_explore', 'c_listing', 'c_vendor'])
 
+// Start on the real route so a reload never flashes the old splash/home before the effect in Shell redirects.
+// Protected routes start on the public home; Shell then applies the auth check and redirects as needed.
+const FIRST_PAINT_ROUTE = SCREENS[INITIAL_ROUTE.id] && (SCREENS[INITIAL_ROUTE.id].role === 'auth' || PUBLIC_MARKETPLACE_ROUTES.has(INITIAL_ROUTE.id))
+  ? INITIAL_ROUTE
+  : { id: 'c_home', params: {} }
+
 const MARKETPLACE_CATEGORIES = [
   ['Home services', faHouse],
   ['Construction', faScrewdriverWrench],
@@ -495,7 +501,7 @@ function Shell() {
 function Root() {
   const { me } = useApp()
   return (
-    <NavProvider fallbackHome={() => HOME[me.role] || 'c_home'}>
+    <NavProvider fallbackHome={() => HOME[me.role] || 'c_home'} initial={FIRST_PAINT_ROUTE}>
       <Shell />
     </NavProvider>
   )
