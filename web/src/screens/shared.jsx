@@ -49,7 +49,8 @@ export function VerifiedBadge({ id, className }) {
   )
 }
 
-export function NotifBell({ role, dropdown = false, className }) {
+export function NotifBell({ role, className }) {
+  const dropdown = true
   const { notifs, setNotifs } = useApp()
   const nav = useNav()
   const [open, setOpen] = useState(false)
@@ -57,7 +58,7 @@ export function NotifBell({ role, dropdown = false, className }) {
   const inbox = useInbox(role, dropdown && open)
   const remoteCount = useUnreadCount(role)
   const n = remoteInbox ? remoteCount : notifs[role]?.filter((x) => !x.read).length || 0
-  const list = remoteInbox ? inbox.rows.slice(0, 5) : (notifs[role] || []).slice(0, 5)
+  const list = remoteInbox ? inbox.rows.slice(0, 8) : (notifs[role] || []).slice(0, 8)
   useEffect(() => {
     if (!open) return undefined
     const close = (event) => { if (!anchorRef.current?.contains(event.target)) setOpen(false) }
@@ -65,6 +66,7 @@ export function NotifBell({ role, dropdown = false, className }) {
     return () => document.removeEventListener('mousedown', close)
   }, [open])
   const read = (id) => setNotifs((state) => ({ ...state, [role]: (state[role] || []).map((item) => item.id === id ? { ...item, read: true } : item) }))
+  const markAll = () => (remoteInbox ? inbox.markAll() : setNotifs((state) => ({ ...state, [role]: (state[role] || []).map((item) => ({ ...item, read: true })) })))
   const openNotification = async (item) => {
     setOpen(false)
     if (remoteInbox) {
@@ -76,14 +78,13 @@ export function NotifBell({ role, dropdown = false, className }) {
   }
   return (
     <div ref={anchorRef} className={dropdown ? 'vv-notif-anchor' : undefined}>
-      <IconBtn label="Notifications" className={className} onClick={() => dropdown ? setOpen((value) => !value) : nav.go('notifications')} aria-expanded={dropdown ? open : undefined}>
+      <IconBtn label="Notifications" className={className} onClick={() => setOpen((value) => !value)} aria-expanded={dropdown ? open : undefined}>
         <Bell size={21} />
         {n > 0 && <span className="absolute right-1.5 top-1.5 grid min-w-[17px] place-items-center rounded-full bg-red-500 px-1 text-[10px] font-bold leading-[17px] text-white ring-2 ring-white">{n}</span>}
       </IconBtn>
       {dropdown && open && <div className="vv-notif-dropdown" role="dialog" aria-label="Recent notifications">
-        <div className="vv-notif-dropdown-head"><div><p>Notifications</p><span>{n ? `${n} unread` : 'All caught up'}</span></div><button type="button" onClick={() => { setOpen(false); nav.go('notifications') }}>View all</button></div>
+        <div className="vv-notif-dropdown-head"><div><p>Notifications</p><span>{n ? `${n} unread` : 'All caught up'}</span></div>{n > 0 && <button type="button" onClick={markAll}>Mark all read</button>}</div>
         {remoteInbox && inbox.error ? <p className="vv-notif-empty" role="alert">{inbox.error}</p> : list.length === 0 ? <p className="vv-notif-empty">{remoteInbox && inbox.loading ? 'Loading notifications…' : 'No recent notifications.'}</p> : <div className="vv-notif-list">{list.map((item) => <button type="button" key={item.id} className={item.read ? 'vv-notif-row is-read' : 'vv-notif-row'} onClick={() => openNotification(item)}><span className="vv-notif-dot" /><span><b>{item.title}</b><small>{item.body}</small><em>{item.time}</em></span></button>)}</div>}
-        <button type="button" className="vv-notif-footer" onClick={() => { setOpen(false); nav.go('notifications') }}>Open notification center</button>
       </div>}
     </div>
   )

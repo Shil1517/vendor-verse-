@@ -4,10 +4,10 @@ import {
   Package, CalendarCheck, FileText, IndianRupee, Plus, AlertTriangle, ChevronRight, Store, ShieldCheck, Clock, MessageCircle, Truck, Check, X, Briefcase, Building2,
   Upload, Wallet, BarChart3, Star, Settings, LogOut, MapPin, Boxes, CalendarClock, Crown, Download, Trash2, ImagePlus, Phone, TrendingUp, BadgeCheck, Minus, Info,
   LayoutDashboard, PanelLeftClose, PanelLeftOpen, Search, ChevronLeft, ChevronDown, Sun, Moon, UsersRound, MessageSquare, PackageCheck, UserRound,
-  Compass, Heart, Home, ClipboardList, ShieldAlert,
+  Compass, Heart, Home, ClipboardList, ShieldAlert, ArrowLeft,
 } from 'lucide-react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faGaugeHigh, faHeart, faClipboardList, faBoxOpen, faFileSignature, faComments, faStar, faShieldHalved, faGear, faRightFromBracket } from '@fortawesome/free-solid-svg-icons'
+import { faGaugeHigh, faHeart, faClipboardList, faBoxOpen, faFileSignature, faComments, faStar, faShieldHalved, faGear, faUser, faRightFromBracket } from '@fortawesome/free-solid-svg-icons'
 import { useApp } from '../store.jsx'
 import { useNav } from '../nav.jsx'
 import { authService } from '../services/authService.js'
@@ -697,14 +697,33 @@ const VENDOR_NAV = [
   ['Account & preferences', [[Settings, 'Business profile', 'v_profile'], [Store, 'Settings & more', 'v_more']]],
 ]
 
+/** Real listing count for the signed-in vendor (API mode only). No plan or limit is shown: there is no plan API and the limits are open CFG items. */
+function useRemoteListingCount() {
+  const [count, setCount] = useState(null)
+  useEffect(() => {
+    if (!authService.isRemote) return undefined
+    let live = true
+    ;(async () => {
+      const mine = await authService.listMyVendors()
+      const vendor = mine.ok ? mine.vendors?.[0] : null
+      if (!vendor) return
+      const r = await authService.listVendorListings(vendor.id)
+      if (live && r.ok) setCount(r.listings.length)
+    })()
+    return () => { live = false }
+  }, [])
+  return count
+}
+
 function VendorSidebar({ active, vendor, collapsed, onNavigate }) {
   const nav = useNav()
   const { setMe, me, threads, listings, settings } = useApp()
   const businessSupplier = me.role === 'business'
   const unread = authService.isRemote ? 0 : (threads?.vendor || []).reduce((sum, thread) => sum + thread.unread, 0)
   const plan = settings?.plans?.find((item) => item.name === vendor?.plan)
-  const used = listings.filter((item) => item.vendorId === me.vendorId).length
-  const limit = Number(plan?.listings) || 0
+  const remoteUsed = useRemoteListingCount()
+  const used = authService.isRemote ? remoteUsed ?? 0 : listings.filter((item) => item.vendorId === me.vendorId).length
+  const limit = authService.isRemote ? 0 : Number(plan?.listings) || 0
   const navRef = useRef(null)
   const [pill, setPill] = useState(null)
 
@@ -738,7 +757,7 @@ function VendorSidebar({ active, vendor, collapsed, onNavigate }) {
         ))}
       </nav>
       <div className="vx-plan">
-        <div><span>{vendor?.plan ? `${vendor.plan} plan` : 'No active plan'}</span><span>{limit ? `${used} of ${limit} listings` : `${used} listings`}</span></div>
+        <div><span>{authService.isRemote ? 'Your catalogue' : vendor?.plan ? `${vendor.plan} plan` : 'No active plan'}</span><span>{limit ? `${used} of ${limit} listings` : `${used} listings`}</span></div>
         <div className="vx-bar"><i style={{ width: `${limit ? Math.min(100, (used / limit) * 100) : 0}%` }} /></div>
       </div>
       <button type="button" className="vx-nav-item vx-logout" title={collapsed ? 'Log out' : undefined} onClick={logout}><LogOut size={17} /><span className="vx-lbl">Log out</span></button>
@@ -751,10 +770,10 @@ export const CUSTOMER_NAV = [
   ['Overview', [[faGaugeHigh, 'Dashboard', 'c_dash']]],
   ['Deals & orders', [[faHeart, 'Saved & compare', 'c_saved'], [faComments, 'Messages', 'messages'], [faClipboardList, 'Quote requests', 'c_activity'], [faBoxOpen, 'Purchase orders', 'c_orders'], [faFileSignature, 'Contracts', 'c_contract']]],
   ['Support & trust', [[faStar, 'Rate a vendor', 'c_review'], [faShieldHalved, 'Cases', 'c_cases']]],
-  ['Account', [[faGear, 'Account settings', 'c_settings']]],
+  ['Account', [[faUser, 'Profile', 'c_profile_edit'], [faGear, 'Account settings', 'c_settings']]],
 ]
 /** Pages that stay inside the customer workspace but have no sidebar entry of their own highlight their parent. */
-const CUSTOMER_PARENT = { c_profile: 'c_settings', c_profile_edit: 'c_settings', c_reviews: 'c_review', c_case: 'c_cases', chat: 'messages' }
+const CUSTOMER_PARENT = { c_profile: 'c_settings', c_reviews: 'c_review', c_case: 'c_cases', chat: 'messages' }
 /** Every customer page that renders inside the workspace shell (sidebar entries, their children, and pages reached from the dashboard). */
 export const CUSTOMER_WORKSPACE_IDS = [...CUSTOMER_NAV.flatMap(([, items]) => items.map(([, , id]) => id)), ...Object.keys(CUSTOMER_PARENT), 'messages', 'chat']
 
@@ -792,7 +811,7 @@ function CustomerSidebar({ active, collapsed, onNavigate }) {
 
   return (
     <aside className="vx-side">
-      <div className="vx-brand"><span className="vx-logo">V</span><div className="vx-bt"><b>VendorVerse</b><small>Customer workspace</small></div></div>
+      <div className="vx-brand"><span className="vx-logo">V</span><div className="vx-bt"><b>VendorVerse</b><small>Customer workspace</small></div><button type="button" className="vx-home-back" aria-label="Back to home" title="Back to home" onClick={() => nav.go('c_home')}><ArrowLeft size={18} /></button></div>
       <nav id="customer-workspace-navigation" className="vx-nav" ref={navRef} aria-label="Customer workspace">
         <span className="vx-pill" aria-hidden="true" style={pill ? { transform: `translateY(${pill.y}px)`, height: pill.h, opacity: 1 } : undefined} />
         {CUSTOMER_NAV.map(([group, items]) => (
@@ -929,8 +948,13 @@ export function VendorWorkspace({ children, variant = 'vendor', header }) {
                   </button>
                 ))}
               </nav>}
-              <label className="vx-search"><Search size={16} /><input placeholder={customer ? 'Search services, vendors, products…' : 'Search listings, quotes, messages…'} aria-label="Search" /></label>
-              <div className="vx-ico"><NotifBell role={customer ? 'customer' : 'vendor'} dropdown={customer} /></div>
+              <form className="vx-search" role="search" onSubmit={(e) => {
+                e.preventDefault()
+                if (!customer) return
+                const q = new FormData(e.currentTarget).get('q')?.toString().trim()
+                nav.go('c_explore', q ? { q } : {})
+              }}><Search size={16} /><input name="q" placeholder={customer ? 'Search services, vendors, products…' : 'Search listings, quotes, messages…'} aria-label="Search" /></form>
+              <div className="vx-ico"><NotifBell role={customer ? 'customer' : 'vendor'} dropdown /></div>
               {!customer && <button type="button" className="vx-locale" onClick={() => setLang(lang === 'en' ? 'hi' : 'en')} aria-label="Switch language">{lang === 'en' ? 'EN | हिन्दी' : 'हि | EN'} <ChevronDown size={12} /></button>}
               <div className="vx-me"><div className="vx-av">{(me.name || 'V').split(/\s+/).map((part) => part[0]).slice(0, 2).join('').toUpperCase()}</div><div><b>{me.name || (customer ? 'Customer' : 'Vendor')}</b><small>{customer ? 'Customer' : 'Owner'}</small></div></div>
             </header>}
@@ -1741,6 +1765,7 @@ export function VendorDashboard() {
         </div>
         <div className="vx-perf-actions">
           {v.status === 'approved' && <span className="vx-perf-pill"><ShieldCheck size={14} /> Verified business</span>}
+          <Button size="sm" variant="secondary" icon={UserRound} onClick={() => nav.go('v_profile')}>Edit profile</Button>
           <Button size="sm" variant="secondary" icon={BarChart3} onClick={() => nav.go('v_perf')}>Performance</Button>
           <Button size="sm" icon={Plus} onClick={() => nav.go('v_listing_edit')}>Add listing</Button>
         </div>

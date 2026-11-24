@@ -20,6 +20,7 @@ import {
 import { AccessTokenGuard } from "./access-token.guard";
 import { AuthService } from "./auth.service";
 import { CurrentUser, AuthenticatedUser } from "./authenticated-user.decorator";
+import { AdminLoginDto } from "./dto/admin-login.dto";
 import { LogoutDto } from "./dto/logout.dto";
 import { MfaVerificationDto } from "./dto/mfa-verification.dto";
 import { OtpRequestDto } from "./dto/otp-request.dto";
@@ -72,6 +73,28 @@ export class AuthController {
   })
   verifyOtp(@Body() request: OtpVerificationDto) {
     return this.auth.verifyOtp(request);
+  }
+
+  @Post("admin/login")
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: "Super Admin sign-in with admin ID and password" })
+  @ApiOkResponse({
+    schema: {
+      example: {
+        accessToken: "eyJ...signed-access-token",
+        refreshToken: "opaque-refresh-token",
+        accessTokenExpiresAt: "2026-11-05T04:15:00.000Z",
+      },
+    },
+  })
+  @ApiUnauthorizedResponse({ description: "Invalid admin ID or password." })
+  @ApiTooManyRequestsResponse({ description: "Too many sign-in attempts." })
+  @ApiResponse({
+    status: HttpStatus.SERVICE_UNAVAILABLE,
+    description: "Privileged sign-in is blocked until MFA is implemented.",
+  })
+  adminLogin(@Body() request: AdminLoginDto) {
+    return this.auth.adminLogin(request);
   }
 
   @Post("email-link/request")

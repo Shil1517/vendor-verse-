@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { ArrowRight, BadgeCheck, Building2, ChevronLeft, ChevronRight, FileText, Hammer, Heart, Lightbulb, MapPin, MessageCircle, Monitor, Package, Search, ShieldCheck, Sparkles, Star, Store, Truck, Wrench, Zap, X } from 'lucide-react'
+import { ArrowRight, BadgeCheck, Building2, ChevronDown, ChevronLeft, ChevronRight, ChartColumn, FileText, Globe, Hammer, Handshake, Heart, Play, Users, Lightbulb, MapPin, MessageCircle, Monitor, Package, Search, ShieldCheck, Sparkles, Star, Store, Truck, Wrench, Zap, X } from 'lucide-react'
 import { COUNTRY_SETTINGS, useApp } from '../store.jsx'
 import { useNav } from '../nav.jsx'
 import { CATS, cat } from '../data.jsx'
@@ -20,6 +20,30 @@ const VENDOR_TYPES = ['Service providers', 'Contractors', 'Manufacturers / OEM',
 const LANDING_SHOWCASE = [
   { src: '/screens/global-business-network-interface.png', alt: 'VendorVerse global business network with trusted vendors and worldwide connections' },
 ]
+
+function CountUp({ to, suffix = '', decimals = 0, duration = 3600 }) {
+  const ref = useRef(null)
+  const [value, setValue] = useState(0)
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return undefined
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches || !('IntersectionObserver' in window)) { setValue(to); return undefined }
+    let frame = 0
+    const run = () => {
+      const start = performance.now()
+      const tick = (now) => {
+        const t = Math.min(1, (now - start) / duration)
+        setValue(to * (1 - Math.pow(1 - t, 3)))
+        if (t < 1) frame = requestAnimationFrame(tick)
+      }
+      frame = requestAnimationFrame(tick)
+    }
+    const observer = new IntersectionObserver(([entry]) => { if (entry.isIntersecting) { observer.disconnect(); run() } }, { threshold: .4 })
+    observer.observe(el)
+    return () => { observer.disconnect(); cancelAnimationFrame(frame) }
+  }, [to, duration])
+  return <span ref={ref} aria-label={`${to}${suffix}`}>{value.toFixed(decimals)}{suffix}</span>
+}
 
 function HeroMotion() {
   const stageRef = useRef(null)
@@ -144,6 +168,8 @@ const HOME_PRODUCTS = [
   { name:'Lumen Event Lighting Package', category:'Events', vendor:'Lumen Events Co.', city:'Bhopal', price:'15,000', unit:'event', icon:Lightbulb, color:'#4F6B3A' },
 ]
 const HOME_SEARCHES = ['Interior fit-out', 'Event planning', 'Home cleaning', 'Web development', 'Packaging supplier', 'Freight and logistics']
+const HERO_POPULAR = ['Web Development', 'Construction', 'Digital Marketing', 'Suppliers']
+const HERO_TRUST = [[Users, { to: 10, suffix: 'K+' }, 'Trusted Vendors'], [Handshake, { to: 50, suffix: 'K+' }, 'Businesses Served'], [Globe, { to: 100, suffix: '+' }, 'Countries Worldwide'], [Star, { to: 4.8, suffix: '/5', decimals: 1 }, 'Customer Rating']]
 const HOME_PLACES = [['Use my current location','Asks for permission'],['Bhopal, India','Live'],['Indore, India','Not live yet'],['Dubai, UAE','Not live yet'],['Remote or worldwide','Remote-capable vendors']]
 const formatMinorPrice = (price) => {
   if (price?.state === 'on_request') return 'Price on request'
@@ -159,7 +185,15 @@ const formatMinorPrice = (price) => {
 }
 
 function HomeHeroIllustration() {
-  return <img className="vv-storefront-illustration" src="/hero-marketplace.jpg" alt="Illustrated marketplace with shops, products, vendors and customers" />
+  const shape = 'M0.40,0.10 Q0.41,0.07 0.45,0.06 L0.88,0.02 Q1,0.01 1,0.14 L1,0.72 Q1,0.84 0.9,0.87 L0.14,0.99 Q0,1 0,0.88 L0,0.84 Q0,0.80 0.03,0.74 L0.37,0.14 Q0.38,0.11 0.40,0.10Z'
+  return <>
+    <span className="vv-hero-blob" aria-hidden="true" /><span className="vv-hero-dots" aria-hidden="true" />
+    <svg className="vv-hero-outline" viewBox="0 0 1 1" preserveAspectRatio="none" aria-hidden="true"><path d={shape} transform="translate(-0.035 0.03)" vectorEffect="non-scaling-stroke" /></svg>
+    <svg width="0" height="0" aria-hidden="true" style={{ position: 'absolute' }}><defs><clipPath id="vv-hero-clip" clipPathUnits="objectBoundingBox"><path d={shape} /></clipPath></defs></svg>
+    <div className="vv-hero-frame"><img className="vv-storefront-illustration" src="/hero-vendor.jpg" alt="Smiling vendor in an apron standing in front of his shop" /></div>
+    <div className="vv-hero-float vv-hero-float-a"><span><BadgeCheck size={30}/></span><div><b>Verified<br/>Vendors</b><small>Shop with confidence</small></div></div>
+    <div className="vv-hero-float vv-hero-float-b"><span><ChartColumn size={34} strokeWidth={3}/></span><div><b>Grow Your<br/>Business</b><small>Reach more customers</small></div></div>
+  </>
 }
 
 function HomeVendorArt({ index }) {
@@ -269,22 +303,29 @@ export function WebsiteHome() {
   const toggleCompared = (index) => setCompared((items)=>{if(items.includes(index))return items.filter((item)=>item!==index);if(items.length>=3){toast('You can compare up to three vendors.');return items}return [...items,index]})
   return <div className="vv-c-home vv-mock-home h-full overflow-y-auto">
     <section className="vv-mock-hero">
-      <div className="vv-mock-hero-copy"><h1>Find your next trusted vendor.</h1><p>Service providers, contractors, suppliers and manufacturers, verified and ready to work with you, anywhere.</p>
+      <div className="vv-mock-hero-copy">
+        <div className="vv-hero-badges"><span><Globe size={18}/>Global Marketplace</span><i aria-hidden="true"/><span><ShieldCheck size={18} fill="currentColor" stroke="#fff"/>Trusted by 10K+ Businesses</span></div>
+        <h1>Find the Right Vendor, <em>Globally</em></h1>
+        <p>Discover verified vendors, skilled professionals and trusted businesses across the world, all in one place.</p>
         <form onSubmit={onSearch} onBlur={(e)=>{if(!e.currentTarget.contains(e.relatedTarget))setSuggestField('')}} className="vv-mock-search" role="search" autoComplete="off">
-          <label><b>What</b><input id="home-what" value={query} onFocus={()=>setSuggestField('q')} onChange={(e)=>{setQuery(e.target.value);setSuggestField('q')}} placeholder="Vendors, services or products" onKeyDown={(e)=>e.key==='Escape'&&setSuggestField('')}/></label>
-          <label><b>Where</b><input id="home-where" value={where} onFocus={()=>setSuggestField('w')} onChange={(e)=>{setWhere(e.target.value);setSuggestField('w')}} placeholder="City, state or country" onKeyDown={(e)=>e.key==='Escape'&&setSuggestField('')}/></label>
-          <button className="vv-mock-search-submit" aria-label="Search"><Search size={21}/></button>
+          <label className="vv-mock-search-what"><Search size={20} aria-hidden="true"/><span className="sr-only">What</span><input id="home-what" value={query} onFocus={()=>setSuggestField('q')} onChange={(e)=>{setQuery(e.target.value);setSuggestField('q')}} placeholder="Search for vendors, services or products..." onKeyDown={(e)=>e.key==='Escape'&&setSuggestField('')}/></label>
+          <label className="vv-mock-search-where"><MapPin size={18} aria-hidden="true"/><span className="sr-only">Where</span><input id="home-where" value={where} onFocus={()=>setSuggestField('w')} onChange={(e)=>{setWhere(e.target.value);setSuggestField('w')}} placeholder="City, state or country" onKeyDown={(e)=>e.key==='Escape'&&setSuggestField('')}/><ChevronDown size={16} aria-hidden="true"/></label>
+          <button className="vv-mock-search-submit" aria-label="Search">Search <ArrowRight size={18}/></button>
           {suggestField&&<div className="vv-mock-suggestions"><div className="vv-mock-suggestions-title">{suggestField==='q'?'Popular searches':'Suggested places'}</div>{suggestions.length?suggestions.map(([value,meta])=><button type="button" key={value} onMouseDown={(e)=>e.preventDefault()} onClick={()=>chooseSuggestion(value,suggestField)}>{value}<small>{meta}</small></button>):<div className="vv-mock-suggestions-empty">No suggestions. Press Enter to search anyway.</div>}</div>}
         </form>
-        <div className="vv-mock-hero-actions"><button className="vv-mock-hero-primary" onClick={()=>nav.go('c_explore',{mode:'vendors'})}>Browse new vendors</button><button className="vv-mock-hero-link" onClick={startVendorRegistration}>Are you a vendor? Become a vendor</button></div>
-      </div><div className="vv-mock-hero-art"><HomeHeroIllustration/></div>
+        <div className="vv-hero-popular"><b>Popular Searches:</b>{HERO_POPULAR.map((term)=><button type="button" key={term} onClick={()=>nav.go('c_explore',{q:term,location:where.trim()})}>{term}</button>)}</div>
+        <div className="vv-mock-hero-actions"><button className="vv-mock-hero-primary" onClick={()=>nav.go('c_categories')}>Browse Categories <ArrowRight size={18}/></button><button className="vv-hero-demo" onClick={()=>toast('The demo video is not available yet.')}><span><Play size={16} fill="currentColor"/></span>Watch Demo</button></div>
+      </div>
+      <div className="vv-mock-hero-art"><HomeHeroIllustration/></div>
+      <ul className="vv-hero-trust" aria-label="Why VendorVerse">{HERO_TRUST.map(([Icon,title,body])=><li key={body}><span><Icon size={46} strokeWidth={1.7} fill={Icon===Star||Icon===Users?'currentColor':'none'}/></span><div><b><CountUp {...title}/></b><small>{body}</small></div></li>)}</ul>
     </section>
     <main className="vv-mock-content">
+      <section className="vv-mock-category-section"><div className="vv-mock-section-heading vv-mock-category-heading"><h2>Explore categories</h2><div><button aria-label="Previous categories" disabled={categoryEdges.start} onClick={()=>slide(categoryRail,-1,setCategoryEdges)}><ChevronLeft/></button><button aria-label="Next categories" disabled={categoryEdges.end} onClick={()=>slide(categoryRail,1,setCategoryEdges)}><ChevronRight/></button></div></div><div className="vv-mock-category-rail" ref={categoryRail} onScroll={()=>updateEdges(categoryRail,setCategoryEdges)}>{categories.map((category)=><button className="vv-mock-category" key={category.image} onClick={()=>nav.go('c_explore',category.id?{categoryId:category.id}:{q:category.search})}><span className="vv-mock-category-art"><img src={`/category-images/${category.image}`} alt="" loading="lazy" /></span><b>{category.name}</b></button>)}</div></section>
       <section className="vv-mock-intro"><div><h2>Every industry. Every vendor type. One marketplace.</h2><p>Customers pay vendors directly. Badges show what was verified, never what was paid for, and missing information is always shown honestly.</p><button className="vv-mock-primary" onClick={()=>nav.go('c_rfq_new')}>Post a request</button></div><div className="vv-mock-modes">{[['Instant','Fixed price, reliable availability.'],['Scheduled','Pick a date. The vendor accepts.'],['RFQ','Compare structured quotations.'],['Contract','Versioned terms, both parties accept.']].map(([title,body])=><article key={title}><h3>{title}</h3><p>{body}</p></article>)}</div></section>
       <section className="vv-mock-how"><div className="vv-mock-how-heading"><div><span className="vv-mock-eyebrow">The VendorVerse way</span><h2>From first search to finished work.</h2></div><p>Everything you need to find the right partner, make a clear decision, and keep the work moving.</p></div><div className="vv-mock-how-grid">{[[Search,'01','Discover the right fit','Search products, services and vendors by what you need and where you need it.'],[ShieldCheck,'02','Choose with confidence','Compare pricing, coverage and verification badges with the details vendors have shared.'],[MessageCircle,'03','Work directly','Request a quote, schedule a booking or start a contract with the vendor you choose.']].map(([Icon,number,title,body])=><article key={number}><span className="vv-mock-step-icon"><Icon size={20}/></span><span className="vv-mock-step-number">{number}</span><h3>{title}</h3><p>{body}</p></article>)}</div></section>
       <section className="vv-mock-category-section"><div className="vv-mock-section-heading vv-mock-category-heading"><h2>Explore categories</h2><div><button aria-label="Previous categories" disabled={categoryEdges.start} onClick={()=>slide(categoryRail,-1,setCategoryEdges)}><ChevronLeft/></button><button aria-label="Next categories" disabled={categoryEdges.end} onClick={()=>slide(categoryRail,1,setCategoryEdges)}><ChevronRight/></button></div></div><div className="vv-mock-category-rail" ref={categoryRail} onScroll={()=>updateEdges(categoryRail,setCategoryEdges)}>{categories.map((category)=><button className="vv-mock-category" key={category.image} onClick={()=>nav.go('c_explore',category.id?{categoryId:category.id}:{q:category.search})}><span className="vv-mock-category-art"><img src={`/category-images/${category.image}`} alt="" loading="lazy" /></span><b>{category.name}</b></button>)}</div></section>
-      <section className="vv-mock-vendor-section"><div className="vv-mock-section-heading vv-mock-vendor-heading"><div><h2>{isRemote?'Vendors in this market':'New vendors'}</h2><p>{isRemote?'Vendors with public listings available to browse':'Recently published and verified'}</p></div><button className="vv-mock-text-button" onClick={()=>nav.go('c_explore',{mode:'vendors'})}>See all <ArrowRight size={17}/></button></div><div className="vv-mock-vendors">{vendorCards.map((vendor,index)=>{const sampleIndex=vendor.sampleIndex ?? index; const isSaved=isRemote?remoteFavorites.includes(vendor.id):savedVendors.includes(sampleIndex);return <article className="vv-mock-vendor-card" key={vendor.id || vendor.name}>
-        <button className="vv-mock-vendor-image" onClick={()=>isRemote?nav.go('c_vendor',{id:vendor.id}):setDetail({type:'vendor',item:vendor,index:sampleIndex})} aria-label={`Open ${vendor.name}`}>{(()=>{const imgSrc=vendor.image||VENDOR_IMAGES[vendor.name]?.src||DEFAULT_VENDOR_IMAGES[index]?.src;const imgAlt=vendor.imageAlt||VENDOR_IMAGES[vendor.name]?.alt||DEFAULT_VENDOR_IMAGES[index]?.alt||`${vendor.name} photograph`;return imgSrc?<img src={imgSrc} alt={imgAlt} loading="lazy" decoding="async" className="vv-mock-vendor-photo"/>:<HomeVendorArt index={index}/>})()}<span className={`vv-mock-tag ${vendor.sponsored?'is-sponsored':''}`}>{vendor.sponsored?'Sponsored':isRemote?'Public vendor':'New'}</span></button>
+      <section><div className="vv-mock-section-heading"><div><h2>{isRemote?'Vendors in this market':'New vendors'}</h2><p>{isRemote?'Vendors with public listings available to browse':'Recently published and verified'}</p></div><button className="vv-mock-text-button" onClick={()=>nav.go('c_explore',{mode:'vendors'})}>See all <ArrowRight size={17}/></button></div><div className="vv-mock-vendors">{vendorCards.map((vendor,index)=>{const sampleIndex=vendor.sampleIndex ?? index; const isSaved=isRemote?remoteFavorites.includes(vendor.id):savedVendors.includes(sampleIndex);return <article className="vv-mock-vendor-card" key={vendor.id || vendor.name}>
+        <button className="vv-mock-vendor-image" onClick={()=>isRemote?nav.go('c_vendor',{id:vendor.id}):setDetail({type:'vendor',item:vendor,index:sampleIndex})} aria-label={`Open ${vendor.name}`}><HomeVendorArt index={index}/><span className={`vv-mock-tag ${vendor.sponsored?'is-sponsored':''}`}>{vendor.sponsored?'Sponsored':isRemote?'Public vendor':'New'}</span></button>
         <button className="vv-mock-heart" aria-label={`${isSaved?'Unsave':'Save'} ${vendor.name}`} aria-pressed={isSaved} onClick={()=>toggleVendorSaved(vendor,sampleIndex)}><Heart size={19} fill={isSaved?'currentColor':'none'}/></button>
         <button className="vv-mock-vendor-name" onClick={()=>isRemote?nav.go('c_vendor',{id:vendor.id}):setDetail({type:'vendor',item:vendor,index:sampleIndex})}>{vendor.name}</button><div className="vv-mock-vendor-meta">{vendor.category} · {vendor.location}</div>
         <div className="vv-mock-vendor-badges">{!isRemote&&<span className="vv-mock-tag is-ok">L{vendor.level} {['','Contact verified','Business verified','Credential verified'][vendor.level]}</span>}<span className="vv-mock-tag">{vendor.reviews}</span></div>
@@ -294,8 +335,8 @@ export function WebsiteHome() {
         <div className="vv-mock-product-rail" ref={productRail} onScroll={()=>updateEdges(productRail,setProductEdges)}>{productCards.map((product,index)=>{const remote=isRemote; const Icon=product.icon; const name=remote?product.title:product.name; const vendor=remote?product.vendor:{name:product.vendor,city:product.city}; const price=remote?formatMinorPrice(product.price): `₹${product.price}`; const saved=remote?remoteFavorites.includes(product.vendor.id):savedProducts.includes(index); return <article className="vv-mock-product-card" key={product.id || name}>
           <button className="vv-mock-product-main" onClick={()=>remote?nav.go('c_listing',{id:product.id}):setDetail({type:'product',item:product,index})}><span className="vv-mock-product-media"><span className="vv-mock-tag">{product.category}</span><span className="vv-mock-product-icon" style={{'--product-color':remote?'#34566A':product.color}}><Icon size={38} strokeWidth={1.7}/></span></span><span className="vv-mock-product-info"><b>{name}</b><small>{vendor.name}{vendor.city?` · ${vendor.city}`:''}</small><span className="vv-mock-product-price">{price}{!remote&&<small> /{product.unit}</small>}</span></span></button>
           <button className="vv-mock-heart vv-mock-product-heart" aria-label={`${saved?'Unsave':'Save'} ${name}`} aria-pressed={saved} onClick={()=>toggleProductSaved(product,index)}><Heart size={19} fill={saved?'currentColor':'none'}/></button>
-        </article>})}</div></section>
-      <footer className="vv-mock-footer"><div><b>VENDOR<span>VERSE</span></b><p>Products, services and quotations from verified vendors worldwide.</p></div><div><h3>Marketplace</h3><button onClick={()=>nav.go('c_explore')}>Browse products and services</button><button onClick={()=>nav.go('c_explore',{mode:'vendors'})}>New vendors</button><button onClick={()=>goSignedIn('c_rfq_new')}>Post a request</button></div><div><h3>Vendors</h3><button onClick={startVendorRegistration}>Become a vendor</button><button onClick={openVendorDashboard}>Vendor dashboard</button></div><div><h3>Support</h3><button onClick={()=>goSignedIn('c_cases')}>Help &amp; support</button><button onClick={()=>goSignedIn('c_profile')}>My account</button><button onClick={()=>goSignedIn('c_profile')}>Terms &amp; privacy</button></div><div className="vv-mock-footer-bottom"><span>© 2026 VendorVerse · Products, services and quotations</span><button onClick={()=>goSignedIn('c_cases')}>Help &amp; support</button><button onClick={()=>goSignedIn('c_profile')}>My account</button></div><p className="vv-mock-footer-note">Mockup · all vendors, figures and dates are sample data · customers pay vendors directly in Release 1</p></footer>
+        </article>})}{isRemote&&!productCards.length&&!homeData.loading&&<p className="vv-mock-empty">No products or services are listed in this market yet.</p>}</div></section>
+      <footer className="vv-mock-footer"><div><b>VENDOR<span>VERSE</span></b><p>Products, services and quotations from verified vendors worldwide.</p></div><div><h3>Marketplace</h3><button onClick={()=>nav.go('c_explore')}>Browse products and services</button><button onClick={()=>nav.go('c_explore',{mode:'vendors'})}>New vendors</button><button onClick={()=>goSignedIn('c_rfq_new')}>Post a request</button></div><div><h3>Vendors</h3><button onClick={startVendorRegistration}>Become a vendor</button><button onClick={openVendorDashboard}>Vendor dashboard</button></div><div><h3>Support</h3><button onClick={()=>goSignedIn('c_cases')}>Help &amp; support</button><button onClick={()=>goSignedIn('c_profile')}>My account</button><button onClick={()=>goSignedIn('c_profile')}>Terms &amp; privacy</button></div><div className="vv-mock-footer-bottom"><span>© 2026 VendorVerse · Products, services and quotations</span><button onClick={()=>goSignedIn('c_cases')}>Help &amp; support</button><button onClick={()=>goSignedIn('c_profile')}>My account</button></div></footer>
     </main>
     {detail&&<div className="vv-mock-dialog-backdrop" role="presentation" onMouseDown={(e)=>e.target===e.currentTarget&&setDetail(null)}><section className="vv-mock-dialog" role="dialog" aria-modal="true" aria-label={detail.item.name}><div className="vv-mock-dialog-visual">{detail.type==='vendor'?<HomeVendorArt index={detail.index}/>:<span className="vv-mock-product-icon" style={{'--product-color':detail.item.color}}>{(()=>{const Icon=detail.item.icon;return <Icon size={64} strokeWidth={1.6}/>})()}</span>}</div><div className="vv-mock-dialog-content"><div className="vv-mock-dialog-top"><span className="vv-mock-tag is-ok">{detail.type==='vendor'?`L${detail.item.level} ${['','Contact verified','Business verified','Credential verified'][detail.item.level]}`:detail.item.category}</span><button aria-label="Close details" onClick={()=>setDetail(null)}><X size={18}/></button></div><h2>{detail.item.name}</h2><p className="vv-mock-dialog-subtitle">{detail.type==='vendor'?`${detail.item.category} · ${detail.item.location}`:`${detail.item.vendor} · ${detail.item.city}`}</p>{detail.type==='vendor'?<table><tbody><tr><td>Coverage</td><td>{detail.item.coverage}</td></tr><tr><td>Ships to</td><td>{detail.item.ships||'Not applicable'}</td></tr><tr><td>Pricing</td><td>{detail.item.price}</td></tr><tr><td>Reviews</td><td>{detail.item.reviews}</td></tr><tr><td>Availability</td><td>Not listed</td></tr><tr><td>Booking</td><td>RFQ{detail.item.contract?', Contract':''}</td></tr></tbody></table>:<table><tbody><tr><td>Price tiers</td><td>₹{detail.item.price} (1–499) · ₹{Math.round(Number(detail.item.price.replace(',',''))*.94).toLocaleString('en-IN')} (500–999) · ₹{Math.round(Number(detail.item.price.replace(',',''))*.9).toLocaleString('en-IN')} (1,000+)</td></tr><tr><td>Minimum order</td><td>500 /{detail.item.unit}</td></tr><tr><td>Lead time</td><td>21 days</td></tr><tr><td>Ships to</td><td>India, UAE</td></tr><tr><td>Certifications</td><td>ISO 9001 (verified)</td></tr></tbody></table>}<div className="vv-mock-dialog-actions"><button className="vv-mock-primary" onClick={()=>{setDetail(null);nav.go(detail.type==='vendor'?'c_rfq_new':'c_rfq_new')}}>Request quote</button>{detail.type==='product'&&<button onClick={()=>{setDetail(null);toast('Sample request sent.')}}>Request sample</button>}{detail.type==='vendor'&&<button onClick={()=>{setDetail(null);nav.go('c_book_new')}}>Book scheduled</button>}</div></div></section></div>}
   </div>

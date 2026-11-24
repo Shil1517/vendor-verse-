@@ -16,8 +16,8 @@
   --v-bg: #f8f6f2;
   --v-panel: rgba(255, 255, 255, .96);
   --v-card: #fff;
-  --v-ink: #6f5018;
-  --v-muted: #737b86;
+  --v-ink: #111;
+  --v-muted: #444;
   --v-line: #efeae0;
   --v-accent: #a67a2c;
   --vv-canvas: #f8f6f2;
@@ -2819,7 +2819,7 @@
   --v-bg: #f7f4ee;
   --v-panel: rgba(255, 255, 255, .94);
   --v-card: #fff;
-  --v-ink: #6f5018;
+  --v-ink: #111;
   --v-muted: #817a99;
   --v-line: rgba(138, 100, 32, .14);
   --v-accent: #a67a2c;
@@ -3153,7 +3153,7 @@
   --v-bg: #f7f4ee;
   --v-panel: rgba(255, 255, 255, .82);
   --v-card: rgba(255, 255, 255, .96);
-  --v-ink: #6f5018;
+  --v-ink: #111;
   --v-muted: #5a6f80;
   --v-line: rgba(138, 100, 32, .1);
   --v-accent: #6f5018;
@@ -4703,8 +4703,8 @@
   --v-bg: #f8f6f2;
   --v-panel: #fff;
   --v-card: #fff;
-  --v-ink: #6f5018;
-  --v-muted: #737b86;
+  --v-ink: #111;
+  --v-muted: #444;
   --v-line: #efeae0;
   --v-accent: #a67a2c;
   --vv-canvas: #f8f6f2;
