@@ -149,6 +149,75 @@ const DEFAULT_VENDOR_IMAGES = [
     alt: 'Realistic woodworking workshop with carpenter crafting wooden furniture at Choudhary Woodworks',
   },
 ]
+const PRODUCT_IMAGES = {
+  'Wedding catering, per plate': {
+    src: '/images/customer-home/01_wedding_catering.jpg',
+    alt: 'Wedding catering buffet with professional food presentation',
+  },
+  'Modular switch and socket set': {
+    src: '/images/customer-home/02_modular_switch_socket.jpg',
+    alt: 'Modular electrical switch and socket set in modern finish',
+  },
+  'Corporate lunch boxes': {
+    src: '/images/customer-home/03_corporate_lunch_boxes.jpg',
+    alt: 'Freshly packed corporate lunch meals in organized bento boxes',
+  },
+  'Furniture repair and polishing': {
+    src: '/images/customer-home/04_furniture_repair_polishing.jpg',
+    alt: 'Professional wood furniture repair and polishing restoration',
+  },
+  'PPC cement, 50 kg': {
+    src: '/images/customer-home/05_ppc_cement_50kg.jpg',
+    alt: 'PPC Portland Pozzolana Cement 50kg bag for construction',
+  },
+  'Bathroom fittings installation': {
+    src: '/images/customer-home/06_bathroom_plumbing_installation.jpg',
+    fallbackSrc: '/images/customer-home/01_bathroom_plumbing_installation.jpg',
+    alt: 'Modern bathroom chrome fixtures and shower fitting installation',
+  },
+  'Wall putty, 40 kg': {
+    src: '/images/customer-home/07_wall_putty_40kg.jpg',
+    fallbackSrc: '/images/customer-home/02_wall_putty_40kg.jpg',
+    alt: 'Smooth finish white wall putty 40kg bag',
+  },
+  'Sofa and carpet shampooing': {
+    src: '/images/customer-home/08_sofa_carpet_shampooing.jpg',
+    fallbackSrc: '/images/customer-home/03_sofa_carpet_shampooing.jpg',
+    alt: 'Deep fabric cleaning and shampooing for sofa and upholstery',
+  },
+  'CPVC pipe, 1 inch, 3 m length': {
+    src: '/images/customer-home/09_cpvc_pipe_1inch_3m.jpg',
+    fallbackSrc: '/images/customer-home/04_cpvc_pipe_1inch_3m.jpg',
+    alt: 'Durable CPVC water plumbing pipe 1 inch 3m length',
+  },
+  'Custom wardrobe, made on site': {
+    src: '/images/customer-home/10_custom_wardrobe_made_on_site.jpg',
+    fallbackSrc: '/images/customer-home/01_custom_wardrobe_carpentry.jpg',
+    alt: 'Custom wooden wardrobe crafted and installed on site',
+  },
+  'Interior emulsion paint, 20 L': {
+    src: '/images/customer-home/11_interior_emulsion_paint_20l.jpg',
+    fallbackSrc: '/images/customer-home/02_interior_emulsion_paint_20l.jpg',
+    alt: 'Interior wall emulsion paint in 20L container',
+  },
+  'Full home deep cleaning': {
+    src: '/images/customer-home/12_full_home_deep_cleaning.jpg',
+    fallbackSrc: '/images/customer-home/03_full_home_deep_cleaning.jpg',
+    alt: 'Professional residential deep cleaning service',
+  },
+}
+function getProductImageData(title) {
+  if (!title) return null
+  if (PRODUCT_IMAGES[title]) return PRODUCT_IMAGES[title]
+  const cleanTitle = title.toLowerCase().replace(/bag/g, '').replace(/,/g, '').replace(/\s+/g, ' ').trim()
+  for (const [key, val] of Object.entries(PRODUCT_IMAGES)) {
+    const cleanKey = key.toLowerCase().replace(/bag/g, '').replace(/,/g, '').replace(/\s+/g, ' ').trim()
+    if (cleanTitle.includes(cleanKey) || cleanKey.includes(cleanTitle)) {
+      return val
+    }
+  }
+  return null
+}
 const HOME_VENDOR_SAMPLES = [
   { name:'Royal Rasoi Caterers', category:'Event catering', location:'India, India', level:2, sponsored:false, coverage:'Offers public listings', price:'Offers public listings', ships:'', reviews:'Public vendor', contract:false, image:'/royal-rasoi-catering-under-130kb.jpg', imageAlt:'Professional catering and buffet setup by Royal Rasoi Caterers' },
   { name:'Pink City Hardware Supply', category:'Hardware and building materials', location:'India, India', level:2, coverage:'Offers public listings', price:'Offers public listings', ships:'', reviews:'Public vendor', contract:false, image:'/pink-city-hardware-under-130kb.jpg', imageAlt:'Realistic hardware store interior with building materials and tools at Pink City Hardware Supply' },
@@ -160,12 +229,18 @@ const HOME_VENDOR_SAMPLES = [
   { name:'Pixel Harbour', category:'IT and digital', location:'Bengaluru, India', level:2, coverage:'Remote delivery', price:'Price on request', ships:'', reviews:'4.5 from 9 reviews', contract:true },
 ]
 const HOME_PRODUCTS = [
-  { name:'Atlas Structural Fastener Kit', category:'Construction & infrastructure', vendor:'Atlas Industrial Supply Co.', city:'Chicago', price:'840', unit:'kit', icon:Hammer, color:'#A67C2E' },
-  { name:'Electrician – Home Wiring & Fault Visit', category:'Home & household services', vendor:'BrightSpark Home Services', city:'Jaipur', price:'399', unit:'visit', icon:Wrench, color:'#2B3F63', featured:true },
-  { name:'Sakura Hybrid Office Collaboration Kit', category:'IT, software & digital', vendor:'Sakura Digital Workplace', city:'Tokyo', price:'2,150', unit:'bundle', icon:Monitor, color:'#7A2E3A' },
-  { name:'NordicGrid Smart Solar Controller', category:'Wholesale, suppliers & distribution', vendor:'NordicGrid Energy Solutions', city:'Stockholm', price:'1,290', unit:'unit', icon:Zap, color:'#1F5E4D' },
-  { name:'Kestrel Pallet Freight Booking', category:'Logistics', vendor:'Kestrel Logistics', city:'Dubai', price:'4,800', unit:'pallet', icon:Truck, color:'#34566A' },
-  { name:'Lumen Event Lighting Package', category:'Events', vendor:'Lumen Events Co.', city:'Bhopal', price:'15,000', unit:'event', icon:Lightbulb, color:'#4F6B3A' },
+  { name:'Wedding catering, per plate', category:'Event catering', vendor:'Royal Rasoi Caterers', city:'Jaipur', price:'850', unit:'plate', icon:Wrench, color:'#A67C2E' },
+  { name:'Modular switch and socket set', category:'Hardware and building materials', vendor:'Pink City Hardware Supply', city:'Jaipur', price:'Price not provided', unit:'set', icon:Package, color:'#34566A' },
+  { name:'Corporate lunch boxes', category:'Event catering', vendor:'Royal Rasoi Caterers', city:'Jaipur', price:'180', unit:'box', icon:Wrench, color:'#2B3F63' },
+  { name:'Furniture repair and polishing', category:'Carpentry', vendor:'Choudhary Woodworks', city:'Jaipur', price:'499', unit:'visit', icon:Wrench, color:'#7A2E3A' },
+  { name:'PPC cement, 50 kg', category:'Hardware and building materials', vendor:'Pink City Hardware Supply', city:'Jaipur', price:'390', unit:'bag', icon:Package, color:'#1F5E4D' },
+  { name:'Bathroom fittings installation', category:'Plumbing', vendor:'Narmada Plumbing Services', city:'Jaipur', price:'Price on request', unit:'service', icon:Wrench, color:'#34566A' },
+  { name:'Wall putty, 40 kg', category:'Paints and finishing', vendor:'Jaipur Paints & Finishes', city:'Jaipur', price:'980', unit:'bag', icon:Package, color:'#8C5A3C' },
+  { name:'Sofa and carpet shampooing', category:'Home cleaning', vendor:'Sparkle Home Care', city:'Jaipur', price:'799', unit:'set', icon:Wrench, color:'#1F5E4D' },
+  { name:'CPVC pipe, 1 inch, 3 m length', category:'Hardware and building materials', vendor:'Pink City Hardware Supply', city:'Jaipur', price:'180', unit:'piece', icon:Package, color:'#2B3F63' },
+  { name:'Custom wardrobe, made on site', category:'Carpentry', vendor:'Choudhary Woodworks', city:'Jaipur', price:'Price on request', unit:'project', icon:Wrench, color:'#7A2E3A' },
+  { name:'Interior emulsion paint, 20 L', category:'Paints and finishing', vendor:'Jaipur Paints & Finishes', city:'Jaipur', price:'5,200', unit:'bucket', icon:Package, color:'#A67C2E' },
+  { name:'Full home deep cleaning', category:'Home cleaning', vendor:'Sparkle Home Care', city:'Jaipur', price:'2,999', unit:'home', icon:Wrench, color:'#4F6B3A' },
 ]
 const HOME_SEARCHES = ['Interior fit-out', 'Event planning', 'Home cleaning', 'Web development', 'Packaging supplier', 'Freight and logistics']
 const HERO_POPULAR = ['Web Development', 'Construction', 'Digital Marketing', 'Suppliers']
@@ -221,6 +296,8 @@ export function WebsiteHome() {
   const [homeData, setHomeData] = useState({ loading: isRemote, categories: [], listings: [], cityId: null })
   const [remoteFavorites, setRemoteFavorites] = useState([])
   const [compared, setCompared] = useState([])
+  const [failedVendorImages, setFailedVendorImages] = useState({})
+  const [failedProductImages, setFailedProductImages] = useState({})
   const categoryRail = useRef(null)
   const productRail = useRef(null)
   const [categoryEdges, setCategoryEdges] = useState({ start:true, end:false })
@@ -279,12 +356,12 @@ export function WebsiteHome() {
     const match = isRemote ? homeData.categories.find((category) => category.name?.trim().toLowerCase() === item.categoryName.toLowerCase()) : null
     return { ...item, ...(match || {}) }
   })
-  const vendorCards = isRemote ? [...new Map(homeData.listings.map((listing) => [listing.vendor.id, {
+  const vendorCards = (isRemote && homeData.listings.length > 0) ? [...new Map(homeData.listings.map((listing) => [listing.vendor.id, {
     id: listing.vendor.id,
     name: listing.vendor.name,
     category: listing.categoryName,
     location: locale?.city ? `${locale.city}, ${locale.countryName || locale.country}` : (locale?.countryName || locale?.country),
-    coverage: listing.matchedOn.find((match) => match.startsWith('coverage:'))?.slice(9) || 'Available in this market',
+    coverage: (listing.matchedOn || []).find((match) => match.startsWith('coverage:'))?.slice(9) || 'Available in this market',
     price: listing.price?.state === 'on_request' ? 'Price on request' : listing.price?.state === 'not_provided' ? 'Price not provided' : 'Offers public listings',
     reviews: 'Public vendor',
     level: 0,
@@ -299,7 +376,32 @@ export function WebsiteHome() {
       imageAlt: v.imageAlt || VENDOR_IMAGES[v.name]?.alt,
     }
   })
-  const productCards = isRemote ? homeData.listings.slice(0, 12).map((listing) => ({ id: listing.id, title: listing.title, category: listing.categoryName, vendor: listing.vendor, price: listing.price, icon: listing.listingType === 'service' ? Wrench : Package })) : HOME_PRODUCTS
+  const productCards = (isRemote && homeData.listings.length > 0) ? homeData.listings.slice(0, 12).map((listing) => {
+    const imgData = getProductImageData(listing.title)
+    return {
+      id: listing.id,
+      title: listing.title,
+      name: listing.title,
+      category: listing.categoryName,
+      vendor: listing.vendor,
+      price: listing.price,
+      unit: listing.unit,
+      icon: listing.listingType === 'service' ? Wrench : Package,
+      image: imgData?.src,
+      fallbackSrc: imgData?.fallbackSrc,
+      imageAlt: imgData?.alt || listing.title,
+    }
+  }) : HOME_PRODUCTS.map((product) => {
+    const imgData = getProductImageData(product.name || product.title)
+    return {
+      ...product,
+      title: product.name || product.title,
+      name: product.name || product.title,
+      image: imgData?.src,
+      fallbackSrc: imgData?.fallbackSrc,
+      imageAlt: imgData?.alt || product.name || product.title,
+    }
+  })
   const toggleCompared = (index) => setCompared((items)=>{if(items.includes(index))return items.filter((item)=>item!==index);if(items.length>=3){toast('You can compare up to three vendors.');return items}return [...items,index]})
   return <div className="vv-c-home vv-mock-home h-full overflow-y-auto">
     <section className="vv-mock-hero">
@@ -324,18 +426,65 @@ export function WebsiteHome() {
       <section className="vv-mock-intro"><div><h2>Every industry. Every vendor type. One marketplace.</h2><p>Customers pay vendors directly. Badges show what was verified, never what was paid for, and missing information is always shown honestly.</p><button className="vv-mock-primary" onClick={()=>nav.go('c_rfq_new')}>Post a request</button></div><div className="vv-mock-modes">{[['Instant','Fixed price, reliable availability.'],['Scheduled','Pick a date. The vendor accepts.'],['RFQ','Compare structured quotations.'],['Contract','Versioned terms, both parties accept.']].map(([title,body])=><article key={title}><h3>{title}</h3><p>{body}</p></article>)}</div></section>
       <section className="vv-mock-how"><div className="vv-mock-how-heading"><div><span className="vv-mock-eyebrow">The VendorVerse way</span><h2>From first search to finished work.</h2></div><p>Everything you need to find the right partner, make a clear decision, and keep the work moving.</p></div><div className="vv-mock-how-grid">{[[Search,'01','Discover the right fit','Search products, services and vendors by what you need and where you need it.'],[ShieldCheck,'02','Choose with confidence','Compare pricing, coverage and verification badges with the details vendors have shared.'],[MessageCircle,'03','Work directly','Request a quote, schedule a booking or start a contract with the vendor you choose.']].map(([Icon,number,title,body])=><article key={number}><span className="vv-mock-step-icon"><Icon size={20}/></span><span className="vv-mock-step-number">{number}</span><h3>{title}</h3><p>{body}</p></article>)}</div></section>
       <section className="vv-mock-category-section"><div className="vv-mock-section-heading vv-mock-category-heading"><h2>Explore categories</h2><div><button aria-label="Previous categories" disabled={categoryEdges.start} onClick={()=>slide(categoryRail,-1,setCategoryEdges)}><ChevronLeft/></button><button aria-label="Next categories" disabled={categoryEdges.end} onClick={()=>slide(categoryRail,1,setCategoryEdges)}><ChevronRight/></button></div></div><div className="vv-mock-category-rail" ref={categoryRail} onScroll={()=>updateEdges(categoryRail,setCategoryEdges)}>{categories.map((category)=><button className="vv-mock-category" key={category.image} onClick={()=>nav.go('c_explore',category.id?{categoryId:category.id}:{q:category.search})}><span className="vv-mock-category-art"><img src={`/category-images/${category.image}`} alt="" loading="lazy" /></span><b>{category.name}</b></button>)}</div></section>
-      <section><div className="vv-mock-section-heading"><div><h2>{isRemote?'Vendors in this market':'New vendors'}</h2><p>{isRemote?'Vendors with public listings available to browse':'Recently published and verified'}</p></div><button className="vv-mock-text-button" onClick={()=>nav.go('c_explore',{mode:'vendors'})}>See all <ArrowRight size={17}/></button></div><div className="vv-mock-vendors">{vendorCards.map((vendor,index)=>{const sampleIndex=vendor.sampleIndex ?? index; const isSaved=isRemote?remoteFavorites.includes(vendor.id):savedVendors.includes(sampleIndex);return <article className="vv-mock-vendor-card" key={vendor.id || vendor.name}>
-        <button className="vv-mock-vendor-image" onClick={()=>isRemote?nav.go('c_vendor',{id:vendor.id}):setDetail({type:'vendor',item:vendor,index:sampleIndex})} aria-label={`Open ${vendor.name}`}><HomeVendorArt index={index}/><span className={`vv-mock-tag ${vendor.sponsored?'is-sponsored':''}`}>{vendor.sponsored?'Sponsored':isRemote?'Public vendor':'New'}</span></button>
+      <section className="vv-mock-vendor-section"><div className="vv-mock-section-heading vv-mock-vendor-heading"><div><h2>{(isRemote && homeData.listings.length > 0)?'Vendors in this market':'New vendors'}</h2><p>{(isRemote && homeData.listings.length > 0)?'Vendors with public listings available to browse':'Recently published and verified'}</p></div><button className="vv-mock-text-button" onClick={()=>nav.go('c_explore',{mode:'vendors'})}>See all <ArrowRight size={17}/></button></div><div className="vv-mock-vendors">{vendorCards.map((vendor,index)=>{const sampleIndex=vendor.sampleIndex ?? index; const remote=isRemote && homeData.listings.length > 0; const isSaved=remote?remoteFavorites.includes(vendor.id):savedVendors.includes(sampleIndex);return <article className="vv-mock-vendor-card" key={vendor.id || vendor.name}>
+        <button className="vv-mock-vendor-image" onClick={()=>remote?nav.go('c_vendor',{id:vendor.id}):setDetail({type:'vendor',item:vendor,index:sampleIndex})} aria-label={`Open ${vendor.name}`}>{(()=>{const imgKey=vendor.id||vendor.name||index;const hasError=failedVendorImages[imgKey];const imgSrc=!hasError?(vendor.image||VENDOR_IMAGES[vendor.name]?.src||DEFAULT_VENDOR_IMAGES[index]?.src):null;const imgAlt=vendor.imageAlt||VENDOR_IMAGES[vendor.name]?.alt||DEFAULT_VENDOR_IMAGES[index]?.alt||`${vendor.name} photograph`;return imgSrc?<img src={imgSrc} alt={imgAlt} loading="lazy" decoding="async" className="vv-mock-vendor-photo" onError={()=>setFailedVendorImages((prev)=>({...prev,[imgKey]:true}))}/>:<HomeVendorArt index={index}/>})()}<span className={`vv-mock-tag ${vendor.sponsored?'is-sponsored':''}`}>{vendor.sponsored?'Sponsored':remote?'Public vendor':'New'}</span></button>
         <button className="vv-mock-heart" aria-label={`${isSaved?'Unsave':'Save'} ${vendor.name}`} aria-pressed={isSaved} onClick={()=>toggleVendorSaved(vendor,sampleIndex)}><Heart size={19} fill={isSaved?'currentColor':'none'}/></button>
-        <button className="vv-mock-vendor-name" onClick={()=>isRemote?nav.go('c_vendor',{id:vendor.id}):setDetail({type:'vendor',item:vendor,index:sampleIndex})}>{vendor.name}</button><div className="vv-mock-vendor-meta">{vendor.category} · {vendor.location}</div>
-        <div className="vv-mock-vendor-badges">{!isRemote&&<span className="vv-mock-tag is-ok">L{vendor.level} {['','Contact verified','Business verified','Credential verified'][vendor.level]}</span>}<span className="vv-mock-tag">{vendor.reviews}</span></div>
-        <div className="vv-mock-vendor-coverage">{vendor.coverage}</div><div className="vv-mock-vendor-bottom"><b>{vendor.price}</b>{!isRemote&&<label><input type="checkbox" checked={compared.includes(sampleIndex)} onChange={()=>toggleCompared(sampleIndex)}/> Compare</label>}</div>
+        <button className="vv-mock-vendor-name" onClick={()=>remote?nav.go('c_vendor',{id:vendor.id}):setDetail({type:'vendor',item:vendor,index:sampleIndex})}>{vendor.name}</button><div className="vv-mock-vendor-meta">{vendor.category} · {vendor.location}</div>
+        <div className="vv-mock-vendor-badges">{!remote&&<span className="vv-mock-tag is-ok">L{vendor.level} {['','Contact verified','Business verified','Credential verified'][vendor.level]}</span>}<span className="vv-mock-tag">{vendor.reviews}</span></div>
+        <div className="vv-mock-vendor-coverage">{vendor.coverage}</div><div className="vv-mock-vendor-bottom"><b>{vendor.price}</b>{!remote&&<label><input type="checkbox" checked={compared.includes(sampleIndex)} onChange={()=>toggleCompared(sampleIndex)}/> Compare</label>}</div>
       </article>})}{isRemote&&!vendorCards.length&&!homeData.loading&&<p className="vv-mock-empty">No public vendors have listings in this market yet.</p>}</div></section>
       <section className="vv-mock-product-section"><div className="vv-mock-section-heading vv-mock-product-heading"><div><span className="vv-mock-eyebrow">Popular this week</span><h2>Products and services</h2></div><button className="vv-mock-text-button" onClick={()=>nav.go('c_explore')}>View marketplace <ArrowRight size={17}/></button><button className="vv-mock-rail-arrow" aria-label="Previous products" disabled={productEdges.start} onClick={()=>slide(productRail,-1,setProductEdges)}><ChevronLeft/></button><button className="vv-mock-rail-arrow" aria-label="Next products" disabled={productEdges.end} onClick={()=>slide(productRail,1,setProductEdges)}><ChevronRight/></button></div>
-        <div className="vv-mock-product-rail" ref={productRail} onScroll={()=>updateEdges(productRail,setProductEdges)}>{productCards.map((product,index)=>{const remote=isRemote; const Icon=product.icon; const name=remote?product.title:product.name; const vendor=remote?product.vendor:{name:product.vendor,city:product.city}; const price=remote?formatMinorPrice(product.price): `₹${product.price}`; const saved=remote?remoteFavorites.includes(product.vendor.id):savedProducts.includes(index); return <article className="vv-mock-product-card" key={product.id || name}>
-          <button className="vv-mock-product-main" onClick={()=>remote?nav.go('c_listing',{id:product.id}):setDetail({type:'product',item:product,index})}><span className="vv-mock-product-media"><span className="vv-mock-tag">{product.category}</span><span className="vv-mock-product-icon" style={{'--product-color':remote?'#34566A':product.color}}><Icon size={38} strokeWidth={1.7}/></span></span><span className="vv-mock-product-info"><b>{name}</b><small>{vendor.name}{vendor.city?` · ${vendor.city}`:''}</small><span className="vv-mock-product-price">{price}{!remote&&<small> /{product.unit}</small>}</span></span></button>
-          <button className="vv-mock-heart vv-mock-product-heart" aria-label={`${saved?'Unsave':'Save'} ${name}`} aria-pressed={saved} onClick={()=>toggleProductSaved(product,index)}><Heart size={19} fill={saved?'currentColor':'none'}/></button>
-        </article>})}{isRemote&&!productCards.length&&!homeData.loading&&<p className="vv-mock-empty">No products or services are listed in this market yet.</p>}</div></section>
+        <div className="vv-mock-product-rail" ref={productRail} onScroll={()=>updateEdges(productRail,setProductEdges)}>{productCards.map((product,index)=>{
+          const remote = isRemote && homeData.listings.length > 0;
+          const Icon = product.icon || (product.listingType === 'service' ? Wrench : Package);
+          const name = product.title || product.name || '';
+          const vendorObj = typeof product.vendor === 'object' && product.vendor !== null ? product.vendor : { name: product.vendor, city: product.city };
+          const priceStr = typeof product.price === 'object' && product.price !== null
+            ? formatMinorPrice(product.price)
+            : (product.price ? (String(product.price).startsWith('Price') || String(product.price).startsWith('₹') ? String(product.price) : `₹${product.price}`) : 'Price on request');
+          const unitStr = product.unit ? ` /${product.unit}` : '';
+          const saved = remote ? remoteFavorites.includes(product.vendor?.id) : savedProducts.includes(index);
+          return <article className="vv-mock-product-card" key={product.id || name || index}>
+            <button className="vv-mock-product-main" onClick={()=>remote?nav.go('c_listing',{id:product.id}):setDetail({type:'product',item:product,index})}>
+              <span className="vv-mock-product-media">
+                <span className="vv-mock-tag">{product.category}</span>
+                {(()=>{
+                  const imgKey = product.id || name || index;
+                  const hasError = failedProductImages[imgKey];
+                  const imgSrc = !hasError ? (product.image || product.fallbackSrc) : null;
+                  return imgSrc ? (
+                    <img
+                      src={imgSrc}
+                      alt={product.imageAlt || `${name} photo`}
+                      loading="lazy"
+                      decoding="async"
+                      className="vv-mock-product-photo"
+                      onError={(e)=>{
+                        if (product.fallbackSrc && !e.currentTarget.src.endsWith(product.fallbackSrc)) {
+                          e.currentTarget.src = product.fallbackSrc;
+                        } else {
+                          setFailedProductImages((prev)=>({...prev,[imgKey]:true}));
+                        }
+                      }}
+                    />
+                  ) : (
+                    <span className="vv-mock-product-icon" style={{'--product-color':remote?'#34566A':product.color}}>
+                      <Icon size={38} strokeWidth={1.7}/>
+                    </span>
+                  );
+                })()}
+              </span>
+              <span className="vv-mock-product-info">
+                <b>{name}</b>
+                <small>{vendorObj.name}{vendorObj.city?` · ${vendorObj.city}`:''}</small>
+                <span className="vv-mock-product-price">{priceStr}{unitStr&&!priceStr.includes('/')&&<small>{unitStr}</small>}</span>
+              </span>
+            </button>
+            <button className="vv-mock-heart vv-mock-product-heart" aria-label={`${saved?'Unsave':'Save'} ${name}`} aria-pressed={saved} onClick={()=>toggleProductSaved(product,index)}>
+              <Heart size={19} fill={saved?'currentColor':'none'}/>
+            </button>
+          </article>
+        })}{isRemote&&!productCards.length&&!homeData.loading&&<p className="vv-mock-empty">No products or services are listed in this market yet.</p>}</div></section>
       <footer className="vv-mock-footer"><div><b>VENDOR<span>VERSE</span></b><p>Products, services and quotations from verified vendors worldwide.</p></div><div><h3>Marketplace</h3><button onClick={()=>nav.go('c_explore')}>Browse products and services</button><button onClick={()=>nav.go('c_explore',{mode:'vendors'})}>New vendors</button><button onClick={()=>goSignedIn('c_rfq_new')}>Post a request</button></div><div><h3>Vendors</h3><button onClick={startVendorRegistration}>Become a vendor</button><button onClick={openVendorDashboard}>Vendor dashboard</button></div><div><h3>Support</h3><button onClick={()=>goSignedIn('c_cases')}>Help &amp; support</button><button onClick={()=>goSignedIn('c_profile')}>My account</button><button onClick={()=>goSignedIn('c_profile')}>Terms &amp; privacy</button></div><div className="vv-mock-footer-bottom"><span>© 2026 VendorVerse · Products, services and quotations</span><button onClick={()=>goSignedIn('c_cases')}>Help &amp; support</button><button onClick={()=>goSignedIn('c_profile')}>My account</button></div></footer>
     </main>
     {detail&&<div className="vv-mock-dialog-backdrop" role="presentation" onMouseDown={(e)=>e.target===e.currentTarget&&setDetail(null)}><section className="vv-mock-dialog" role="dialog" aria-modal="true" aria-label={detail.item.name}><div className="vv-mock-dialog-visual">{detail.type==='vendor'?<HomeVendorArt index={detail.index}/>:<span className="vv-mock-product-icon" style={{'--product-color':detail.item.color}}>{(()=>{const Icon=detail.item.icon;return <Icon size={64} strokeWidth={1.6}/>})()}</span>}</div><div className="vv-mock-dialog-content"><div className="vv-mock-dialog-top"><span className="vv-mock-tag is-ok">{detail.type==='vendor'?`L${detail.item.level} ${['','Contact verified','Business verified','Credential verified'][detail.item.level]}`:detail.item.category}</span><button aria-label="Close details" onClick={()=>setDetail(null)}><X size={18}/></button></div><h2>{detail.item.name}</h2><p className="vv-mock-dialog-subtitle">{detail.type==='vendor'?`${detail.item.category} · ${detail.item.location}`:`${detail.item.vendor} · ${detail.item.city}`}</p>{detail.type==='vendor'?<table><tbody><tr><td>Coverage</td><td>{detail.item.coverage}</td></tr><tr><td>Ships to</td><td>{detail.item.ships||'Not applicable'}</td></tr><tr><td>Pricing</td><td>{detail.item.price}</td></tr><tr><td>Reviews</td><td>{detail.item.reviews}</td></tr><tr><td>Availability</td><td>Not listed</td></tr><tr><td>Booking</td><td>RFQ{detail.item.contract?', Contract':''}</td></tr></tbody></table>:<table><tbody><tr><td>Price tiers</td><td>₹{detail.item.price} (1–499) · ₹{Math.round(Number(detail.item.price.replace(',',''))*.94).toLocaleString('en-IN')} (500–999) · ₹{Math.round(Number(detail.item.price.replace(',',''))*.9).toLocaleString('en-IN')} (1,000+)</td></tr><tr><td>Minimum order</td><td>500 /{detail.item.unit}</td></tr><tr><td>Lead time</td><td>21 days</td></tr><tr><td>Ships to</td><td>India, UAE</td></tr><tr><td>Certifications</td><td>ISO 9001 (verified)</td></tr></tbody></table>}<div className="vv-mock-dialog-actions"><button className="vv-mock-primary" onClick={()=>{setDetail(null);nav.go(detail.type==='vendor'?'c_rfq_new':'c_rfq_new')}}>Request quote</button>{detail.type==='product'&&<button onClick={()=>{setDetail(null);toast('Sample request sent.')}}>Request sample</button>}{detail.type==='vendor'&&<button onClick={()=>{setDetail(null);nav.go('c_book_new')}}>Book scheduled</button>}</div></div></section></div>}
