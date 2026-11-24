@@ -26,6 +26,7 @@ import './screens/admin-dashboard-visuals.css'
 import './screens/dashboard-reference.css'
 import './layout.css'
 import './workspace-themes.css'
+import './screens/purchase-orders.css'
 
 const INITIAL_ROUTE = screenForLocation(window.location, SCREENS)
 const PUBLIC_MARKETPLACE_ROUTES = new Set(['c_home', 'c_categories', 'c_category', 'c_explore', 'c_listing', 'c_vendor'])
