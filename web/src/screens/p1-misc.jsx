@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Store, Factory, Wrench, Star, Trophy, ShieldCheck, FileText, Wallet, ClipboardList, Target, Clock, Receipt, RefreshCw, Landmark, CreditCard, Globe, WifiOff, SearchX, ChevronRight } from 'lucide-react'
+import { Store, Factory, Wrench, Star, Trophy, ShieldCheck, FileText, Wallet, ClipboardList, Target, Clock, Receipt, RefreshCw, Landmark, CreditCard, Globe, WifiOff, SearchX, ChevronRight, UserRound } from 'lucide-react'
 import { Badge, Banner, Button, Card, Checkbox, Chips, EmptyState, Group, HBar, Input, ListRow, Section, Select, Stars, StatusBadge, Toggle, fmt, cx } from '../ui.jsx'
 import { useApp } from '../store.jsx'
 import { useNav } from '../nav.jsx'
@@ -8,6 +8,9 @@ import { P2Badge, Page, Facts, Checklist, SampleBadge } from './blocks.jsx'
 import { AppealQueue } from './p1-depth.jsx'
 import { computePublicationGates } from '../services/publicationGates.js'
 import { TRUST_LEVELS as TRUST_LEVELS_SVC, levelBadges } from '../services/verification.js'
+import { authService } from '../services/authService.js'
+import { RemoteAdminConfig } from './remote-admin.jsx'
+import { RemoteMyReviews, RemoteTrustUnavailable } from './remote-trust.jsx'
 
 /* ============ vendor onboarding by type (F-VND-01, F-VND-02) ============ */
 const COUNTRY_CODE = { India: 'IN' }
@@ -114,6 +117,7 @@ export function ReviewNotEligible() {
   </Page>
 }
 export function MyReviews() {
+  if (authService.isRemote) return <RemoteMyReviews />
   const { reviews, me } = useApp()
   const mine = reviews.filter((r) => r.by === me.name || r.by === 'Meera Kapoor').slice(0, 3)
   return <Page title="My reviews" subtitle="Reviews you wrote">
@@ -121,6 +125,7 @@ export function MyReviews() {
   </Page>
 }
 export function AdminReviews() {
+  if (authService.isRemote) return <RemoteTrustUnavailable title="Review moderation" />
   const { reviews, setReviews, addAudit, toast } = useApp()
   const [hidden, setHidden] = useState([])
   return <Page title="Review moderation" subtitle="Reported reviews and appeals">
@@ -187,6 +192,7 @@ export function CustomerDashboard() {
     { label: 'Request a quotation', subtitle: 'Services or goods', icon: ClipboardList, to: 'c_rfq_new' },
     { label: 'Find a supplier', subtitle: 'Suppliers and manufacturers', icon: Store, to: 'c_explore_suppliers' },
     { label: 'My reviews', icon: Star, to: 'c_reviews' },
+    { label: 'Edit profile', subtitle: 'Name, photo and contact details', icon: UserRound, to: 'c_profile_edit' },
   ]
   return <Page title="Dashboard" subtitle={me.name}>
     <div className="vv-customer-dashboard">
@@ -227,6 +233,7 @@ export function AgentPerms() {
 /* ============ admin: config register, maintenance ============ */
 const CFG = [['CFG-01', 'Plan names and entitlements', 'Product'], ['CFG-02', 'Plan prices', 'Business'], ['CFG-03', 'Response deadlines', 'Operations'], ['CFG-04', 'Cancellation policy defaults', 'Operations'], ['CFG-05', 'Review window', 'Trust'], ['CFG-06', 'Case SLA targets', 'Support'], ['CFG-07', 'Sponsored pricing', 'Business'], ['CFG-08', 'Data retention and export', 'Legal'], ['CFG-09', 'Tax rules per country', 'Finance'], ['CFG-10', 'Notification providers and templates', 'Product'], ['CFG-11', 'Search ranking weights', 'Product'], ['CFG-12', 'Verification evidence per category', 'Trust']]
 export function ConfigRegister() {
+  if (authService.isRemote) return <RemoteAdminConfig />
   const [done, setDone] = useState({})
   return <Page title="Open configuration register" subtitle="Values nobody has decided yet">
     <Banner tone="blue">Nothing here is invented. Each item stays open until its owner decides.</Banner>

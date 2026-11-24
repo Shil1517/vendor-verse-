@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
-import { Phone, Mail, ShieldCheck, Store, User, ArrowRight, Lock, Sparkles, Truck, FileText, Globe } from 'lucide-react'
+import { Phone, Mail, KeyRound, ShieldCheck, Store, User, ArrowRight, Lock, Sparkles, Truck, FileText, Globe } from 'lucide-react'
 import { useApp } from '../store.jsx'
 import { useNav } from '../nav.jsx'
 import { HOME } from '../roles.js'
 import { ME } from '../data.jsx'
 import { Button, Input, Segmented, Screen, Checkbox, Banner, useForm, cx } from '../ui.jsx'
 import { authService, isEmail, isPhone, normalizePhone, roleForAccount } from '../services/authService.js'
+import { openAuthDialog } from '../components/MarketplaceAuthDialog.jsx'
 import './auth-visuals.css'
 
 export function Logo({ size = 64, light, blue = false }) {
@@ -78,8 +79,8 @@ export function Welcome() {
         <h1 className="text-[22px] font-extrabold leading-tight tracking-tight">{t('welcomeTitle')}</h1>
         <p className="mt-2 text-sm text-ink-500">{t('welcomeBody')}</p>
         <div className="mt-5 space-y-2.5">
-          <Button full size="lg" onClick={() => nav.go('login')}>{t('login')} <ArrowRight size={18} /></Button>
-          <Button full size="lg" variant="secondary" onClick={() => nav.go('register')}>Create account</Button>
+          <Button full size="lg" onClick={() => openAuthDialog('signin')}>{t('login')} <ArrowRight size={18} /></Button>
+          <Button full size="lg" variant="secondary" onClick={() => openAuthDialog('signup')}>Create account</Button>
           <button
             onClick={() => { setMe({ role: 'customer', loggedIn: false, guest: true, vendorId: 'v-me', name: 'Guest' }); nav.reset('c_home') }}
             className="w-full py-2 text-sm font-semibold text-brand-700"
@@ -91,56 +92,6 @@ export function Welcome() {
 }
 
 /* OTP codes come from services/authService.js (random per request, mock provider shows the code). Super Admin is asked once on web; the mobile second step is open item O-14. */
-
-export function Login({ params = {} }) {
-  const nav = useNav()
-  const [method, setMethod] = useState('phone')
-  const [role, setRole] = useState(params.role || 'customer')
-  const [val, setVal] = useState('')
-  const [countryCode, setCountryCode] = useState('+91')
-  const [err, setErr] = useState('')
-  useEffect(() => setRole(params.role || 'customer'), [params.role])
-  const submit = (event) => {
-    event?.preventDefault()
-    const phone = method === 'phone' ? normalizePhone(val) : val
-    if (method === 'phone' && phone !== val) setVal(phone)
-    const ok = method === 'phone' ? isPhone(phone) : isEmail(val)
-    if (!ok) return setErr(method === 'phone' ? 'Enter a valid 10-digit mobile number' : 'Enter a valid email address')
-    nav.go('otp', { contact: method === 'phone' ? `${countryCode} ${phone}` : val, role, method, next: params.next, nextParams: params.nextParams })
-  }
-  return (
-    <Screen title="Log in" pad={false} bg="bg-white" scrollClass="vv-login-scroll">
-      <div className="vv-login-layout">
-        <aside className="vv-login-art">
-          <span className="vv-login-kicker"><ShieldCheck size={14} /> VENDORVERSE ACCOUNT ACCESS</span>
-          <div className="vv-login-scene" aria-hidden="true">
-            <div className="vv-login-orbit vv-login-orbit-one" /><div className="vv-login-orbit vv-login-orbit-two" />
-            <div className="vv-login-cube">{['V', 'RFQ', 'OK', 'VV', '+', '★'].map((face) => <span key={face}>{face}</span>)}</div>
-            <span className="vv-login-float vv-login-float-one"><ShieldCheck size={14} /> Trusted providers</span>
-            <span className="vv-login-float vv-login-float-two"><Store size={14} /> Quotes and bookings</span>
-          </div>
-          <div className="vv-login-art-copy"><h2>Plan with confidence</h2><p>Compare proposals, confirm bookings and keep every detail in one place.</p></div>
-        </aside>
-        <form className="vv-login-form p-5 sm:p-7" onSubmit={submit} onKeyDown={(event) => { if (event.key === 'Enter' && event.target?.tagName === 'INPUT') { event.preventDefault(); submit(event) } }}>
-          <div>
-            <p className="vv-login-eyebrow">WELCOME BACK</p>
-            <h2 className="text-2xl font-extrabold tracking-tight">Sign in</h2>
-            <p className="mt-1 text-sm text-ink-500">Choose your workspace and enter your phone or email to continue.</p>
-          </div>
-          <Segmented value={role} onChange={(selected) => { setRole(selected); setErr('') }} options={[{ id: 'customer', label: 'Customer' }, { id: 'vendor', label: 'Vendor' }]} />
-          <Segmented value={method} onChange={(m) => { setMethod(m); setVal(''); setErr('') }} options={[{ id: 'phone', label: 'Phone' }, { id: 'email', label: 'Email' }]} />
-          {method === 'phone' ? (
-            <div><label className="mb-1.5 block text-[13px] font-semibold text-ink-700">Mobile number</label><div className="flex h-12 overflow-hidden rounded-xl bg-white ring-1 ring-inset ring-ink-200 focus-within:ring-2 focus-within:ring-brand-500"><select aria-label="Country calling code" value={countryCode} onChange={(e) => setCountryCode(e.target.value)} className="w-[92px] shrink-0 border-r border-ink-200 bg-ink-50 px-2 text-sm font-bold text-ink-700 outline-none"><option value="+91">🇮🇳 +91</option><option value="+1">🇺🇸 +1</option><option value="+44">🇬🇧 +44</option><option value="+971">🇦🇪 +971</option><option value="+81">🇯🇵 +81</option><option value="+46">🇸🇪 +46</option></select><div className="relative flex min-w-0 flex-1 items-center"><Phone size={17} className="pointer-events-none absolute left-3 text-ink-400" /><input inputMode="numeric" maxLength={10} placeholder="98290 00001" value={val} onChange={(e) => { setVal(e.target.value.replace(/\D/g, '')); setErr('') }} className="h-full min-w-0 flex-1 bg-transparent pl-10 pr-3 text-sm outline-none" /></div></div>{err && <p className="mt-1.5 text-xs font-medium text-red-600">{err}</p>}<p className="mt-1.5 text-xs text-ink-500">Standard SMS rates may apply</p></div>
-          ) : (
-            <Input label="Email address" icon={Mail} type="email" placeholder="you@company.com" value={val} error={err} onChange={(e) => { setVal(e.target.value); setErr('') }} />
-          )}
-          <Button full size="lg" type="submit">Send OTP</Button>
-          <p className="text-center text-sm text-ink-500">New to VendorVerse? <button type="button" onClick={() => nav.replace('register')} className="font-bold text-brand-700">Create account</button></p>
-        </form>
-      </div>
-    </Screen>
-  )
-}
 
 /** The signed-in user's own number: the stored profile phone, else the number they just verified. Never a placeholder. */
 const accountPhone = (profile, contact) => {
@@ -300,61 +251,45 @@ export function Otp({ params, embedded = false, onComplete }) {
   return embedded ? content : <Screen title="Verify OTP" pad={false} bg="bg-white">{content}</Screen>
 }
 
-export function Register() {
+/** Secret Super Admin sign-in (/admin/login). Not linked from anywhere and hidden from the page directory.
+ *  Admin ID + password against the real API; success opens the admin dashboard. */
+export function AdminLogin() {
   const nav = useNav()
-  const [role, setRole] = useState('customer')
-  const [f, set] = useForm({ name: '', phone: '', email: '', biz: '', agree: false })
-  const [errs, setErrs] = useState({})
-  const submit = () => {
-    const e = {}
-    if (f.name.trim().length < 3) e.name = 'Enter your full name'
-    if (!isPhone(f.phone)) e.phone = 'Enter a valid 10-digit mobile number'
-    if (!isEmail(f.email)) e.email = 'Enter a valid email address'
-    if (role !== 'customer' && f.biz.trim().length < 3) e.biz = 'Enter your business name'
-    if (!f.agree) e.agree = 'Please accept to continue'
-    setErrs(e)
-    if (Object.keys(e).length === 0) nav.go('otp', { contact: `+91 ${f.phone}`, role, mode: 'register', name: f.name, email: f.email, biz: f.biz })
+  const { setMe, toast } = useApp()
+  const [id, setId] = useState('')
+  const [password, setPassword] = useState('')
+  const [err, setErr] = useState('')
+  const [busy, setBusy] = useState(false)
+  const submit = async (event) => {
+    event.preventDefault()
+    if (busy) return
+    setBusy(true); setErr('')
+    const r = await authService.adminLogin(id, password)
+    if (r.ok && roleForAccount(r.account) !== 'admin') {
+      await authService.endSession()
+      setBusy(false)
+      return setErr('Invalid admin ID or password.')
+    }
+    setBusy(false)
+    if (!r.ok) return setErr(r.message)
+    setPassword('')
+    setMe({ role: 'admin', loggedIn: true, guest: false, vendorId: 'v-me', name: ME.admin, userId: r.account.userId })
+    toast('Signed in successfully')
+    nav.reset(HOME.admin)
   }
   return (
-    <Screen title="Create account" pad={false} bg="bg-white" scrollClass="vv-login-scroll">
-      <div className="vv-login-layout vv-register-layout">
-        <aside className="vv-login-art">
-          <span className="vv-login-kicker"><ShieldCheck size={14} /> VENDORVERSE ACCOUNT</span>
-          <div className="vv-login-scene" aria-hidden="true">
-            <div className="vv-login-orbit vv-login-orbit-one" /><div className="vv-login-orbit vv-login-orbit-two" />
-            <div className="vv-login-cube">{['V', 'RFQ', 'OK', 'VV', '+', '★'].map((face) => <span key={face}>{face}</span>)}</div>
-            <span className="vv-login-float vv-login-float-one"><ShieldCheck size={14} /> Verified vendors</span>
-            <span className="vv-login-float vv-login-float-two"><Store size={14} /> Quotes and bookings</span>
+    <Screen title="Admin sign in" pad={false} bg="bg-white">
+      <div className="vv-otp-stage">
+        <form className="vv-otp-card" onSubmit={submit}>
+          <div className="vv-otp-copy">
+            <p className="vv-login-eyebrow">RESTRICTED ACCESS</p>
+            <h2 className="text-2xl font-extrabold tracking-tight">Admin sign in</h2>
           </div>
-          <div className="vv-login-art-copy"><h2>Start in a minute</h2><p>Buy products, book services and compare quotes, or sell to customers as a vendor.</p></div>
-        </aside>
-        <div className="vv-login-form vv-register-form p-5 sm:p-7">
-          <div>
-            <p className="vv-login-eyebrow">NEW ACCOUNT</p>
-            <h2 className="text-2xl font-extrabold tracking-tight">Join VendorVerse</h2>
-            <p className="mt-1 text-sm text-ink-500">Choose how you want to use the marketplace.</p>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            {[['customer', User, 'Customer', 'Buy, book and request quotes'], ['vendor', Store, 'Vendor', 'Sell products and services']].map(([id, I, a, b]) => (
-              <button type="button" key={id} onClick={() => setRole(id)} className={cx('rounded-2xl p-3 text-left ring-1 ring-inset transition', role === id ? 'bg-brand-50 ring-2 ring-brand-600' : 'bg-white ring-ink-200')}>
-                <span className={cx('grid size-9 place-items-center rounded-xl', role === id ? 'bg-brand-600 text-white' : 'bg-ink-100 text-ink-500')}><I size={18} /></span>
-                <p className="mt-2 text-sm font-bold">{a}</p>
-                <p className="mt-0.5 text-xs leading-snug text-ink-500">{b}</p>
-              </button>
-            ))}
-          </div>
-          <Input label="Full name" required placeholder="As per ID" value={f.name} onChange={set('name')} error={errs.name} />
-          {role !== 'customer' && <Input label="Business name" required placeholder="Registered business name" value={f.biz} onChange={set('biz')} error={errs.biz} />}
-          <Input label="Mobile number" required icon={Phone} inputMode="numeric" maxLength={10} placeholder="98290 00001" value={f.phone} onChange={(e) => set('phone')(normalizePhone(e.target.value))} error={errs.phone} className="!pl-10" />
-          <Input label="Email" icon={Mail} type="email" placeholder="you@company.com" value={f.email} onChange={set('email')} error={errs.email} />
-          <div>
-            <Checkbox checked={f.agree} onChange={(v) => set('agree')(v)}>I agree to the <b className="text-brand-700">Terms of Service</b> and <b className="text-brand-700">Privacy Policy</b>, and consent to my data being processed to provide this service.</Checkbox>
-            {errs.agree && <p className="mt-1 text-xs font-medium text-red-600">{errs.agree}</p>}
-          </div>
-          {role === 'vendor' && <Banner tone="amber" title="Verification required">Vendors are shown as <b>Verified</b> only after Super Admin approves your business documents.</Banner>}
-          <Button full size="lg" onClick={submit}>Continue</Button>
-          <p className="text-center text-sm text-ink-500">Already have an account? <button type="button" onClick={() => nav.replace('login')} className="font-bold text-brand-700">Log in</button></p>
-        </div>
+          {!authService.isRemote && <Banner tone="amber" title="Backend not connected">Admin sign-in needs the API. Set VITE_API_BASE_URL and restart the web app.</Banner>}
+          <Input label="Admin ID" icon={Mail} type="email" autoComplete="username" autoFocus value={id} onChange={(e) => { setId(e.target.value); setErr('') }} />
+          <Input label="Password" icon={KeyRound} type="password" autoComplete="current-password" value={password} error={err} onChange={(e) => { setPassword(e.target.value); setErr('') }} />
+          <Button full size="lg" type="submit" disabled={busy || !authService.isRemote}>{busy ? 'Signing in…' : 'Sign in'}</Button>
+        </form>
       </div>
     </Screen>
   )

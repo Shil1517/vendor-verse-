@@ -95,6 +95,13 @@ export class RbacService {
          RETURNING granted_at`,
         [id, userId, roleCode, actor.userId, reason],
       );
+      if (roleCode === "SALES_AGENT") {
+        await client.query(
+          `INSERT INTO sales_agent_profiles (user_id, status) VALUES ($1, 'active')
+           ON CONFLICT (user_id) DO UPDATE SET status = 'active'`,
+          [userId],
+        );
+      }
       await this.audit.record(
         {
           actorUserId: actor.userId,
@@ -149,6 +156,9 @@ export class RbacService {
       );
       if (revoked.rowCount !== 1) {
         throw new NotFoundException("The user does not hold this role");
+      }
+      if (roleCode === "SALES_AGENT") {
+        await client.query(`UPDATE sales_agent_profiles SET status = 'inactive' WHERE user_id = $1`, [userId]);
       }
       await this.audit.record(
         {

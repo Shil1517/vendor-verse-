@@ -25,6 +25,7 @@ import * as RD from './screens/remote-discovery.jsx'
 import * as RR from './screens/remote-rfq.jsx'
 import * as RT from './screens/remote-transactions.jsx'
 import * as RL from './screens/remote-listings.jsx'
+import { RemoteVendorProfile } from './screens/remote-messages.jsx'
 import { authService } from './services/authService.js'
 
 /* With the real API (VITE_API_BASE_URL) these screens read and write through it; otherwise the seed-data screen is used. */
@@ -70,7 +71,7 @@ export const SCREENS = Object.fromEntries([
   R('c_explore_err', Explore, 'customer', 'Search — error / offline state', ['S7', 'S19'], ['SC-002'], { demo: { state: 'error' } }),
   R('c_listing', live(RD.RemoteListingDetail, C1.ListingDetail), 'customer', 'Listing detail', ['S7', 'S8', 'S14'], ['SC-003', 'SC-008'], { demo: { id: 'l12' } }),
   R('c_listing_nodata', C1.ListingDetail, 'customer', 'Listing — missing data labels', ['S7'], ['SC-003'], { demo: { id: 'l15' } }),
-  R('c_vendor', C1.VendorProfile, 'customer', 'Vendor profile', ['S5', 'S7', 'S12'], ['SC-003', 'SC-008'], { demo: { id: 'v2' } }),
+  R('c_vendor', live(RemoteVendorProfile, C1.VendorProfile), 'customer', 'Vendor profile', ['S5', 'S7', 'S12'], ['SC-003', 'SC-008'], { demo: { id: 'v2' } }),
   R('c_saved', CM.Saved, 'customer', 'Favorites & compare (3)', ['S7'], ['SC-004', 'SC-005'], { demo: { tab: 'compare' } }),
   R('c_activity', live(RR.RemoteActivity, CM.Activity), 'customer', 'Activity: bookings & RFQs', ['S8', 'S9'], ['SC-011', 'SC-014'], { tab: true }),
   R('c_book_new', live(RD.RemoteBookNew, CB.BookNew), 'customer', 'Request a booking', ['S8', 'S19'], ['SC-011', 'SC-013', 'SC-014'], { demo: { id: 'l12' } }),

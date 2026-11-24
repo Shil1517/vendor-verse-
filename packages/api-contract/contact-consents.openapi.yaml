@@ -1,0 +1,67 @@
+openapi: 3.1.0
+info:
+  title: VendorVerse Contact Share Consent API
+  version: 0.1.0
+  description: Explicit, revocable permission for a conversation participant to send their own phone or email in later messages.
+  x-feature-ids: [F-MSG-01, F-MSG-02]
+servers:
+  - url: /v1
+security:
+  - bearerAuth: []
+paths:
+  /conversations/{conversationId}/contact-consents:
+    parameters:
+      - { name: conversationId, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      operationId: listContactConsents
+      summary: List active participant consents
+      responses:
+        "200":
+          description: Active consents
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  consents:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        userId: { type: string, format: uuid }
+                        scope: { $ref: "#/components/schemas/ContactScope" }
+                        grantedAt: { type: string, format: date-time }
+        "401": { description: Authentication required }
+        "404": { description: Conversation not found or caller is not a participant }
+    post:
+      operationId: grantContactConsent
+      summary: Allow own contact detail in later messages
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [scope]
+              properties:
+                scope: { $ref: "#/components/schemas/ContactScope" }
+      responses:
+        "201": { description: Consent granted }
+        "401": { description: Authentication required }
+        "404": { description: Open conversation not found or caller is not a participant }
+  /conversations/{conversationId}/contact-consents/{scope}:
+    delete:
+      operationId: revokeContactConsent
+      summary: Mask own contact detail in later messages
+      parameters:
+        - { name: conversationId, in: path, required: true, schema: { type: string, format: uuid } }
+        - { name: scope, in: path, required: true, schema: { $ref: "#/components/schemas/ContactScope" } }
+      responses:
+        "200": { description: Consent revoked or already absent }
+        "401": { description: Authentication required }
+        "404": { description: Open conversation not found or caller is not a participant }
+components:
+  securitySchemes:
+    bearerAuth: { type: http, scheme: bearer, bearerFormat: JWT }
+  schemas:
+    ContactScope: { type: string, enum: [phone, email, phone_and_email] }

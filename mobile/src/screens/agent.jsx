@@ -12,6 +12,8 @@ import {
 } from '../ui.jsx'
 import { NotifBell, LangButton } from './shared.jsx'
 import { Logo } from './auth.jsx'
+import { authService } from '../services/authService.js'
+import { RemoteAgentHome, RemoteAgentLeads, RemoteAgentLeadNew, RemoteAgentLeadDetail, RemoteAgentLogActivity, RemoteAgentFollowups, RemoteAgentPerformance, RemoteAgentUnavailable } from './remote-agent.jsx'
 
 const parseD = (s) => (s ? new Date(s) : null)
 const TODAY = new Date('19 Oct 2026')
@@ -116,6 +118,7 @@ export function StageTracker({ stage }) {
 
 /* ================= HOME ================= */
 export function AgentHome() {
+  if (authService.isRemote) return <RemoteAgentHome />
   const nav = useNav()
   const { leads, me, t, vendors } = useApp()
   const today = leads.filter((l) => dueKind(l.next?.date) === 'today' || dueKind(l.next?.date) === 'overdue')
@@ -146,6 +149,7 @@ export function AgentHome() {
 
 /* ================= LEADS ================= */
 export function Leads({ params = {} }) {
+  if (authService.isRemote) return <RemoteAgentLeads />
   const nav = useNav()
   const { leads, patchLead, toast } = useApp()
   const [q, setQ] = useState('')
@@ -203,6 +207,7 @@ export function Leads({ params = {} }) {
 }
 
 export function LeadNew() {
+  if (authService.isRemote) return <RemoteAgentLeadNew />
   const nav = useNav()
   const { leads, setLeads, toast } = useApp()
   const [f, setF] = useState({ type: 'vendor', name: '', contact: '', phone: '', cat: 'home', city: 'Jaipur', source: 'Field visit', priority: 'Medium', notes: '', date: '2026-10-21' })
@@ -237,6 +242,7 @@ export function LeadNew() {
 }
 
 export function LeadDetail({ params }) {
+  if (authService.isRemote) return <RemoteAgentLeadDetail params={params} />
   const nav = useNav()
   const { leads, patchLead, toast, vendors } = useApp()
   const l = leads.find((x) => x.id === (params.id || 'ld1'))
@@ -279,6 +285,7 @@ export function LeadDetail({ params }) {
 }
 
 export function LogActivity({ params }) {
+  if (authService.isRemote) return <RemoteAgentLogActivity params={params} />
   const nav = useNav()
   const { leads, patchLead, toast } = useApp()
   const l = leads.find((x) => x.id === (params.id || 'ld1'))
@@ -304,6 +311,7 @@ export function LogActivity({ params }) {
 
 /* ================= FOLLOW-UPS ================= */
 export function Followups() {
+  if (authService.isRemote) return <RemoteAgentFollowups />
   const nav = useNav()
   const { leads, patchLead, toast } = useApp()
   const [tab, setTab] = useState('today')
@@ -330,6 +338,7 @@ export function Followups() {
 
 /* ================= ASSISTED ONBOARDING ================= */
 export function Onboard({ params }) {
+  if (authService.isRemote) return <RemoteAgentUnavailable title="Assisted onboarding" />
   const nav = useNav()
   const { leads, patchLead, setVendors, notify, toast, stamp } = useApp()
   const l = leads.find((x) => x.id === (params.id || 'ld1'))
@@ -390,6 +399,7 @@ export function Onboard({ params }) {
 
 /* ================= PERFORMANCE (assigned sales metrics only) ================= */
 export function AgentPerformance() {
+  if (authService.isRemote) return <RemoteAgentPerformance />
   const nav = useNav()
   const { leads, vendors } = useApp()
   const reg = leads.filter((l) => ['Submitted for verification', 'Approved', 'Subscribed'].includes(l.stage)).length

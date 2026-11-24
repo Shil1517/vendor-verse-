@@ -28,7 +28,7 @@ Read order: [README](README.md) · this file · [02-phase-scope.md](02-phase-sco
 
 | ID | Feature | Phase | Description and rules | PRS ref |
 |---|---|---|---|---|
-| F-ACC-01 | Sign-up and login (phone or email + OTP) | P1 | One login for all roles. No role picker at login: the role comes from the account. Admin and privileged roles add a second factor (MFA). Rate limits on OTP. | §3, §16 |
+| F-ACC-01 | Sign-up and login (phone or email + OTP) | P1 | One login for all roles. No role picker at login: the role comes from the account. Admin and privileged roles add a second factor (MFA). Rate limits on OTP. Super Admin can also sign in with an admin ID and password (D-027); in the demo this is gated by `ALLOW_PRIVILEGED_OTP_SIGNIN` until MFA exists. | §3, §16 |
 | F-ACC-02 | One identity, customer / vendor / business modes | P1 | A user can switch mode. Mode is a UX context, not a privilege; vendor APIs still need ownership. Two modes after D-023: Customer and Vendor (Business is merged into Vendor). Buying happens in Customer mode and selling in Vendor mode (D-022). Mobile and web no longer offer a Business mode at sign-up or in the workspace picker; the Business screens stay in the code until O-19 is closed. | §3.1 |
 | F-ACC-03 | Account states | P1 | Pending verification, Active, Restricted, Suspended, Deletion requested, each with defined behaviour and a user-facing explanation. | §3.2 |
 | F-ACC-04 | Account deletion request | P1 | Verify requester, run the approved deletion/anonymisation flow, keep legally required records, show status. | SC-040, CFG-08 |
@@ -295,6 +295,7 @@ Every PRS chapter maps to at least one feature, or to a documented non-goal.
 
 | Date & time (YYYY-MM-DD HH:MM, local) | Updated by | Change | Reason |
 |---|---|---|---|
+| 2026-11-23 15:22 | Sahil Soni | Modified: F-ACC-01 description (Super Admin ID and password sign-in) | Owner decision D-027; phase unchanged (P1). |
 | 2026-11-18 11:16 | Amit | Modified: F-TAX-01 browse search | Define consistent alias-aware, normalized and typo-tolerant taxonomy search for web and mobile. |
 | 2026-11-13 12:44 | Amit | Modified: F-TAX-03 and F-RFQ-04 fulfillment mapping | Record the chosen category-config mapping and the goods-RFQ purchase-order rule without changing phase scope. |
 | 2026-11-13 11:16 | Amit | Modified: F-DSC-02 universal search scope | D-025 defines the public and caller-authorized private resource types and their visibility rules. |

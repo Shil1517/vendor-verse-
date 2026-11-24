@@ -43,6 +43,15 @@ describe('canonicalIdentifier / roleForMode', () => {
 })
 
 describe('createApiAuthService', () => {
+  it('uses the refreshed session for Phase 1 API writes', async () => {
+    const { service, store, calls } = setup({
+      'POST /auth/refresh': reply(200, { accessToken: 'a2', refreshToken: 'r2' }),
+      'POST /reports': [reply(401, {}), reply(201, { id: 'report-1' })],
+    })
+    store.set(TOKENS)
+    expect(await service.apiRequest('/reports', { method: 'POST', body: { reason: 'issue' } })).toEqual({ ok: true, data: { id: 'report-1' }, status: 201 })
+    expect(calls.filter((call) => call.path === '/reports').map((call) => call.auth)).toEqual(['Bearer a1', 'Bearer a2'])
+  })
   it('requests an OTP with the channel and canonical identifier, exposing no code', async () => {
     const { service, calls } = setup({ 'POST /auth/otp/request': reply(202, { challengeId: 'c1', expiresAt: 'x' }) })
     const r = await service.requestOtp('+91 98290 00001')

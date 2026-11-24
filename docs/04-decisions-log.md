@@ -32,6 +32,7 @@ Every scope decision lives here, with who made it and why. Features reference th
 | D-024 | 2026-11-12 | Sahil Soni | **The vendor role list is open-ended: roles are data, not fixed code.** Adding a new kind of vendor must be a configuration change (one role entry: name, description, offer type of products or services, required documents), not a change to screens or filters. The Phase 1 starting list is still decided in O-19. | Owner expects new vendor kinds to be requested later. Clients read roles from one registry; the backend should hold roles as rows in a table, not a fixed enum. Builds on D-023. |
 | D-025 | 2026-11-13 | Amit | **Universal search spans public marketplace content and the signed-in user's authorized private transactions.** Public results may include vendors, products, services and categories; private results may include only contracts, RFQs, bookings and purchase orders in which the user is a party or an authorized vendor owner. | Owner requested one search across resource types. Search must preserve each resource's visibility and ownership rules; it must never expose another user's private records. Applies to F-DSC-02. |
 | D-026 | 2026-11-13 | Amit | **Service RFQ fulfillment is selected by category configuration.** `rfqFulfillmentType` must be `booking`, `work_order`, or `contract`; goods RFQs create purchase orders. Missing or invalid service mapping blocks quote acceptance. | Owner selected category configuration as the source for the service-RFQ handoff; avoid inferring fulfillment from quote contents. |
+| D-027 | 2026-11-23 | Sahil Soni | **Super Admin signs in with an admin ID (email) and a password.** Web has a separate, unlinked admin sign-in page (`/admin/login`, API mode only) that opens the admin dashboard; it is not in the public sign-in popup. The password is stored only as a salted hash, the account is seeded from `backend/.env` (never committed) and sign-in is rate limited and audited. It is gated by the same demo flag `ALLOW_PRIVILEGED_OTP_SIGNIN` as the privileged OTP sign-in, because MFA is still not built; the second factor requirement for privileged roles stays open. | Owner request 2026-11-23: admin needs a direct login instead of the phone OTP. |
 
 ## 2. Open decisions
 
@@ -91,6 +92,9 @@ The PRS is not edited (D-012). Until it is reissued, the decision wins.
 
 | Date & time (YYYY-MM-DD HH:MM, local) | Updated by | Change | Reason |
 |---|---|---|---|
+| 2026-11-23 15:35 | Sahil Soni | Modified: D-027 wording (secret admin sign-in page, not the popup) | Owner asked for admin to use its own secret login page instead of the popup. |
+| 2026-11-23 15:31 | Sahil Soni | Modified: D-027 wording (sign-in popup instead of sign-in screen) | The full-page login screen was removed; the popup carries the Admin tab. |
+| 2026-11-23 15:22 | Sahil Soni | Added: D-027 admin ID and password sign-in | Owner asked for an admin ID and password login that opens the admin page. |
 | 2026-11-20 16:30 | Sahil Soni | Added: O-20 (theme picker removed from web UI) | Teammate asked to remove the colour-theme picker; it contradicts D-018, so the owner must confirm drop, defer or restore. |
 | 2026-11-13 12:44 | Amit | Added: D-026 | Record the owner's category-configuration decision for service-RFQ fulfillment. |
 | 2026-11-13 11:16 | Amit | Added: D-025 | Owner chose universal search across public marketplace content and only caller-authorized private transactions. |

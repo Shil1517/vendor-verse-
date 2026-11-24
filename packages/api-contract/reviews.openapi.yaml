@@ -1,0 +1,82 @@
+openapi: 3.1.0
+info:
+  title: VendorVerse Reviews API
+  version: 0.1.0
+  description: Eligible transaction reviews, vendor responses, and public rating summary.
+  x-feature-ids: [F-TRU-01, F-TRU-02]
+servers:
+  - url: /v1
+paths:
+  /reviews:
+    post:
+      operationId: createReview
+      security: [{ bearerAuth: [] }]
+      summary: Review a completed transaction as its buyer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CreateReview" }
+      responses:
+        "201": { description: Review created }
+        "401": { description: Authentication required }
+        "404": { description: No eligible transaction for this user }
+        "409": { description: Transaction not complete or already reviewed }
+  /reviews/mine:
+    get:
+      operationId: listMyReviews
+      security: [{ bearerAuth: [] }]
+      summary: List the caller's most recent 100 reviews
+      responses:
+        "200": { description: Reviews }
+  /reviews/{reviewId}/response:
+    post:
+      operationId: respondToReview
+      security: [{ bearerAuth: [] }]
+      summary: Let the vendor owner respond once
+      parameters:
+        - { name: reviewId, in: path, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [response]
+              properties:
+                response: { type: string, minLength: 1, maxLength: 2000 }
+      responses:
+        "201": { description: Response stored }
+        "404": { description: Review not owned by this vendor }
+        "409": { description: Already responded }
+  /vendors/{vendorId}/reviews:
+    get:
+      operationId: listPublicVendorReviews
+      summary: Published reviews and a rating summary for a public vendor
+      parameters:
+        - { name: vendorId, in: path, required: true, schema: { type: string, format: uuid } }
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 25 } }
+      responses:
+        "200": { description: Published reviews, ratingAverage or null, and ratingCount }
+        "404": { description: Vendor has no verified public role }
+components:
+  securitySchemes:
+    bearerAuth: { type: http, scheme: bearer, bearerFormat: JWT }
+  schemas:
+    CreateReview:
+      type: object
+      required: [transactionType, transactionId, overallRating]
+      properties:
+        transactionType: { type: string, enum: [booking, work_order, purchase_order, contract_milestone] }
+        transactionId: { type: string, format: uuid }
+        overallRating: { type: integer, minimum: 1, maximum: 5 }
+        comment: { type: string, minLength: 1, maxLength: 2000 }
+        dimensions:
+          type: array
+          maxItems: 4
+          items:
+            type: object
+            required: [dimension, rating]
+            properties:
+              dimension: { type: string, minLength: 1, maxLength: 50 }
+              rating: { type: integer, minimum: 1, maximum: 5 }

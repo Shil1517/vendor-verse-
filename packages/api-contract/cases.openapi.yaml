@@ -1,0 +1,155 @@
+openapi: 3.1.0
+info:
+  title: VendorVerse Reports and Cases API
+  version: 0.1.0
+  description: Report intake, admin case triage, and appeals. Severity, SLA and case-state vocabulary are owner-configured.
+  x-feature-ids: [F-TRU-03, F-TRU-04]
+servers:
+  - url: /v1
+security:
+  - bearerAuth: []
+paths:
+  /reports:
+    post:
+      operationId: createReport
+      summary: Report a public vendor or listing, or a private record the caller can access
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [targetType, targetId, reason]
+              properties:
+                targetType: { type: string, enum: [vendor, listing, booking, work_order, purchase_order, contract, conversation] }
+                targetId: { type: string, format: uuid }
+                reason: { type: string, minLength: 1, maxLength: 200 }
+                details: { type: string, minLength: 1, maxLength: 4000 }
+      responses:
+        "201": { description: Report recorded }
+        "404": { description: No reportable target for this user }
+  /me/reports:
+    get:
+      operationId: listMyReports
+      responses:
+        "200": { description: Caller reports, most recent 100 }
+  /me/cases:
+    get:
+      operationId: listMyCases
+      responses:
+        "200": { description: Caller cases, most recent 100 }
+  /cases/{caseId}:
+    get:
+      operationId: getMyCase
+      parameters:
+        - { name: caseId, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "200": { description: Case opened by this caller }
+        "404": { description: No case for this caller }
+  /cases/{caseId}/appeals:
+    post:
+      operationId: appealCase
+      summary: Appeal a resolved case opened by the caller
+      parameters:
+        - { name: caseId, in: path, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason: { type: string, minLength: 1, maxLength: 4000 }
+      responses:
+        "201": { description: Appeal submitted }
+        "409": { description: Case unresolved or appeal already pending }
+  /admin/reports:
+    get:
+      operationId: listAdminReports
+      x-required-permission: cases.manage
+      responses:
+        "200": { description: Recent 100 reports }
+  /admin/reports/{reportId}/case:
+    post:
+      operationId: openCaseForReport
+      x-required-permission: cases.manage
+      parameters:
+        - { name: reportId, in: path, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [subject, severity]
+              properties:
+                subject: { type: string, minLength: 1, maxLength: 200 }
+                severity: { type: string, minLength: 1, maxLength: 50 }
+                slaDueAt: { type: string, format: date-time }
+      responses:
+        "201": { description: Case opened }
+        "409": { description: Report already has a case }
+  /admin/cases:
+    get:
+      operationId: listAdminCases
+      x-required-permission: cases.manage
+      responses:
+        "200": { description: Case queue, first 100 }
+  /admin/cases/{caseId}:
+    get:
+      operationId: getAdminCase
+      x-required-permission: cases.manage
+      parameters:
+        - { name: caseId, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "200": { description: Case details }
+    patch:
+      operationId: updateAdminCase
+      x-required-permission: cases.manage
+      parameters:
+        - { name: caseId, in: path, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason: { type: string, minLength: 1, maxLength: 1000 }
+                severity: { type: string, minLength: 1, maxLength: 50 }
+                state: { type: string, minLength: 1, maxLength: 50 }
+                assignedStaffUserId: { type: string, format: uuid }
+                slaDueAt: { type: string, format: date-time }
+                resolution: { type: string, minLength: 1, maxLength: 4000 }
+      responses:
+        "200": { description: Case updated and action audited }
+  /admin/appeals:
+    get:
+      operationId: listAdminAppeals
+      x-required-permission: cases.manage
+      responses:
+        "200": { description: Pending appeals, first 100 }
+  /admin/appeals/{appealId}/decision:
+    post:
+      operationId: decideAppeal
+      x-required-permission: cases.manage
+      parameters:
+        - { name: appealId, in: path, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [outcome, reason]
+              properties:
+                outcome: { type: string, minLength: 1, maxLength: 100 }
+                reason: { type: string, minLength: 1, maxLength: 1000 }
+      responses:
+        "201": { description: Appeal decided by a different case actor }
+        "409": { description: Caller was involved in the original case or appeal already decided }
+components:
+  securitySchemes:
+    bearerAuth: { type: http, scheme: bearer, bearerFormat: JWT }

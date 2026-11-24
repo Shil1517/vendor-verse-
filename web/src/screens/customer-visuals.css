@@ -37,8 +37,8 @@
   background: #fffdf9 !important;
   box-shadow: 0 5px 16px rgba(74, 54, 24, .06);
 }
-.vv-customer-route .vv-notif-anchor { position: relative; }
-.vv-customer-route .vv-notif-dropdown {
+.vv-notif-anchor { position: relative; }
+.vv-notif-dropdown {
   position: absolute;
   top: calc(100% + 12px);
   right: -12px;
@@ -50,26 +50,26 @@
   background: #fffdf9;
   box-shadow: 0 18px 42px rgba(54, 39, 15, .16);
 }
-.vv-customer-route .vv-notif-dropdown-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 15px 16px 12px; border-bottom: 1px solid #eee7da; }
-.vv-customer-route .vv-notif-dropdown-head p { margin: 0; color: #2a2116; font: 700 16px/1.2 "Bricolage Grotesque", "Figtree", sans-serif; }
-.vv-customer-route .vv-notif-dropdown-head span { display: block; margin-top: 3px; color: #8b7b65; font-size: 11px; }
-.vv-customer-route .vv-notif-dropdown-head button,
-.vv-customer-route .vv-notif-footer { border: 0; background: none; color: #8a6420; font-size: 12px; font-weight: 700; }
-.vv-customer-route .vv-notif-list { max-height: 330px; overflow-y: auto; padding: 5px; }
-.vv-customer-route .vv-notif-row { display: flex; width: 100%; gap: 10px; padding: 11px; border: 0; border-radius: 11px; background: #f7f0e2; color: #2a2116; text-align: left; }
-.vv-customer-route .vv-notif-row + .vv-notif-row { margin-top: 3px; }
-.vv-customer-route .vv-notif-row.is-read { background: transparent; }
-.vv-customer-route .vv-notif-row:hover { background: #f1e5cd; }
-.vv-customer-route .vv-notif-dot { width: 7px; height: 7px; flex: none; margin-top: 5px; border-radius: 999px; background: #8a6420; }
-.vv-customer-route .vv-notif-row.is-read .vv-notif-dot { background: #d8cdbb; }
-.vv-customer-route .vv-notif-row b,
-.vv-customer-route .vv-notif-row small,
-.vv-customer-route .vv-notif-row em { display: block; }
-.vv-customer-route .vv-notif-row b { font-size: 12px; }
-.vv-customer-route .vv-notif-row small { margin-top: 2px; color: #6f6251; font-size: 11px; line-height: 1.35; }
-.vv-customer-route .vv-notif-row em { margin-top: 4px; color: #a3927b; font-size: 10px; font-style: normal; }
-.vv-customer-route .vv-notif-empty { margin: 0; padding: 28px 16px; color: #8b7b65; font-size: 12px; text-align: center; }
-.vv-customer-route .vv-notif-footer { width: 100%; padding: 12px 16px; border-top: 1px solid #eee7da; text-align: center; }
+.vv-notif-dropdown-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 15px 16px 12px; border-bottom: 1px solid #eee7da; }
+.vv-notif-dropdown-head p { margin: 0; color: #2a2116; font: 700 16px/1.2 "Bricolage Grotesque", "Figtree", sans-serif; }
+.vv-notif-dropdown-head span { display: block; margin-top: 3px; color: #8b7b65; font-size: 11px; }
+.vv-notif-dropdown-head button,
+.vv-notif-footer { border: 0; background: none; color: #8a6420; font-size: 12px; font-weight: 700; }
+.vv-notif-list { max-height: 330px; overflow-y: auto; padding: 5px; }
+.vv-notif-row { display: flex; width: 100%; gap: 10px; padding: 11px; border: 0; border-radius: 11px; background: #f7f0e2; color: #2a2116; text-align: left; }
+.vv-notif-row + .vv-notif-row { margin-top: 3px; }
+.vv-notif-row.is-read { background: transparent; }
+.vv-notif-row:hover { background: #f1e5cd; }
+.vv-notif-dot { width: 7px; height: 7px; flex: none; margin-top: 5px; border-radius: 999px; background: #8a6420; }
+.vv-notif-row.is-read .vv-notif-dot { background: #d8cdbb; }
+.vv-notif-row b,
+.vv-notif-row small,
+.vv-notif-row em { display: block; }
+.vv-notif-row b { font-size: 12px; }
+.vv-notif-row small { margin-top: 2px; color: #6f6251; font-size: 11px; line-height: 1.35; }
+.vv-notif-row em { margin-top: 4px; color: #a3927b; font-size: 10px; font-style: normal; }
+.vv-notif-empty { margin: 0; padding: 28px 16px; color: #8b7b65; font-size: 12px; text-align: center; }
+.vv-notif-footer { width: 100%; padding: 12px 16px; border-top: 1px solid #eee7da; text-align: center; }
 .vv-customer-route .text-brand-500,
 .vv-customer-route .text-brand-600,
 .vv-customer-route .text-brand-700,
@@ -85,8 +85,8 @@
 .vv-customer-route .ring-brand-600 { border-color: #cbb486 !important; --tw-ring-color: #cbb486 !important; }
 .vv-customer-portal .vv-screen-scroll { background: #f5f5f4 !important; }
 .vv-customer-portal .vv-screen-layout > header { background: #fff; border-color: #e4ddd0; }
-.vv-customer-portal .vv-screen-layout > header h1 { color: #6f5018; font-family: "Bricolage Grotesque", "Figtree", sans-serif; letter-spacing: -.025em; }
-.vv-customer-portal .vv-screen-scroll > div:not(.vv-profile-page):not(.vv-profile-edit-page) { width: min(100% - 48px, 1120px); padding-top: 30px; padding-bottom: 48px; color: #6f5018; font-family: "Figtree", "DM Sans", "Segoe UI", system-ui, sans-serif; }
+.vv-customer-portal .vv-screen-layout > header h1 { color: #111; font-family: "Bricolage Grotesque", "Figtree", sans-serif; letter-spacing: -.025em; }
+.vv-customer-portal .vv-screen-scroll > div:not(.vv-profile-page):not(.vv-profile-edit-page) { width: min(100% - 48px, 1120px); padding-top: 30px; padding-bottom: 48px; color: #111; font-family: "Figtree", "DM Sans", "Segoe UI", system-ui, sans-serif; }
 .vv-customer-portal .vv-screen-scroll .text-brand-700,.vv-customer-portal .vv-screen-scroll .text-brand-800 { color: #8a6420; }
 .vv-customer-portal .vv-screen-scroll .bg-brand-600 { background-color: #6f5018; }
 .vv-customer-portal .vv-screen-scroll .bg-brand-50 { background-color: #f7f4ee; }
@@ -437,7 +437,7 @@
    marketplace browse grid instead of stacking full-width rows. */
 .vv-customer-route .vv-saved-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr));
   align-items: stretch;
   gap: 18px;
 }
@@ -683,4 +683,77 @@
   .vv-customer-dashboard-action-copy small { font-size: 11px; }
   .vv-customer-dashboard .vv-customer-dashboard-action > .vv-customer-dashboard-chevron,
   .vv-customer-dashboard .vv-customer-dashboard-stat > .vv-customer-dashboard-chevron { width: 15px; }
+}
+
+/* ===== Customer dashboard ===== */
+.vv-cdash-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
+.vv-cdash-stat {
+  position: relative; display: flex; flex-direction: column; align-items: flex-start; gap: 4px;
+  padding: 20px; text-align: left; cursor: pointer;
+  background: #fff; border: 1px solid #e4ddd0; border-radius: 18px;
+  box-shadow: 0 1px 2px rgba(60, 45, 12, .05);
+  transition: transform .2s, box-shadow .2s, border-color .2s;
+}
+.vv-cdash-stat:hover { transform: translateY(-3px); border-color: #cbb486; box-shadow: 0 16px 32px -18px rgba(111, 80, 24, .35); }
+.vv-cdash-stat-icon { display: grid; place-items: center; width: 40px; height: 40px; margin-bottom: 10px; border-radius: 12px; background: #f7f4ee; color: #8a6420; }
+.vv-cdash-stat-value { font-family: "Bricolage Grotesque", "Figtree", sans-serif; font-size: 34px; font-weight: 800; line-height: 1; letter-spacing: -.03em; color: #111; }
+.vv-cdash-stat-label { font-size: 13px; font-weight: 600; color: #111; }
+.vv-cdash-heading { margin: 32px 0 14px; font-family: "Bricolage Grotesque", "Figtree", sans-serif; font-size: 20px; font-weight: 700; letter-spacing: -.02em; color: #111; }
+.vv-cdash-actions { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.vv-cdash-action {
+  display: flex; align-items: center; gap: 14px; padding: 18px; text-align: left; cursor: pointer;
+  background: #fff; border: 1px solid #e4ddd0; border-radius: 18px;
+  box-shadow: 0 1px 2px rgba(60, 45, 12, .05);
+  transition: transform .2s, box-shadow .2s, border-color .2s, background .2s;
+}
+.vv-cdash-action:hover { transform: translateY(-3px); border-color: #cbb486; box-shadow: 0 16px 32px -18px rgba(111, 80, 24, .35); }
+.vv-cdash-action-icon { display: grid; flex: none; place-items: center; width: 48px; height: 48px; border-radius: 14px; background: linear-gradient(135deg, #8a6420, #6f5018); color: #fff; }
+.vv-cdash-action-text { display: flex; flex: 1; min-width: 0; flex-direction: column; gap: 2px; }
+.vv-cdash-action-text b { font-size: 15px; font-weight: 700; color: #111; }
+.vv-cdash-action-text small { font-size: 13px; color: #111; }
+.vv-cdash-action-arrow { flex: none; color: #b9a577; transition: transform .2s, color .2s; }
+.vv-cdash-action:hover .vv-cdash-action-arrow { transform: translateX(3px); color: #6f5018; }
+@media (max-width: 1000px) { .vv-cdash-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } .vv-cdash-actions { grid-template-columns: 1fr; } }
+
+/* ===== Customer workspace: one shared column so every page title lines up with its content ===== */
+.vv-customer-route.vv-vendor-workspace-route .vv-screen-layout > header {
+  padding-inline: max(12px, calc((100% - min(100% - 48px, 1120px)) / 2));
+}
+.vv-customer-route.vv-vendor-workspace-route .vv-screen-layout .vv-screen-scroll > div:not(.vv-profile-page):not(.vv-profile-edit-page),
+.vv-customer-route.vv-form-route.vv-vendor-workspace-route .vv-screen-scroll > div {
+  width: min(100% - 48px, 1120px) !important;
+  max-width: none !important;
+  margin-inline: auto !important;
+}
+@media (max-width: 700px) {
+  .vv-customer-route.vv-vendor-workspace-route .vv-screen-layout > header { padding-inline: 8px; }
+  .vv-customer-route.vv-vendor-workspace-route .vv-screen-layout .vv-screen-scroll > div:not(.vv-profile-page):not(.vv-profile-edit-page) { width: calc(100% - 32px) !important; }
+}
+
+/* Customer workspace pages are reached from the sidebar, so the header back arrow is hidden. */
+.vv-customer-route.vv-vendor-workspace-route .vv-screen-layout > header > button[aria-label="Back"] { display: none; }
+.vv-customer-route.vv-vendor-workspace-route .vv-screen-layout > header { gap: 0; }
+/* Back-to-home arrow beside the VendorVerse logo in the customer sidebar. */
+.vx-brand:has(> .vx-home-back) { position: relative; }
+.vx-home-back { display: grid; flex: none; place-items: center; width: 34px; height: 34px; margin-left: auto; border: 1px solid #e4ddd0; border-radius: 50%; background: #fff; color: #6f5018; cursor: pointer; transition: background .15s, transform .15s; }
+.vx-home-back:hover { background: #f7f4ee; transform: translateX(-2px); }
+
+/* Customer sidebar: compact rows so every entry (incl. Account) fits without scrolling */
+.vv-customer-route.vv-customer-route.vv-customer-route .vv-vendor-workspace.vx-shell .vx-nav { gap: 1px; }
+.vv-customer-route.vv-customer-route.vv-customer-route .vv-vendor-workspace.vx-shell .vx-nav-item { gap: 12px; min-height: 36px; padding: 6px 12px; font-size: 14px; }
+.vv-customer-route.vv-customer-route.vv-customer-route .vv-vendor-workspace.vx-shell .vx-nav-item svg,
+.vv-customer-route.vv-customer-route.vv-customer-route .vv-vendor-workspace.vx-shell .vx-nav-item .vx-fa-icon { width: 17px; height: 17px; font-size: 16px; }
+.vv-customer-route.vv-customer-route.vv-customer-route .vv-vendor-workspace.vx-shell .vx-side .vx-group { padding: 10px 12px 4px; font-size: 11px; }
+.vv-customer-route.vv-customer-route.vv-customer-route .vv-vendor-workspace.vx-shell .vx-side .vx-group:first-of-type { padding-top: 4px; }
+
+/* Short windows (not full screen): tighten further and keep the menu scrollable with a visible thin scrollbar */
+.vv-customer-route.vv-customer-route.vv-customer-route .vv-vendor-workspace.vx-shell .vx-side .vx-nav { overflow-y: auto; scrollbar-width: thin; scrollbar-color: rgba(138, 100, 32, .35) transparent; }
+.vv-customer-route.vv-customer-route.vv-customer-route .vv-vendor-workspace.vx-shell .vx-side .vx-nav::-webkit-scrollbar { display: block; width: 5px; }
+.vv-customer-route.vv-customer-route.vv-customer-route .vv-vendor-workspace.vx-shell .vx-side .vx-nav::-webkit-scrollbar-thumb { border-radius: 4px; background: rgba(138, 100, 32, .35); }
+@media (max-height: 960px) {
+  .vv-customer-route.vv-customer-route.vv-customer-route .vv-vendor-workspace.vx-shell .vx-nav-item { min-height: 32px; padding: 4px 12px; font-size: 13.5px; }
+  .vv-customer-route.vv-customer-route.vv-customer-route .vv-vendor-workspace.vx-shell .vx-side .vx-group { padding: 6px 12px 2px; font-size: 10.5px; }
+  .vv-customer-route.vv-customer-route.vv-customer-route .vv-vendor-workspace.vx-shell .vx-side { padding-top: 12px; padding-bottom: 8px; }
+  .vv-customer-route.vv-customer-route.vv-customer-route .vv-vendor-workspace.vx-shell .vx-brand { padding-bottom: 4px; }
+  .vv-customer-route.vv-customer-route.vv-customer-route .vv-vendor-workspace.vx-shell .vx-logout { margin-top: 2px; }
 }

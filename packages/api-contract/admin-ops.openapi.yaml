@@ -1,0 +1,96 @@
+openapi: 3.1.0
+info:
+  title: VendorVerse Admin Operations API
+  version: 0.1.0
+  description: Operational queue counts, restricted audit reads, configuration register decisions, and platform setting storage.
+  x-feature-ids: [F-ADM-01, F-ADM-05, F-ADM-07, F-ADM-08]
+servers:
+  - url: /v1
+security:
+  - bearerAuth: []
+paths:
+  /admin/dashboard:
+    get:
+      operationId: getAdminDashboardCounts
+      x-required-permission: admin.dashboard
+      responses:
+        "200": { description: Live operational queue counts }
+        "403": { description: Missing admin.dashboard }
+  /admin/audit:
+    get:
+      operationId: listAuditEvents
+      x-required-permission: audit.read
+      parameters:
+        - { name: action, in: query, schema: { type: string } }
+        - { name: actorUserId, in: query, schema: { type: string, format: uuid } }
+        - { name: targetType, in: query, schema: { type: string } }
+        - { name: targetId, in: query, schema: { type: string } }
+        - { name: correlationId, in: query, schema: { type: string } }
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 50 } }
+      responses:
+        "200": { description: Most recent matching audit events }
+        "403": { description: Missing audit.read }
+  /admin/config:
+    get:
+      operationId: listConfigRegister
+      x-required-permission: admin.configure
+      responses:
+        "200": { description: CFG register entries }
+  /admin/config/{code}:
+    parameters:
+      - { name: code, in: path, required: true, schema: { type: string, pattern: "^CFG-[0-9]{2}$" } }
+    get:
+      operationId: getConfigRegisterItem
+      x-required-permission: admin.configure
+      responses:
+        "200": { description: One CFG item }
+        "404": { description: Unknown code }
+    patch:
+      operationId: decideConfigRegisterItem
+      x-required-permission: admin.configure
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [decidedValue, reason]
+              properties:
+                decidedValue: { type: object }
+                reason: { type: string, minLength: 1, maxLength: 1000 }
+      responses:
+        "200": { description: Decision stored and audited }
+  /admin/settings:
+    get:
+      operationId: listPlatformSettings
+      x-required-permission: admin.configure
+      responses:
+        "200": { description: Stored settings }
+  /admin/settings/{key}:
+    parameters:
+      - { name: key, in: path, required: true, schema: { type: string } }
+    get:
+      operationId: getPlatformSetting
+      x-required-permission: admin.configure
+      responses:
+        "200": { description: Stored setting }
+        "404": { description: Unknown key }
+    put:
+      operationId: putPlatformSetting
+      x-required-permission: admin.configure
+      description: Storage only; individual runtime consumers must be wired separately.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [value, reason]
+              properties:
+                value: { type: object }
+                reason: { type: string, minLength: 1, maxLength: 1000 }
+      responses:
+        "200": { description: Setting stored and audited }
+components:
+  securitySchemes:
+    bearerAuth: { type: http, scheme: bearer, bearerFormat: JWT }

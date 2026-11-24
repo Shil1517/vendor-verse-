@@ -1,0 +1,49 @@
+openapi: 3.1.0
+info:
+  title: VendorVerse Subscription Invoice Reads
+  version: 0.1.0
+  description: Read existing invoices. Issuance and tax calculation await CFG-16.
+  x-feature-ids: [F-SUB-07, F-SUB-08]
+servers:
+  - url: /v1
+security:
+  - bearerAuth: []
+paths:
+  /vendors/{vendorId}/invoices:
+    get:
+      operationId: listOwnVendorInvoices
+      parameters:
+        - { name: vendorId, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "200": { description: Latest 100 invoices for an owned vendor }
+        "404": { description: Vendor is not owned by caller }
+  /vendors/{vendorId}/invoices/{invoiceId}:
+    get:
+      operationId: getOwnVendorInvoice
+      parameters:
+        - { name: vendorId, in: path, required: true, schema: { type: string, format: uuid } }
+        - { name: invoiceId, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "200": { description: Invoice for an owned vendor }
+        "404": { description: Vendor or invoice not found for caller }
+  /admin/invoices:
+    get:
+      operationId: listInvoicesForInvestigation
+      x-required-permission: invoices.read
+      responses:
+        "200": { description: Latest 100 invoices }
+  /admin/invoices/{invoiceId}:
+    get:
+      operationId: getInvoiceForInvestigation
+      x-required-permission: invoices.read
+      parameters:
+        - { name: invoiceId, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "200": { description: Invoice detail }
+        "404": { description: No such invoice }
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

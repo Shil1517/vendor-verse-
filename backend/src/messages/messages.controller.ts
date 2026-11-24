@@ -1,8 +1,8 @@
-import { Body, Controller, Get, Param, ParseUUIDPipe, Post, UseGuards } from "@nestjs/common";
+import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Post, UseGuards } from "@nestjs/common";
 import { ApiBearerAuth, ApiTags } from "@nestjs/swagger";
 import { AccessTokenGuard } from "../auth/access-token.guard";
 import { AuthenticatedUser, CurrentUser } from "../auth/authenticated-user.decorator";
-import { StartConversationDto, SendMessageDto } from "./dto/message.dto";
+import { ContactConsentDto, StartConversationDto, SendMessageDto } from "./dto/message.dto";
 import { MessagesService } from "./messages.service";
 
 @Controller("conversations")
@@ -30,5 +30,20 @@ export class MessagesController {
   @Post(":conversationId/messages")
   send(@CurrentUser() user: AuthenticatedUser, @Param("conversationId", ParseUUIDPipe) id: string, @Body() body: SendMessageDto) {
     return this.messages.send(user, id, body);
+  }
+
+  @Get(":conversationId/contact-consents")
+  consents(@CurrentUser() user: AuthenticatedUser, @Param("conversationId", ParseUUIDPipe) id: string) {
+    return this.messages.consents(user, id);
+  }
+
+  @Post(":conversationId/contact-consents")
+  grantConsent(@CurrentUser() user: AuthenticatedUser, @Param("conversationId", ParseUUIDPipe) id: string, @Body() body: ContactConsentDto) {
+    return this.messages.grantConsent(user, id, body.scope);
+  }
+
+  @Delete(":conversationId/contact-consents/:scope")
+  revokeConsent(@CurrentUser() user: AuthenticatedUser, @Param("conversationId", ParseUUIDPipe) id: string, @Param("scope") scope: string) {
+    return this.messages.revokeConsent(user, id, scope);
   }
 }

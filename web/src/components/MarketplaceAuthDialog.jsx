@@ -11,14 +11,15 @@ const CALLING_CODES = [
 
 /* Lets any screen open the marketplace sign-in / sign-up popup (hosted in WebHeader). */
 export const OPEN_AUTH_EVENT = 'vv:open-auth'
-export const openAuthDialog = (mode = 'signin') => window.dispatchEvent(new CustomEvent(OPEN_AUTH_EVENT, { detail: { mode } }))
+/** `after` = { next, nextParams }: the screen to open once the person has signed in. */
+export const openAuthDialog = (mode = 'signin', role = 'customer', after = {}) => window.dispatchEvent(new CustomEvent(OPEN_AUTH_EVENT, { detail: { mode, role, ...after } }))
 
-export function MarketplaceAuthDialog({ mode, onClose, onChangeMode }) {
+export function MarketplaceAuthDialog({ mode, initialRole = 'customer', next, nextParams, onClose, onChangeMode }) {
   const nav = useNav()
   const { toast } = useApp()
   const dialogRef = useRef(null)
   const [loginMethod, setLoginMethod] = useState('phone')
-  const [selectedRole, setSelectedRole] = useState('customer')
+  const [selectedRole, setSelectedRole] = useState(initialRole === 'vendor' ? 'vendor' : 'customer')
   const [countryCode, setCountryCode] = useState('+91')
   const [loginContact, setLoginContact] = useState('')
   const [form, setForm] = useState({ name: '', phone: '', email: '', biz: '', agree: false })
@@ -42,7 +43,7 @@ export function MarketplaceAuthDialog({ mode, onClose, onChangeMode }) {
     const valid = loginMethod === 'email' ? isEmail(loginContact) : isPhone(phone)
     if (!valid) { setError(loginMethod === 'email' ? 'Enter a valid email address.' : 'Enter a valid 10-digit mobile number.'); return }
     const contact = loginMethod === 'email' ? loginContact.trim() : `${countryCode} ${phone}`
-    setOtpParams({ contact, role: selectedRole, method: loginMethod })
+    setOtpParams({ contact, role: selectedRole, method: loginMethod, next, nextParams })
   }
   const submitSignup = (event) => {
     event.preventDefault()

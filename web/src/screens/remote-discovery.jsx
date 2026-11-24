@@ -7,8 +7,8 @@
  * is labelled, never shown as zero (F-DSC-05).
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { CalendarClock, Heart, MapPin, MessageCircle, Search, Zap } from 'lucide-react'
-import { Badge, Banner, Button, Card, Chips, EmptyState, Input, KV, ListRow, Screen, Section, Segmented, SearchBar, Toggle, cx } from '../ui.jsx'
+import { CalendarClock, GitCompare, Heart, MapPin, MessageCircle, Search, ShieldCheck, Star, Zap } from 'lucide-react'
+import { Avatar, Badge, Banner, Button, Card, Chips, EmptyState, Input, KV, ListRow, Screen, Section, Segmented, SearchBar, Toggle, cx } from '../ui.jsx'
 import { useApp } from '../store.jsx'
 import { useNav } from '../nav.jsx'
 import { authService } from '../services/authService.js'
@@ -155,7 +155,7 @@ const RESULT_IMAGES = {
   'Event catering': '/category-images/event-catering.jpg',
 }
 
-function VendorActions({ vendorId, listingId }) {
+function VendorActions({ vendorId, listingId, compact = false }) {
   const nav = useNav()
   const { me } = useApp()
   const [busy, setBusy] = useState(false)
@@ -176,6 +176,14 @@ function VendorActions({ vendorId, listingId }) {
       setBusy(false)
     }
   }
+
+  if (compact) return <div className="shrink-0">
+    <div className="flex gap-1.5">
+      <button type="button" onClick={() => nav.go('c_vendor', { id: vendorId, listingId })} className="inline-flex h-8 items-center rounded-lg border border-ink-200 bg-white px-3 text-xs font-semibold text-ink-800 transition hover:border-brand-600 hover:bg-brand-50 hover:text-brand-800 focus-visible:outline-2 focus-visible:outline-brand-600">View profile</button>
+      <button type="button" disabled={busy} onClick={message} className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-brand-700 px-3 text-xs font-semibold text-white transition hover:bg-brand-800 focus-visible:outline-2 focus-visible:outline-brand-600 disabled:cursor-wait disabled:opacity-60"><MessageCircle size={13} aria-hidden="true" />{busy ? 'Opening…' : 'Message'}</button>
+    </div>
+    {failure && <p role="alert" className="mt-1 text-xs text-red-700">{failure}</p>}
+  </div>
 
   return <div className="mt-4 border-t border-ink-100 pt-4">
     <div className="flex flex-wrap gap-2.5">
@@ -227,22 +235,64 @@ function ResultCard({ listing: l, sample = false, onClick }) {
   )
 }
 
-export function RemoteExplore({ params = {} }) {
+function vendorsFromListings(listings) {
+  const vendors = new Map()
+  for (const listing of listings) {
+    const vendor = listing.vendor
+    if (vendor?.name && !vendors.has(vendor.id || vendor.name)) vendors.set(vendor.id || vendor.name, { ...vendor, listing })
+  }
+  return [...vendors.values()]
+}
+
+function VendorCard({ vendor, sample }) {
+  const listing = vendor.listing
+  const city = listing.city || vendor.city
+  const rating = Number(vendor.ratingAvg ?? vendor.rating)
+  const reviews = vendor.reviewCount ?? vendor.ratingCount
+  const hasRating = Number.isFinite(rating) && rating > 0
+  return <Card className="p-3.5 transition duration-200 hover:border-brand-600/40 hover:shadow-md">
+    <div className="flex items-center gap-3">
+      <div className="grid size-11 shrink-0 place-items-center rounded-xl bg-brand-50 text-lg font-bold text-brand-700" aria-hidden="true">{vendor.name.charAt(0).toUpperCase()}</div>
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-2">
+          <h3 className="truncate text-[15px] font-bold leading-tight text-ink-900">{vendor.name}</h3>
+          {sample && <Badge tone="gray">Sample</Badge>}
+        </div>
+        <p className="mt-0.5 truncate text-[13px] font-medium text-ink-700">{listing.categoryName}</p>
+      </div>
+      <span className="inline-flex shrink-0 items-center gap-1 text-xs font-semibold text-ink-600">
+        <Star size={13} aria-hidden="true" className={hasRating ? 'fill-amber-400 text-amber-400' : 'text-ink-300'} />
+        {hasRating ? <>{rating.toFixed(1)}{reviews ? <span className="font-normal text-ink-500">({reviews})</span> : null}</> : <span className="font-normal text-ink-500">No ratings yet</span>}
+      </span>
+    </div>
+    <div className="mt-2.5 flex items-center justify-between gap-2">
+      <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-xs text-ink-500">
+        {city && <span className="inline-flex items-center gap-1"><MapPin size={12} aria-hidden="true" />{city}</span>}
+        {vendor.roles?.map((role) => <span key={role} className="rounded-full bg-ink-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-ink-600">{role.replaceAll('_', ' ')}</span>)}
+      </div>
+      {!sample && <VendorActions vendorId={vendor.id} compact />}
+    </div>
+  </Card>
+}
+
+/** `supplierOnly` (vendor Supplier shop): only vendors holding the chosen role (F-DSC-04), and never the seed-data samples. */
+export function RemoteExplore({ params = {}, supplierOnly = false }) {
   const nav = useNav()
   const app = useApp()
   const locale = app.locale ?? app.loc ?? {} // web keeps the place in `locale`, mobile in `loc`
   const [q, setQ] = useState(params.q || '')
   const [group, setGroup] = useState(params.group || '') // top-level category picked in the marketplace header
-  const [type, setType] = useState('all')
+  const [type, setType] = useState(params.mode === 'vendors' ? 'vendor' : 'all')
   const [categoryId, setCategoryId] = useState('all')
   const [instantOnly, setInstantOnly] = useState(false)
+  const [vendorRole, setVendorRole] = useState('SUPPLIER')
   const [min, setMin] = useState('')
   const [max, setMax] = useState('')
   const [state, setState] = useState({ loading: true, error: '', items: [], nextCursor: null, marketLive: true })
   const country = locale.country || 'IN'
 
   // Picking another header category while this screen is open starts a fresh browse of it.
-  useEffect(() => { setGroup(params.group || ''); setQ(params.q || ''); setCategoryId('all') }, [params.group, params.q])
+  useEffect(() => { setGroup(params.group || ''); setQ(params.q || ''); setCategoryId('all'); setType(params.mode === 'vendors' ? 'vendor' : 'all') }, [params.group, params.q, params.mode])
 
   // Resolve the saved city name to a geography id once.
   const cities = useLoad(() => authService.listCities(country), [country])
@@ -251,9 +301,10 @@ export function RemoteExplore({ params = {} }) {
 
   const filters = useMemo(() => ({
     countryCode: country, cityId, q: q.trim() || undefined, categoryId: categoryId === 'all' ? undefined : categoryId,
-    listingType: type === 'all' ? undefined : type, instantOnly: instantOnly || undefined,
+    listingType: type === 'product' || type === 'service' ? type : undefined, instantOnly: instantOnly || undefined,
     minPriceMinor: min ? Number(min) * 100 : undefined, maxPriceMinor: max ? Number(max) * 100 : undefined,
-  }), [country, cityId, q, categoryId, type, instantOnly, min, max])
+    vendorRole: supplierOnly ? vendorRole : undefined,
+  }), [country, cityId, q, categoryId, type, instantOnly, min, max, supplierOnly, vendorRole])
 
   const search = useCallback(async (cursor) => {
     setState((s) => ({ ...s, loading: true, error: '', ...(cursor ? {} : { items: [] }) }))
@@ -274,7 +325,7 @@ export function RemoteExplore({ params = {} }) {
   const groupSubs = group && group !== 'New vendors' ? SAMPLE_GROUPS[group] || [] : null
   // The API has flat categories; the header groups them by name, so apply the group here.
   const visibleItems = useMemo(() => (groupSubs ? state.items.filter((l) => groupSubs.includes(l.categoryName)) : state.items), [state.items, groupSubs])
-  const useSamples = !state.loading && visibleItems.length === 0 && (Boolean(state.error) || state.marketLive)
+  const useSamples = !supplierOnly && !state.loading && visibleItems.length === 0 && (Boolean(state.error) || state.marketLive)
   const sampleCategories = Object.entries(SAMPLE_GROUPS).filter(([g]) => !group || group === 'New vendors' || g === group).flatMap(([, subs]) => subs)
   const chipOptions = realCategories.length > 0
     ? realCategories.filter((c) => !groupSubs || groupSubs.includes(c.name)).map((c) => ({ id: c.categoryId, label: c.name }))
@@ -283,7 +334,7 @@ export function RemoteExplore({ params = {} }) {
     const text = q.trim().toLowerCase()
     return SAMPLE_LISTINGS.filter((l) => {
       if (group === 'New vendors' ? !l.isNew : group && l.group !== group) return false
-      if (type !== 'all' && l.listingType !== type) return false
+      if (type !== 'all' && type !== 'vendor' && l.listingType !== type) return false
       if (categoryId !== 'all' && l.categoryName !== categoryId) return false
       if (instantOnly && !l.instantBooking) return false
       if (min && l.price.maxMinor < Number(min) * 100) return false
@@ -291,6 +342,11 @@ export function RemoteExplore({ params = {} }) {
       return !text || [l.title, l.vendor.name, l.categoryName, l.group, l.city].some((v) => v.toLowerCase().includes(text))
     })
   }, [q, group, type, categoryId, instantOnly, min, max])
+  const resultListings = useSamples ? sampleItems : visibleItems
+  const vendorItems = useMemo(() => vendorsFromListings(resultListings), [resultListings])
+  const showListings = type !== 'vendor'
+  const showVendors = type === 'vendor'
+  const resultCount = (showListings ? resultListings.length : 0) + (showVendors ? vendorItems.length : 0)
   const activeFilterCount = [type !== 'all', categoryId !== 'all', Boolean(min), Boolean(max), instantOnly].filter(Boolean).length
 
   return (
@@ -310,8 +366,15 @@ export function RemoteExplore({ params = {} }) {
               <p className="text-xs font-bold uppercase tracking-[0.14em] text-ink-500">Browse by type</p>
               <span className="text-xs text-ink-400">Choose one</span>
             </div>
-            <Segmented className="bg-ink-50" value={type} onChange={setType} options={[{ id: 'all', label: 'All' }, { id: 'product', label: 'Products' }, { id: 'service', label: 'Services' }]} />
+            <Segmented className="bg-ink-50" value={type} onChange={setType} options={[{ id: 'all', label: 'All' }, { id: 'product', label: 'Products' }, { id: 'service', label: 'Services' }, { id: 'vendor', label: 'Vendors' }]} />
           </div>
+
+          {supplierOnly && (
+            <div>
+              <p className="mb-2.5 text-xs font-bold uppercase tracking-[0.14em] text-ink-500">Business type</p>
+              <Segmented className="bg-ink-50" value={vendorRole} onChange={setVendorRole} options={[{ id: 'SUPPLIER', label: 'Suppliers' }, { id: 'MANUFACTURER', label: 'Manufacturers' }]} />
+            </div>
+          )}
 
           {!group && chipOptions.length > 0 && (
             <div>
@@ -342,20 +405,22 @@ export function RemoteExplore({ params = {} }) {
       </aside>
       <div className="vv-explore-listings space-y-3.5">
         <UniversalPanel q={q} country={country} cityId={cityId} signedIn={Boolean(app.me?.loggedIn)} onCategory={setCategoryId} />
-        <p className="pt-1 text-[13px] font-bold uppercase tracking-wide text-ink-500">Products and services{(useSamples ? sampleItems.length : visibleItems.length) > 0 && ` (${useSamples ? sampleItems.length : visibleItems.length})`}</p>
+        <p className="pt-1 text-[13px] font-bold uppercase tracking-wide text-ink-500">{type === 'vendor' ? 'Vendors' : type === 'product' ? 'Products' : type === 'service' ? 'Services' : 'Products and services'}{resultCount > 0 && ` (${resultCount})`}</p>
         {!useSamples && state.error && <ErrorBox message={state.error} onRetry={() => search()} />}
         {!state.error && !state.loading && !state.marketLive && (
           <Banner tone="amber" title="Not live in this area yet">VendorVerse is not open for search in {locale.city || 'this area'} yet, so nothing is shown. Nothing here is hidden from you.</Banner>
         )}
         {!state.error && state.loading && state.items.length === 0 && <Loading />}
-        {useSamples && sampleItems.map((l) => <ResultCard key={l.id} listing={l} sample />)}
-        {useSamples && sampleItems.length === 0 && (
+        {resultCount > 0 && <div className="vv-result-list vv-result-grid">
+          {showVendors && vendorItems.map((vendor) => <VendorCard key={vendor.id || vendor.name} vendor={vendor} sample={useSamples} />)}
+          {showListings && resultListings.map((l) => <ResultCard key={l.id} listing={l} sample={useSamples} onClick={useSamples ? undefined : () => nav.go('c_listing', { id: l.id })} />)}
+        </div>}
+        {useSamples && resultCount === 0 && (
           <EmptyState icon={Search} title="No matches" body="Try different words or remove a filter." action={<Button size="sm" onClick={() => nav.go('c_rfq_new')}>Request a quote</Button>} />
         )}
-        {!useSamples && !state.loading && !state.error && state.marketLive && visibleItems.length === 0 && (
+        {!useSamples && !state.loading && !state.error && state.marketLive && resultCount === 0 && (
           <EmptyState icon={Search} title="No matches" body="Try different words or remove a filter. Results never include vendors that do not serve your area." action={<Button size="sm" onClick={() => nav.go('c_rfq_new')}>Request a quote</Button>} />
         )}
-        {visibleItems.map((l) => <ResultCard key={l.id} listing={l} onClick={() => nav.go('c_listing', { id: l.id })} />)}
         {state.nextCursor && !state.loading && <Button full variant="secondary" onClick={() => search(state.nextCursor)}>Show more</Button>}
         {state.nextCursor && state.loading && <Loading />}
       </div>
@@ -685,4 +750,53 @@ export function RemoteVendorBookings() {
   if (mine.loading) return <Screen title="Work" back={false}><Loading /></Screen>
   if (mine.error) return <Screen title="Work" back={false}><ErrorBox message={mine.error} onRetry={mine.reload} /></Screen>
   return <BookingList title="Work" back={false} load={load} detail="v_booking" empty={vendorId ? 'Booking requests for your listings appear here.' : 'Register your business to receive bookings.'} />
+}
+
+
+/** Saved & compare with the real favourites API (F-DSC-07): only vendors can be saved today, so that is all the Saved tab lists. */
+export function RemoteSaved({ params = {} }) {
+  const nav = useNav()
+  const { toast } = useApp()
+  const [tab, setTab] = useState(params.tab || 'saved')
+  const load = useCallback(() => authService.listFavorites(), [])
+  const saved = useLoad(load, [load])
+  const [removed, setRemoved] = useState([])
+  const items = (saved.data?.favorites || []).filter((f) => !removed.includes(f.vendorId))
+
+  const remove = async (vendorId) => {
+    setRemoved((ids) => [...ids, vendorId])
+    const r = await authService.removeFavorite(vendorId)
+    if (!r.ok) {
+      setRemoved((ids) => ids.filter((id) => id !== vendorId))
+      toast(r.message || 'Could not remove this vendor. Try again.')
+    }
+  }
+
+  return <Screen title="Saved & compare">
+    <Segmented value={tab} onChange={setTab} options={[{ id: 'saved', label: 'Saved', count: saved.data ? items.length : undefined }, { id: 'compare', label: 'Compare' }]} />
+    {tab === 'saved' && <>
+      {saved.loading && !saved.data && <Loading />}
+      {saved.error && <ErrorBox message={saved.error} onRetry={saved.reload} />}
+      {saved.data && (items.length ? <div className="vv-saved-grid">
+        {items.map((f) => {
+          const covers = Object.values(RESULT_IMAGES)
+          const cover = covers[[...f.vendorId].reduce((n, ch) => n + ch.charCodeAt(0), 0) % covers.length]
+          return <Card key={f.vendorId} onClick={() => nav.go('c_vendor', { id: f.vendorId })} className="!p-0 min-w-0 overflow-hidden transition hover:-translate-y-0.5 hover:shadow-lg">
+            <div className="relative h-28 w-full bg-cover bg-center" style={{ backgroundImage: `linear-gradient(90deg, rgba(8,45,55,.45), rgba(8,45,55,.05)), url(${cover})` }}>
+              <button type="button" aria-label={`Remove ${f.name} from saved`} onClick={(e) => { e.stopPropagation(); remove(f.vendorId) }} className="absolute right-2.5 top-2.5 grid size-8 place-items-center rounded-full bg-white/90 text-rose-500 shadow transition hover:bg-white"><Heart size={16} className="fill-current" /></button>
+            </div>
+            <div className="flex min-w-0 items-center gap-3 p-4">
+              <div className="grid size-14 shrink-0 place-items-center rounded-2xl border-4 border-white bg-white shadow"><Avatar name={f.name || 'Vendor'} size={42} /></div>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-bold">{f.name || 'Vendor'}</p>
+                {f.roles?.length > 0 && <p className="mt-0.5 truncate text-xs uppercase tracking-wide text-ink-500">{f.roles.map((r) => r.replaceAll('_', ' ')).join(' · ')}</p>}
+                <div className="mt-1.5"><Badge tone="green"><ShieldCheck size={11} />Verified</Badge></div>
+              </div>
+            </div>
+          </Card>
+        })}
+      </div> : <EmptyState icon={Heart} title="Nothing saved yet" body="Tap the heart on any vendor to keep it here." action={<Button size="sm" onClick={() => nav.go('c_explore')}>Explore</Button>} />)}
+    </>}
+    {tab === 'compare' && <EmptyState icon={GitCompare} title="Compare is not available for live listings yet" body="Saved vendors can be opened and messaged from the Saved tab. Side-by-side comparison of listings is not connected to the live service yet." />}
+  </Screen>
 }

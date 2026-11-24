@@ -1,0 +1,118 @@
+openapi: 3.1.0
+info:
+  title: VendorVerse Plan Catalog API
+  version: 0.1.0
+  description: Configuration-driven plan catalog and subscription monitoring. Checkout and billing callbacks await provider, tax and commercial decisions.
+  x-feature-ids: [F-SUB-01, F-SUB-02, F-SUB-05]
+servers:
+  - url: /v1
+paths:
+  /plans:
+    get:
+      operationId: listActivePlans
+      responses:
+        "200": { description: Active plans and their latest versions }
+  /plans/{planId}:
+    get:
+      operationId: getActivePlan
+      parameters:
+        - { name: planId, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "200": { description: Active plan and its latest version }
+        "404": { description: No active plan }
+  /vendors/{vendorId}/subscription:
+    get:
+      operationId: getOwnVendorSubscription
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: vendorId, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "200": { description: Latest subscription or null, owner only }
+        "404": { description: Vendor is not owned by caller }
+  /vendors/{vendorId}/lead-usage:
+    get:
+      operationId: getOwnVendorLeadUsage
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: vendorId, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "200": { description: Up to 12 most recent lead usage periods, owner only }
+        "404": { description: Vendor is not owned by caller }
+  /admin/plans:
+    get:
+      operationId: listAllPlans
+      security: [{ bearerAuth: [] }]
+      x-required-permission: plans.manage
+      responses:
+        "200": { description: All plans and latest versions }
+    post:
+      operationId: createDraftPlan
+      security: [{ bearerAuth: [] }]
+      x-required-permission: plans.manage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name: { type: string, minLength: 1, maxLength: 100 }
+      responses:
+        "201": { description: Draft plan created }
+  /admin/plans/{planId}/versions:
+    post:
+      operationId: createPlanVersion
+      security: [{ bearerAuth: [] }]
+      x-required-permission: plans.manage
+      parameters:
+        - { name: planId, in: path, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [entitlements]
+              properties:
+                priceMinor: { type: integer, minimum: 0 }
+                currency: { type: string, pattern: '^[A-Z]{3}$' }
+                billingInterval: { type: string, minLength: 1, maxLength: 50 }
+                entitlements: { type: object, additionalProperties: true }
+      responses:
+        "201": { description: Immutable version created }
+  /admin/plans/{planId}/status:
+    patch:
+      operationId: setPlanStatus
+      security: [{ bearerAuth: [] }]
+      x-required-permission: plans.manage
+      parameters:
+        - { name: planId, in: path, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status, reason]
+              properties:
+                status: { type: string, enum: [draft, active, retired] }
+                reason: { type: string, minLength: 1, maxLength: 1000 }
+      responses:
+        "200": { description: Status changed and audited }
+        "409": { description: Activation needs a priced latest version }
+  /admin/subscriptions:
+    get:
+      operationId: monitorSubscriptions
+      security: [{ bearerAuth: [] }]
+      x-required-permission: plans.manage
+      parameters:
+        - { name: state, in: query, schema: { type: string, enum: [active, payment_failed, expired, cancel_at_period_end, cancelled] } }
+      responses:
+        "200": { description: Latest 100 subscriptions, optionally filtered by state }
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

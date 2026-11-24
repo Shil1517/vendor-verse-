@@ -34,6 +34,7 @@ export const AUTH_ERRORS = {
   ACCOUNT_BLOCKED: 'ACCOUNT_BLOCKED',
   PRIVILEGED_BLOCKED: 'PRIVILEGED_BLOCKED',
   NETWORK: 'NETWORK',
+  SESSION_EXPIRED: 'SESSION_EXPIRED',
   PROVIDER_ERROR: 'PROVIDER_ERROR',
   INVALID_PROFILE: 'INVALID_PROFILE',
   NOT_FOUND: 'NOT_FOUND',
@@ -54,6 +55,7 @@ export const AUTH_MESSAGES = {
   ACCOUNT_BLOCKED: 'This account cannot sign in. See your account status for details.',
   PRIVILEGED_BLOCKED: 'Sales Agent and Super Admin sign-in is not available yet.',
   NETWORK: 'Cannot reach the server. Check your connection and try again.',
+  SESSION_EXPIRED: 'Your session has expired. Please sign in again.',
   PROVIDER_ERROR: 'We could not complete that. Please try again.',
   INVALID_PROFILE: 'Check your details and try again.',
   NOT_FOUND: 'That item no longer exists.',
@@ -221,6 +223,15 @@ export function createApiAuthService({ baseUrl, fetchImpl = (...args) => globalT
     return refreshing
   }
 
+  /** A 401 that survives the refresh means the session is gone: tell the app once so it can ask the user to sign in again. */
+  let expiredAt = 0
+  function notifySessionExpired() {
+    if (Date.now() - expiredAt < 5000) return
+    expiredAt = Date.now()
+    store.clear()
+    try { globalThis.dispatchEvent?.(new CustomEvent('vv:open-auth', { detail: { mode: 'signin', role: 'customer' } })) } catch { /* non-browser */ }
+  }
+
   /** Authenticated call with one transparent refresh-and-retry on 401. `body` may be a function of the current session. */
   async function authed(path, { method = 'POST', body, headers } = {}) {
     const attempt = () => {
@@ -230,6 +241,7 @@ export function createApiAuthService({ baseUrl, fetchImpl = (...args) => globalT
     }
     let r = await attempt()
     if (r.status === 401 && (await refresh())) r = await attempt()
+    if (r.status === 401) notifySessionExpired()
     return r
   }
 
@@ -272,6 +284,23 @@ export function createApiAuthService({ baseUrl, fetchImpl = (...args) => globalT
     return { ok: true, account: me.data }
   }
 
+  /** Super Admin sign-in: POST /auth/admin/login with the admin ID and password, then GET /me. Every wrong ID or password answers the same message. */
+  async function adminLogin(loginId, password) {
+    if (!String(loginId || '').trim() || !password) return { ok: false, message: 'Enter the admin ID and password.' }
+    const r = await call('/auth/admin/login', { body: { loginId: String(loginId).trim(), password } })
+    if (r.status === 401) return { ok: false, message: 'Invalid admin ID or password.' }
+    if (r.status === 429) return { ok: false, message: 'Too many sign-in attempts. Try again later.' }
+    if (r.status === 503) return fail(AUTH_ERRORS.PRIVILEGED_BLOCKED)
+    if (r.status !== 200 || !r.data?.accessToken) return fail(r.status === 0 ? AUTH_ERRORS.NETWORK : AUTH_ERRORS.PROVIDER_ERROR)
+    store.set(r.data)
+    const me = await authed('/me', { method: 'GET' })
+    if (me.status !== 200 || !me.data?.userId) {
+      store.clear()
+      return fail(me.status === 0 ? AUTH_ERRORS.NETWORK : AUTH_ERRORS.PROVIDER_ERROR)
+    }
+    return { ok: true, account: me.data }
+  }
+
   async function requestEmailLink(email) {
     const r = await authed('/auth/email-link/request', { body: { channel: 'email', identifier: canonicalIdentifier(email) } })
     if (r.status === 202 && r.data?.challengeId) return { ok: true, challengeId: r.data.challengeId, devCode: r.data.devCode }
@@ -298,6 +327,7 @@ export function createApiAuthService({ baseUrl, fetchImpl = (...args) => globalT
   /* ---- F-ACC-06 customer profile and saved locations (all calls are for the signed-in user) ---- */
   const profileFail = (r) => {
     if (r.status === 0) return fail(AUTH_ERRORS.NETWORK)
+    if (r.status === 401) return fail(AUTH_ERRORS.SESSION_EXPIRED)
     if (r.status === 400) return fail(AUTH_ERRORS.INVALID_PROFILE)
     if (r.status === 404) return fail(AUTH_ERRORS.NOT_FOUND)
     if (r.status === 409) return fail(AUTH_ERRORS.CONFLICT)
@@ -505,7 +535,7 @@ export function createApiAuthService({ baseUrl, fetchImpl = (...args) => globalT
   /* ---- F-VND-03 verification ---- */
   const verificationFail = (r) => ({
     ok: false,
-    code: r.status === 0 ? AUTH_ERRORS.NETWORK : r.status === 503 ? 'UNAVAILABLE' : r.status === 403 ? 'FORBIDDEN' : r.status === 404 ? AUTH_ERRORS.NOT_FOUND : r.status === 409 ? AUTH_ERRORS.CONFLICT : AUTH_ERRORS.PROVIDER_ERROR,
+    code: r.status === 0 ? AUTH_ERRORS.NETWORK : r.status === 401 ? AUTH_ERRORS.SESSION_EXPIRED : r.status === 503 ? 'UNAVAILABLE' : r.status === 403 ? 'FORBIDDEN' : r.status === 404 ? AUTH_ERRORS.NOT_FOUND : r.status === 409 ? AUTH_ERRORS.CONFLICT : AUTH_ERRORS.PROVIDER_ERROR,
     message: r.data?.detail || r.data?.message || (r.status === 503 ? 'Evidence storage is not configured yet.' : r.status === 403 ? 'You are not allowed to review this verification.' : r.status === 0 ? AUTH_MESSAGES.NETWORK : AUTH_MESSAGES.PROVIDER_ERROR),
   })
 
@@ -628,8 +658,8 @@ export function createApiAuthService({ baseUrl, fetchImpl = (...args) => globalT
   const bookingFail = (r) => ({
     ok: false,
     status: r.status,
-    code: r.status === 0 ? AUTH_ERRORS.NETWORK : r.status === 403 ? 'FORBIDDEN' : r.status === 404 ? AUTH_ERRORS.NOT_FOUND : r.status === 409 ? AUTH_ERRORS.CONFLICT : r.status === 400 ? AUTH_ERRORS.INVALID_PROFILE : AUTH_ERRORS.PROVIDER_ERROR,
-    message: r.data?.detail || r.data?.message || (r.status === 0 ? AUTH_MESSAGES.NETWORK : AUTH_MESSAGES.PROVIDER_ERROR),
+    code: r.status === 0 ? AUTH_ERRORS.NETWORK : r.status === 401 ? AUTH_ERRORS.SESSION_EXPIRED : r.status === 403 ? 'FORBIDDEN' : r.status === 404 ? AUTH_ERRORS.NOT_FOUND : r.status === 409 ? AUTH_ERRORS.CONFLICT : r.status === 400 ? AUTH_ERRORS.INVALID_PROFILE : AUTH_ERRORS.PROVIDER_ERROR,
+    message: (r.status === 401 ? AUTH_MESSAGES.SESSION_EXPIRED : r.data?.detail || r.data?.message) || (r.status === 0 ? AUTH_MESSAGES.NETWORK : AUTH_MESSAGES.PROVIDER_ERROR),
   })
 
   /**
@@ -911,7 +941,7 @@ export function createApiAuthService({ baseUrl, fetchImpl = (...args) => globalT
   }
 
   /* ---- F-GEO-*, F-TAX-01, F-VND-05/06 vendor listings and coverage (remaining reads and vendor-side writes) ---- */
-  const bad = (r) => ({ ok: false, status: r.status, code: r.status === 0 ? AUTH_ERRORS.NETWORK : r.status === 403 ? 'FORBIDDEN' : r.status === 404 ? AUTH_ERRORS.NOT_FOUND : r.status === 409 ? AUTH_ERRORS.CONFLICT : r.status === 400 ? AUTH_ERRORS.INVALID_PROFILE : AUTH_ERRORS.PROVIDER_ERROR, message: r.data?.detail || r.data?.message || (r.status === 0 ? AUTH_MESSAGES.NETWORK : AUTH_MESSAGES.PROVIDER_ERROR) })
+  const bad = (r) => ({ ok: false, status: r.status, code: r.status === 0 ? AUTH_ERRORS.NETWORK : r.status === 401 ? AUTH_ERRORS.SESSION_EXPIRED : r.status === 403 ? 'FORBIDDEN' : r.status === 404 ? AUTH_ERRORS.NOT_FOUND : r.status === 409 ? AUTH_ERRORS.CONFLICT : r.status === 400 ? AUTH_ERRORS.INVALID_PROFILE : AUTH_ERRORS.PROVIDER_ERROR, message: (r.status === 401 ? AUTH_MESSAGES.SESSION_EXPIRED : r.data?.detail || r.data?.message) || (r.status === 0 ? AUTH_MESSAGES.NETWORK : AUTH_MESSAGES.PROVIDER_ERROR) })
   const query = (o = {}) => { const p = new URLSearchParams(); for (const [k, v] of Object.entries(o)) if (v !== undefined && v !== null && v !== '') p.set(k, String(v)); return p.size ? `?${p}` : '' }
   const okBody = (r) => r.status === 200 || r.status === 201
 
@@ -1026,7 +1056,13 @@ export function createApiAuthService({ baseUrl, fetchImpl = (...args) => globalT
     return r.status === 200 ? { ok: true, ...r.data } : bad(r)
   }
 
-  return { requestOtp, verifyOtp, requestEmailLink, verifyEmailLink, endSession, getProfile, saveProfile, listLocations, addLocation, updateLocation, removeLocation, listSessions, revokeSession, getNotificationPreferences, saveNotificationPreferences, listDataRequests, requestDataRequest, cancelDataRequest, listNotifications, getUnreadNotificationCount, markNotificationRead, markAllNotificationsRead, createVendor, switchMode, listMyVendors, updateVendor, getPublicVendor, startConversation, listConversations, getConversation, sendConversationMessage, listVendorRoleCatalogue, listVendorRoles, addVendorRole, removeVendorRole, listVendorRoleReviews, decideVendorRole, listVendorRoleDefinitions, createVendorRoleDefinition, updateVendorRoleDefinition, listVendorDocuments, listVendorVerifications, submitVendorVerification, uploadVendorEvidence, getFile, registerVendorDocument, listVerificationQueue, reviewVerification, getVerificationEvidenceUrl, listCities, listCategories, searchListings, getPublicListing, listFavorites, addFavorite, removeFavorite, createBooking, listMyBookings, listVendorBookings, getBooking, bookingAction, proposeBookingModification, decideBookingModification, universalSearch, createRfq, openRfq, listMyRfqs, listVendorRfqs, getRfq, listRfqQuotes, submitQuote, listListingCapacity, reviseQuote, withdrawQuote, acceptQuote, extendRfqDeadline, listMyWorkOrders, listVendorWorkOrders, getWorkOrder, workOrderAction, proposeContract, listMyContracts, listVendorContracts, getContract, reviseContract, acceptContract, declineContract, addContractMilestone, milestoneAction, completeContract, listMyPurchaseOrders, listVendorPurchaseOrders, getPurchaseOrder, purchaseOrderAction, openPurchaseOrderDispute, resolvePurchaseOrderDispute, createLocalBooking, createLocalBookingSeries, listMyLocalBookings, listVendorLocalBookings, getLocalBooking, listLocalBookingEvents, localBookingAction, cancelLocalBooking, proposeLocalBookingModification, decideLocalBookingModification, confirmLocalBookingCompletion, reportLocalBookingCompletion, resolveLocalBookingConflicts, listCountries, listRegions, lookupPincode, listLocalities, listMyWaitlist, joinCityWaitlist, leaveCityWaitlist, listIndustries, getCategory, createListing, listVendorListings, getListing, updateListing, listingTransition, getPublicationGates, getListingAvailability, saveListingAvailability, clearListingAvailability, addListingCapacity, removeListingCapacity, listServiceAreas, addServiceArea, removeServiceArea, getFileDownloadUrl, isRemote: true }
+  /** Shared request path for the newer Phase 1 screens. Keeps refresh and errors consistent. */
+  async function apiRequest(path, { method = 'GET', body, publicRead = false } = {}) {
+    const r = publicRead ? await call(path, { method, body }) : await authed(path, { method, body })
+    return r.status >= 200 && r.status < 300 ? { ok: true, data: r.data, status: r.status } : bad(r)
+  }
+
+  return { requestOtp, verifyOtp, adminLogin, requestEmailLink, verifyEmailLink, endSession, getProfile, saveProfile, listLocations, addLocation, updateLocation, removeLocation, listSessions, revokeSession, getNotificationPreferences, saveNotificationPreferences, listDataRequests, requestDataRequest, cancelDataRequest, listNotifications, getUnreadNotificationCount, markNotificationRead, markAllNotificationsRead, createVendor, switchMode, listMyVendors, updateVendor, getPublicVendor, startConversation, listConversations, getConversation, sendConversationMessage, listVendorRoleCatalogue, listVendorRoles, addVendorRole, removeVendorRole, listVendorRoleReviews, decideVendorRole, listVendorRoleDefinitions, createVendorRoleDefinition, updateVendorRoleDefinition, listVendorDocuments, listVendorVerifications, submitVendorVerification, uploadVendorEvidence, getFile, registerVendorDocument, listVerificationQueue, reviewVerification, getVerificationEvidenceUrl, listCities, listCategories, searchListings, getPublicListing, listFavorites, addFavorite, removeFavorite, createBooking, listMyBookings, listVendorBookings, getBooking, bookingAction, proposeBookingModification, decideBookingModification, universalSearch, createRfq, openRfq, listMyRfqs, listVendorRfqs, getRfq, listRfqQuotes, submitQuote, listListingCapacity, reviseQuote, withdrawQuote, acceptQuote, extendRfqDeadline, listMyWorkOrders, listVendorWorkOrders, getWorkOrder, workOrderAction, proposeContract, listMyContracts, listVendorContracts, getContract, reviseContract, acceptContract, declineContract, addContractMilestone, milestoneAction, completeContract, listMyPurchaseOrders, listVendorPurchaseOrders, getPurchaseOrder, purchaseOrderAction, openPurchaseOrderDispute, resolvePurchaseOrderDispute, createLocalBooking, createLocalBookingSeries, listMyLocalBookings, listVendorLocalBookings, getLocalBooking, listLocalBookingEvents, localBookingAction, cancelLocalBooking, proposeLocalBookingModification, decideLocalBookingModification, confirmLocalBookingCompletion, reportLocalBookingCompletion, resolveLocalBookingConflicts, listCountries, listRegions, lookupPincode, listLocalities, listMyWaitlist, joinCityWaitlist, leaveCityWaitlist, listIndustries, getCategory, createListing, listVendorListings, getListing, updateListing, listingTransition, getPublicationGates, getListingAvailability, saveListingAvailability, clearListingAvailability, addListingCapacity, removeListingCapacity, listServiceAreas, addServiceArea, removeServiceArea, getFileDownloadUrl, apiRequest, isRemote: true }
 }
 
 const apiBaseUrl = import.meta.env?.VITE_API_BASE_URL
