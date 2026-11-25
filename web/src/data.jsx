@@ -54,6 +54,9 @@ export const INDUSTRIES = [
   { id: 'i_lux', name: 'Jewellery, gifts & luxury', icon: Gem, tone: 'amber', cats: 26, subs: ['Jewellery makers', 'Corporate gifting'], phase: 'MVP' },
   { id: 'i_print2', name: 'Packaging & printing', icon: Printer, tone: 'violet', cats: 43, subs: ['Corrugated boxes', 'Labels', 'Custom packaging'], phase: 'MVP' },
 ]
+export const SORTED_INDUSTRIES = [...INDUSTRIES]
+  .sort((a, b) => a.name.localeCompare(b.name))
+  .map((industry) => ({ ...industry, subs: [...industry.subs].sort((a, b) => a.localeCompare(b)) }))
 export const cat = (id) => CATS.find((c) => c.id === id) || CATS[0]
 
 /* ---------- vendors ---------- */

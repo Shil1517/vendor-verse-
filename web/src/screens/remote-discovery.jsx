@@ -7,7 +7,7 @@
  * is labelled, never shown as zero (F-DSC-05).
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { CalendarClock, GitCompare, Heart, MapPin, MessageCircle, Search, ShieldCheck, Star, Zap } from 'lucide-react'
+import { ArrowLeft, Briefcase, CalendarClock, CheckCircle2, GitCompare, Heart, MapPin, MessageCircle, Search, Share2, ShieldCheck, Star, Zap } from 'lucide-react'
 import { Avatar, Badge, Banner, Button, Card, Chips, EmptyState, Input, KV, ListRow, Screen, Section, Segmented, SearchBar, Toggle, cx } from '../ui.jsx'
 import { useApp } from '../store.jsx'
 import { useNav } from '../nav.jsx'
@@ -431,6 +431,11 @@ export function RemoteExplore({ params = {}, supplierOnly = false }) {
 }
 
 /* ================= LISTING DETAIL (F-DSC-05, F-DSC-06, F-DSC-07) ================= */
+const formatRoleLabel = (role) => String(role || '')
+  .toLowerCase()
+  .replace(/_/g, ' ')
+  .replace(/^\w/, (char) => char.toUpperCase())
+
 export function RemoteListingDetail({ params = {} }) {
   const nav = useNav()
   const { me, toast } = useApp()
@@ -446,42 +451,235 @@ export function RemoteListingDetail({ params = {} }) {
   const toggleFavorite = async () => {
     if (!me?.loggedIn) return openAuthDialog('signin')
     const r = favorite ? await authService.removeFavorite(vendorId) : await authService.addFavorite(vendorId)
-    if (r.ok) setFavorite(!favorite)
-    else toast(r.message || 'Could not update your saved vendors.', 'warn')
+    if (r.ok) {
+      setFavorite(!favorite)
+      toast(!favorite ? 'Saved vendor' : 'Removed from saved vendors')
+    } else {
+      toast(r.message || 'Could not update your saved vendors.', 'warn')
+    }
   }
 
-  if (loading) return <Screen title="Listing"><Loading /></Screen>
-  if (error) return <Screen title="Listing">{data === null && /no longer|not found|exist/i.test(error) ? <EmptyState icon={Search} title="Listing not available" body="It may have been paused or removed." /> : <ErrorBox message={error} onRetry={reload} />}</Screen>
+  const shareListing = () => {
+    try { navigator.clipboard?.writeText(window.location.href) } catch { /* ignore clipboard restriction */ }
+    toast('Link copied')
+  }
+
+  if (loading) {
+    return (
+      <div className="vv-listing-page h-full overflow-y-auto">
+        <div className="vv-listing-shell">
+          <div className="vv-listing-topbar">
+            <button type="button" className="vv-listing-back" onClick={() => nav.back()}>
+              <ArrowLeft size={15} aria-hidden="true" />
+              <span>Back</span>
+            </button>
+          </div>
+          <div className="vv-listing-state-card"><Loading /></div>
+        </div>
+      </div>
+    )
+  }
+  if (error) {
+    return (
+      <div className="vv-listing-page h-full overflow-y-auto">
+        <div className="vv-listing-shell">
+          <div className="vv-listing-topbar">
+            <button type="button" className="vv-listing-back" onClick={() => nav.back()}>
+              <ArrowLeft size={15} aria-hidden="true" />
+              <span>Back</span>
+            </button>
+          </div>
+          <div className="vv-listing-state-card">
+            {data === null && /no longer|not found|exist/i.test(error)
+              ? <EmptyState icon={Search} title="Listing not available" body="It may have been paused or removed." />
+              : <ErrorBox message={error} onRetry={reload} />}
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   const l = data.listing
   const attrs = Object.entries(l.attributes || {})
+  const kind = l.listingType === 'product' ? 'Product' : 'Service'
+  const image = RESULT_IMAGES[l.categoryName] || (l.listingType === 'product' ? '/category-images/hardware-building-materials.jpg' : '/hero-home-services.svg')
+  const formattedPrice = priceLabel(l.price)
+  const vendorInitials = (l.vendor.name || 'V').split(/\s+/).slice(0, 2).map((part) => part[0]).join('').toUpperCase()
+  const formattedRoles = l.vendor.roles.length ? l.vendor.roles.map(formatRoleLabel).join(', ') : 'Not provided'
   const book = (mode) => (me?.loggedIn ? nav.go('c_book_new', { id: l.id, mode }) : openAuthDialog('signin'))
+
   return (
-    <Screen
-      title="Listing"
-      right={<button aria-label={favorite ? 'Remove from saved vendors' : 'Save vendor'} onClick={toggleFavorite} className="grid size-10 place-items-center"><Heart size={20} className={favorite ? 'fill-red-500 text-red-500' : 'text-ink-500'} /></button>}
-      footer={<div className="flex gap-2">
-        <Button variant="secondary" className="flex-1" onClick={() => book('scheduled')} icon={CalendarClock}>Request booking</Button>
-        {l.instantBooking && <Button className="flex-1" onClick={() => book('instant')} icon={Zap}>Book instantly</Button>}
-      </div>}
-    >
-      <div>
-        <h2 className="text-lg font-bold text-ink-900">{l.title}</h2>
-        <p className="text-sm text-ink-500">{l.vendor.name} · {l.categoryName}</p>
-        <p className="mt-2 text-base font-semibold text-ink-900">{priceLabel(l.price)}</p>
-        <VendorActions vendorId={l.vendor.id} listingId={l.id} />
+    <div className="vv-listing-page h-full overflow-y-auto">
+      <div className="vv-listing-shell">
+        <div className="vv-listing-topbar">
+          <div className="vv-listing-crumbs">
+            <button type="button" className="vv-listing-back" onClick={() => nav.back()}>
+              <ArrowLeft size={15} aria-hidden="true" />
+              <span>Back</span>
+            </button>
+            {l.categoryName && (
+              <button type="button" className="vv-listing-crumb-pill" onClick={() => nav.go('c_explore', { q: l.categoryName })}>
+                {l.categoryName}
+              </button>
+            )}
+          </div>
+          <div className="vv-listing-top-actions">
+            <button type="button" aria-label={favorite ? 'Remove from saved vendors' : 'Save vendor'} aria-pressed={favorite} className={cx('vv-listing-icon-pill', favorite && 'is-saved')} onClick={toggleFavorite}>
+              <Heart size={16} className={favorite ? 'fill-current' : ''} aria-hidden="true" />
+              <span>{favorite ? 'Saved' : 'Save'}</span>
+            </button>
+            <button type="button" aria-label="Share listing" className="vv-listing-icon-pill" onClick={shareListing}>
+              <Share2 size={15} aria-hidden="true" />
+              <span className="hidden sm:inline">Share</span>
+            </button>
+          </div>
+        </div>
+
+        <div className="vv-listing-grid">
+          <div className="vv-listing-main">
+            <div className="vv-listing-hero-card">
+              <div className="vv-listing-media">
+                <img src={image} alt={l.title} />
+                <div className="vv-listing-media-badges">
+                  <span className="vv-listing-pill">{kind}</span>
+                  {l.categoryName && <span className="vv-listing-pill is-sand">{l.categoryName}</span>}
+                  {l.instantBooking && <span className="vv-listing-pill is-live"><Zap size={12} aria-hidden="true" />Instant booking</span>}
+                </div>
+              </div>
+              <div className="vv-listing-hero-body">
+                <h1>{l.title}</h1>
+                <p className="vv-listing-subtitle">{l.vendor.name} · {l.categoryName}</p>
+                <div className="vv-listing-mobile-price">
+                  <span>Listed pricing</span>
+                  <strong>{formattedPrice}</strong>
+                </div>
+                <div className="vv-listing-mobile-vendor-actions">
+                  <VendorActions vendorId={l.vendor.id} listingId={l.id} />
+                </div>
+              </div>
+            </div>
+
+            <section className="vv-listing-card">
+              <h2>About this {kind.toLowerCase()}</h2>
+              {l.description
+                ? <p className="vv-listing-desc">{l.description}</p>
+                : <p className="vv-listing-muted">The vendor has not added a description.</p>}
+            </section>
+
+            <section className="vv-listing-card">
+              <h2>{kind} &amp; booking details</h2>
+              <div className="vv-listing-facts">
+                <div className="vv-listing-fact">
+                  <span className="vv-listing-fact-ico" aria-hidden="true"><CalendarClock size={18} /></span>
+                  <div>
+                    <small>Availability</small>
+                    <b>{l.availability.state === 'provided' ? `Provided by the vendor (${l.availability.model})` : 'Not provided by the vendor'}</b>
+                  </div>
+                </div>
+                <div className="vv-listing-fact">
+                  <span className="vv-listing-fact-ico" aria-hidden="true">{l.instantBooking ? <Zap size={18} /> : <CheckCircle2 size={18} />}</span>
+                  <div>
+                    <small>Booking</small>
+                    <b>{l.instantBooking ? 'Instant booking available' : 'Vendor confirms each request'}</b>
+                  </div>
+                </div>
+                <div className="vv-listing-fact">
+                  <span className="vv-listing-fact-ico" aria-hidden="true"><Briefcase size={18} /></span>
+                  <div>
+                    <small>Vendor role</small>
+                    <b>{formattedRoles}</b>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            {attrs.length > 0 && (
+              <section className="vv-listing-card">
+                <h2>Specifications &amp; details</h2>
+                <div className="vv-listing-attrs">
+                  {attrs.map(([k, v]) => (
+                    <div key={k} className="vv-listing-attr">
+                      <small>{k}</small>
+                      <b>{typeof v === 'object' ? JSON.stringify(v) : String(v)}</b>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {l.serviceAreas.length > 0 && (
+              <section className="vv-listing-card">
+                <h2>Where this vendor works</h2>
+                <div className="vv-listing-coverage">
+                  <span className="vv-listing-fact-ico" aria-hidden="true"><MapPin size={18} /></span>
+                  <div>
+                    <b>{l.serviceAreas.length} service {l.serviceAreas.length === 1 ? 'area' : 'areas'} declared</b>
+                    <p>Coverage is verified against the locations declared by the vendor.</p>
+                  </div>
+                </div>
+              </section>
+            )}
+          </div>
+
+          <aside className="vv-listing-aside">
+            <div className="vv-listing-booking-card">
+              <span className="vv-listing-booking-eyebrow">Listed pricing</span>
+              <div className="vv-listing-booking-price">{formattedPrice}</div>
+              <p className="vv-listing-booking-note">Confirm final schedule, requirements, and terms directly with the vendor.</p>
+              <div className="vv-listing-booking-ctas">
+                {l.instantBooking && (
+                  <button type="button" className="vv-listing-btn-primary" onClick={() => book('instant')}>
+                    <Zap size={16} aria-hidden="true" />
+                    <span>Book instantly</span>
+                  </button>
+                )}
+                <button
+                  type="button"
+                  className={l.instantBooking ? 'vv-listing-btn-secondary' : 'vv-listing-btn-primary'}
+                  onClick={() => book('scheduled')}
+                >
+                  <CalendarClock size={16} aria-hidden="true" />
+                  <span>Request booking</span>
+                </button>
+              </div>
+            </div>
+
+            <div className="vv-listing-vendor-card">
+              <div className="vv-listing-vendor-head">
+                <span className="vv-listing-vendor-avatar" aria-hidden="true">{vendorInitials}</span>
+                <div className="min-w-0 flex-1">
+                  <small>Offered by</small>
+                  <h3>{l.vendor.name}</h3>
+                  <p>{l.categoryName}</p>
+                </div>
+              </div>
+              <div className="vv-listing-vendor-actions">
+                <VendorActions vendorId={l.vendor.id} listingId={l.id} />
+              </div>
+            </div>
+          </aside>
+        </div>
       </div>
-      {l.description ? <p className="text-sm leading-relaxed text-ink-700">{l.description}</p> : <p className="text-sm text-ink-500">The vendor has not added a description.</p>}
-      <Card>
-        <KV rows={[
-          ['Availability', l.availability.state === 'provided' ? `Provided by the vendor (${l.availability.model})` : 'Not provided by the vendor'],
-          ['Booking', l.instantBooking ? 'Instant booking available' : 'Vendor confirms each request'],
-          ['Roles', l.vendor.roles.length ? l.vendor.roles.join(', ') : 'Not provided'],
-        ]} />
-      </Card>
-      {attrs.length > 0 && <Section title="Details"><Card><KV rows={attrs.map(([k, v]) => [k, typeof v === 'object' ? JSON.stringify(v) : String(v)])} /></Card></Section>}
-      {l.serviceAreas.length > 0 && <Section title="Where this vendor works"><p className="flex items-center gap-1 text-sm text-ink-700"><MapPin size={14} />{l.serviceAreas.length} service {l.serviceAreas.length === 1 ? 'area' : 'areas'} declared</p></Section>}
-    </Screen>
+
+      <div className="vv-listing-mobile-bar">
+        <div className="vv-listing-mobile-bar-price">
+          <small>Price</small>
+          <strong>{formattedPrice}</strong>
+        </div>
+        <div className="vv-listing-mobile-bar-actions">
+          <button type="button" className={l.instantBooking ? 'vv-listing-btn-secondary' : 'vv-listing-btn-primary'} onClick={() => book('scheduled')}>
+            <CalendarClock size={15} aria-hidden="true" />
+            <span>Request booking</span>
+          </button>
+          {l.instantBooking && (
+            <button type="button" className="vv-listing-btn-primary" onClick={() => book('instant')}>
+              <Zap size={15} aria-hidden="true" />
+              <span>Book now</span>
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
   )
 }
 
