@@ -3,12 +3,12 @@ import { useMemo, useRef, useState } from 'react'
 import {
   Phone, MapPin, ChevronDown, Search, SlidersHorizontal, Package, CalendarCheck, FileText, Heart, Star, Minus, Plus, ShieldCheck,
   MessageCircle, GitCompare, Truck, Clock, CreditCard, Smartphone, Landmark, Banknote, Lock, CheckCircle2, XCircle, Loader2,
-  Store, ChevronRight, BadgeCheck, Home as HomeIcon, Briefcase, Receipt, ArrowRight, Share2, Check,
+  Store, ChevronRight, BadgeCheck, Home as HomeIcon, Briefcase, Receipt, ArrowLeft, ArrowRight, Share2, Check, LayoutGrid, Info, X,
 } from 'lucide-react'
 import { useApp } from '../store.jsx'
 import { useNav } from '../nav.jsx'
 import { findCity } from '../geo.js'
-import { CATS, INDUSTRIES, cat, calcPrice, BUSY_SLOTS, SLOTS, listing as findListing } from '../data.jsx'
+import { CATS, INDUSTRIES, SORTED_INDUSTRIES, cat, calcPrice, BUSY_SLOTS, SLOTS, listing as findListing } from '../data.jsx'
 import { searchIndustries } from '../../../packages/shared/taxonomy-search.js'
 import {
   Screen, Card, Section, Button, Thumb, Chips, Segmented, Sheet, Input, Select, Toggle, Badge, Rating, Banner, EmptyState,
@@ -129,34 +129,199 @@ export function CustomerHome() {
 export function Categories() {
   const nav = useNav()
   const [query, setQuery] = useState('')
-  const total = INDUSTRIES.reduce((sum, i) => sum + i.cats, 0)
-  const list = searchIndustries(INDUSTRIES, query)
+  const [scope, setScope] = useState('all')
+  const total = SORTED_INDUSTRIES.reduce((sum, i) => sum + i.cats, 0)
+  const configuredIds = useMemo(() => new Set(CATS.map((c) => c.id)), [])
+  const configuredCount = useMemo(() => SORTED_INDUSTRIES.filter((i) => configuredIds.has(i.cat)).length, [configuredIds])
+  const searchResults = useMemo(() => searchIndustries(SORTED_INDUSTRIES, query), [query])
+  const list = useMemo(() => searchResults.filter(({ industry }) => {
+    if (scope === 'configured') return configuredIds.has(industry.cat)
+    if (scope === 'browseable') return !configuredIds.has(industry.cat)
+    return true
+  }), [searchResults, scope, configuredIds])
+
   return (
-    <Screen title="All industries and categories" subtitle={`${INDUSTRIES.length} industries · ${total.toLocaleString('en-IN')} sample categories`}>
-      <SearchBar value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search any industry, product or service" />
-      <Banner tone="blue" title="All 30 industries are live to browse">Subcategory names and category counts are representative examples. Listing and RFQ workflows remain configured for the existing 10 industry groups; supply-building focuses on the 5 priority groups.</Banner>
-      {list.map(({ industry: i, matchedSubcategories }) => {
-        const configured = CATS.some((c) => c.id === i.cat)
-        return (
-        <Card key={i.id} onClick={configured ? () => nav.go('c_category', { id: i.cat }) : undefined}>
-          <div className="flex items-center gap-3">
-            <Thumb tone={i.tone} icon={i.icon} size={52} />
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-bold">{i.name}</p>
-              <p className="text-xs text-ink-500">{i.cats} sample categories · {i.subs.length} examples</p>
-            </div>
-            <Badge tone="green">Live</Badge>
-            {configured && <ChevronRight size={18} className="text-ink-300" />}
+    <div className="vv-categories-page h-full overflow-y-auto">
+      <section className="vv-cat-hero">
+        <div className="vv-cat-shell">
+          <div className="vv-cat-topbar">
+            <button type="button" className="vv-cat-back" onClick={() => nav.back()}>
+              <ArrowLeft size={15} aria-hidden="true" />
+              <span>Back</span>
+            </button>
+            <span className="vv-cat-eyebrow">
+              <LayoutGrid size={14} aria-hidden="true" />
+              <span>{INDUSTRIES.length} Industries · {total.toLocaleString('en-IN')} Sample Categories</span>
+            </span>
           </div>
-          {matchedSubcategories.length > 0 && <p className="mb-2 mt-3 text-xs font-semibold text-brand-700">Matched: {matchedSubcategories.join(', ')}</p>}
-          <p className="mb-2 mt-3 text-xs font-semibold text-ink-500">Example subcategories</p>
-          <div className="flex flex-wrap gap-1.5">{i.subs.map((s) => <Pill key={s}>{s}</Pill>)}</div>
-          {!configured && <p className="mt-3 text-xs text-ink-500">Browseable now; listing and RFQ workflows are not configured for this industry yet.</p>}
-        </Card>
-        )
-      })}
-      {!list.length && query.trim() && <EmptyState icon={Search} title="No category matches" body="Can’t find yours? Suggest it — admins review suggestions and add attributes." action={<Button size="sm" onClick={() => nav.go('c_cat_suggest', { name: query.trim() })}>Suggest “{query.trim()}”</Button>} />}
-    </Screen>
+
+          <h1>Explore All <em>Categories</em></h1>
+          <p className="vv-cat-lead">
+            Browse verified industries, services, wholesale suppliers, and OEM manufacturers across the global marketplace.
+          </p>
+
+          <div className="vv-cat-controls">
+            <label className="vv-cat-search">
+              <Search size={18} aria-hidden="true" />
+              <input
+                type="search"
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="Search any industry, product or service…"
+                aria-label="Search industries and categories"
+              />
+              {query && (
+                <button type="button" className="vv-cat-search-clear" aria-label="Clear search" onClick={() => setQuery('')}>
+                  <X size={14} aria-hidden="true" />
+                </button>
+              )}
+            </label>
+
+            <div className="vv-cat-filters" role="tablist" aria-label="Filter industries by workflow availability">
+              {[
+                ['all', `All industries (${searchResults.length})`],
+                ['configured', `Workflow-ready (${configuredCount})`],
+                ['browseable', `Directory preview (${INDUSTRIES.length - configuredCount})`],
+              ].map(([id, label]) => (
+                <button
+                  key={id}
+                  type="button"
+                  role="tab"
+                  aria-selected={scope === id}
+                  className={cx('vv-cat-filter-pill', scope === id && 'is-active')}
+                  onClick={() => setScope(id)}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="vv-cat-notice">
+            <span className="vv-cat-notice-ico" aria-hidden="true"><Info size={16} /></span>
+            <div>
+              <strong>All {INDUSTRIES.length} industries are live to browse</strong>
+              <p>Subcategory names and counts are representative examples. Listing and RFQ workflows remain configured for the existing {configuredCount} industry groups; supply-building focuses on the 5 priority groups.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <main className="vv-cat-main">
+        <div className="vv-cat-shell">
+          {list.length > 0 ? (
+            <div className="vv-cat-grid">
+              {list.map(({ industry: i, matchedSubcategories }) => {
+                const configured = configuredIds.has(i.cat)
+                const Icon = i.icon
+                return (
+                  <article key={i.id} className={cx('vv-cat-card', configured && 'is-clickable')}>
+                    <div
+                      className="vv-cat-card-head"
+                      role={configured ? 'button' : undefined}
+                      tabIndex={configured ? 0 : undefined}
+                      onClick={configured ? () => nav.go('c_category', { id: i.cat }) : undefined}
+                      onKeyDown={configured ? (event) => {
+                        if (event.key === 'Enter' || event.key === ' ') {
+                          event.preventDefault()
+                          nav.go('c_category', { id: i.cat })
+                        }
+                      } : undefined}
+                    >
+                      <span className="vv-cat-card-ico" aria-hidden="true">
+                        {Icon && <Icon size={22} strokeWidth={1.85} />}
+                      </span>
+                      <div className="vv-cat-card-title">
+                        <h2>{i.name}</h2>
+                        <p>{i.cats} sample categories · {i.subs.length} examples</p>
+                      </div>
+                      <span className={cx('vv-cat-badge', configured ? 'is-live' : 'is-preview')}>
+                        {configured ? 'Live' : 'Browseable'}
+                      </span>
+                    </div>
+
+                    {matchedSubcategories.length > 0 && (
+                      <div className="vv-cat-matched">
+                        Matched: <b>{matchedSubcategories.join(', ')}</b>
+                      </div>
+                    )}
+
+                    <div className="vv-cat-subs-block">
+                      <span className="vv-cat-subs-label">Example subcategories</span>
+                      <div className="vv-cat-subs">
+                        {i.subs.map((sub) => (
+                          <button
+                            key={sub}
+                            type="button"
+                            className="vv-cat-sub-pill"
+                            onClick={() => nav.go('c_explore', { group: i.name, q: sub })}
+                          >
+                            {sub}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="vv-cat-card-foot">
+                      {configured ? (
+                        <button type="button" className="vv-cat-card-cta" onClick={() => nav.go('c_category', { id: i.cat })}>
+                          <span>Open industry directory</span>
+                          <ArrowRight size={15} aria-hidden="true" />
+                        </button>
+                      ) : (
+                        <>
+                          <span className="vv-cat-card-note">Listing &amp; RFQ workflows coming soon</span>
+                          <button type="button" className="vv-cat-card-cta is-subtle" onClick={() => nav.go('c_explore', { group: i.name })}>
+                            <span>Explore</span>
+                            <ChevronRight size={15} aria-hidden="true" />
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </article>
+                )
+              })}
+            </div>
+          ) : (
+            <div className="vv-cat-empty">
+              <span className="vv-cat-empty-ico" aria-hidden="true"><Search size={24} /></span>
+              <h2>No category matches</h2>
+              <p>Can’t find yours? Suggest it — admins review suggestions and add attributes.</p>
+              <div className="vv-cat-empty-actions">
+                {query.trim() && (
+                  <button type="button" className="vv-cat-primary-btn" onClick={() => nav.go('c_cat_suggest', { name: query.trim() })}>
+                    Suggest “{query.trim()}”
+                    <ArrowRight size={15} aria-hidden="true" />
+                  </button>
+                )}
+                {(query.trim() || scope !== 'all') && (
+                  <button type="button" className="vv-cat-secondary-btn" onClick={() => { setQuery(''); setScope('all') }}>
+                    Reset filters
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+
+          <section className="vv-cat-callout" aria-label="Suggest a category or request quotes">
+            <div>
+              <span className="vv-cat-callout-eyebrow">Need a specific supplier or category?</span>
+              <h2>Can’t find the exact niche you’re sourcing?</h2>
+              <p>Suggest a new industry category for our catalog or post a structured RFQ to reach verified vendors directly.</p>
+            </div>
+            <div className="vv-cat-callout-actions">
+              <button type="button" className="vv-cat-callout-primary" onClick={() => nav.go('c_cat_suggest', query.trim() ? { name: query.trim() } : {})}>
+                Suggest a category
+                <ArrowRight size={16} aria-hidden="true" />
+              </button>
+              <button type="button" className="vv-cat-callout-secondary" onClick={() => nav.go('c_rfq_new')}>
+                Post a request
+              </button>
+            </div>
+          </section>
+        </div>
+      </main>
+    </div>
   )
 }
 

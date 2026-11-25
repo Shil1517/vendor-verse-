@@ -1213,12 +1213,22 @@
 .vv-mock-search input::placeholder { color:#8A8F9A; }
 .vv-mock-search-submit { flex:none; width:50px; min-width:50px; height:50px; min-height:50px; padding:0; border:0; border-radius:50%; align-self:center; background:#0E1B2C; color:#fff; }
 .vv-mock-search-submit:hover,.vv-mock-primary:hover,.vv-mock-hero-primary:hover { border-color:#8A6420; background:#8A6420; }
-.vv-mock-suggestions { position:absolute; z-index:15; top:calc(100% + 10px); left:0; right:0; padding:10px; border:1px solid #E4DDD0; border-radius:20px; background:#fff; box-shadow:0 18px 44px #0e1b2c2e; color:#0E1B2C; }
-.vv-mock-suggestions-title { padding:8px 12px 4px; color:#5B5F6B; font-size:11px; font-weight:600; letter-spacing:.07em; text-transform:uppercase; }
-.vv-mock-suggestions>button { display:flex; width:100%; min-height:46px; align-items:center; justify-content:space-between; gap:12px; padding:0 12px; border:0; border-radius:12px; background:none; text-align:left; }
-.vv-mock-suggestions>button:hover { background:#EFEAE0; }
-.vv-mock-suggestions small { color:#5B5F6B; font-size:12px; }
-.vv-mock-suggestions-empty { padding:12px; color:#5B5F6B; }
+.vv-mock-suggestions { position:absolute; z-index:50; top:calc(100% + 10px); left:0; right:0; overflow:hidden; border:1px solid #E4DDD0; border-radius:20px; background:#fff; box-shadow:0 22px 50px rgba(14,27,44,.18); color:#0E1B2C; }
+.vv-mock-suggestions-head { display:flex; align-items:center; justify-content:space-between; gap:8px; padding:10px 14px 8px; border-bottom:1px solid #f2ece2; background:#fcfaf6; }
+.vv-mock-suggestions-title { color:#676b75; font-size:11px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; }
+.vv-mock-suggestions-close { display:grid; width:26px; height:26px; place-items:center; border:0; border-radius:999px; background:transparent; color:#676b75; cursor:pointer; transition:background .14s ease, color .14s ease; }
+.vv-mock-suggestions-close:hover { background:#efeae0; color:#0E1B2C; }
+.vv-mock-suggestions-list { display:grid; gap:2px; max-height:min(300px, 46vh); overflow-y:auto; padding:8px; scrollbar-width:thin; scrollbar-color:#c6baa7 #f5f2ec; }
+.vv-mock-suggestion-item { display:flex; width:100%; min-height:42px; align-items:center; gap:10px; padding:7px 10px; border:0; border-radius:12px; background:none; color:#0E1B2C; font-size:14px; font-weight:500; text-align:left; cursor:pointer; transition:background .14s ease, color .14s ease; }
+.vv-mock-suggestion-item:hover, .vv-mock-suggestion-item:focus-visible { background:#f7f4ee; color:#8A6420; outline:none; }
+.vv-mock-suggestion-ico { display:grid; width:28px; height:28px; place-items:center; flex:none; border-radius:8px; background:#f7f4ee; color:#8A6420; transition:background .14s ease; }
+.vv-mock-suggestion-item:hover .vv-mock-suggestion-ico { background:#efe5d1; }
+.vv-mock-suggestion-label { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.vv-mock-suggestion-meta { flex:none; padding:3px 8px; border-radius:999px; background:#f4efe6; color:#6b6f7b; font-size:11px; font-weight:600; }
+.vv-mock-suggestion-meta.is-live { background:#e3f3ec; color:#1f6e50; }
+.vv-mock-suggestion-arrow { flex:none; color:#9a8a70; opacity:0; transform:translateX(-3px); transition:opacity .14s ease, transform .14s ease; }
+.vv-mock-suggestion-item:hover .vv-mock-suggestion-arrow, .vv-mock-suggestion-item:focus-visible .vv-mock-suggestion-arrow { opacity:1; transform:translateX(0); }
+.vv-mock-suggestions-empty { padding:14px 12px; color:#5B5F6B; font-size:13px; text-align:center; }
 .vv-mock-hero-actions { gap:22px; margin-top:0; }
 .vv-mock-hero-primary,.vv-mock-primary { display:inline-flex; min-height:44px; align-items:center; justify-content:center; padding:0 20px; border:1px solid #0E1B2C; border-radius:999px; background:#0E1B2C; color:#fff; font-weight:500; }
 .vv-mock-hero-primary { border-color:#fff; background:#fff; color:#0E1B2C; }
@@ -1339,6 +1349,58 @@
 .vv-mock-how-grid h3 { margin:28px 0 6px; font-size:21px; }
 .vv-mock-how-grid p { max-width:300px; margin:0; color:#5B5F6B; font-size:14px; }
 @media(max-width:1000px) { .vv-mock-category-section,.vv-mock-vendor-section,.vv-mock-product-section { width:calc(100vw - 48px); }.vv-mock-category-heading,.vv-mock-vendor-heading,.vv-mock-product-heading { margin-left:0; width:100%; }.vv-mock-category-section .vv-mock-category-rail,.vv-mock-product-section .vv-mock-product-rail { width:100%; margin-left:0; }.vv-mock-category { flex-basis:calc((100% - 20px)/2); }.vv-mock-product-card { flex-basis:calc((100% - 20px)/2); }.vv-mock-vendors { margin-left:0; width:100%; grid-template-columns:repeat(2,minmax(0,1fr)); gap:20px; } }
+.vv-mock-how-grid .vv-mock-way-card {
+  position:relative;
+  min-height:210px;
+  padding:26px 24px 24px;
+  border:1px solid #ddd0b4 !important;
+  border-radius:20px !important;
+  background:linear-gradient(145deg,#fff 0%,#fffdf8 72%,#faf6ed 100%) !important;
+  box-shadow:0 16px 34px -24px rgba(96,78,45,.48),0 2px 8px rgba(96,78,45,.04) !important;
+  transition:border-color 300ms ease,background 300ms ease;
+}
+.vv-mock-how-grid .vv-mock-way-card::after {
+  content:"";
+  position:absolute;
+  right:-42px;
+  bottom:-58px;
+  width:140px;
+  height:140px;
+  border:26px solid #c6a86a;
+  border-radius:50%;
+  opacity:.09;
+  pointer-events:none;
+}
+.vv-mock-how-grid .vv-mock-way-card:hover {
+  border-color:#c1aa7a !important;
+  background:linear-gradient(145deg,#fff 0%,#fffdf8 68%,#f7f0df 100%) !important;
+}
+.vv-mock-how-grid .vv-mock-step-icon {
+  width:46px;
+  height:46px;
+  border:1px solid #e1d2b1;
+  border-radius:14px;
+  background:#f7f0df;
+  color:#80612a;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.8);
+}
+.vv-mock-how-grid .vv-mock-step-number {
+  top:22px;
+  right:24px;
+  color:#d9cba9;
+  font-size:38px;
+}
+.vv-mock-how-grid .vv-mock-way-card h3 {
+  margin:26px 0 8px;
+  color:#342a1d;
+  font-size:21px;
+  line-height:1.25;
+}
+.vv-mock-how-grid .vv-mock-way-card p {
+  color:#81745f;
+  line-height:1.65;
+}
+@media(max-width:1000px) { .vv-mock-category-section { width:calc(100vw - 48px); }.vv-mock-category-heading { margin-left:0; }.vv-mock-category-section .vv-mock-category-rail { width:100%; margin-left:0; }.vv-mock-category { flex-basis:calc((100% - 20px)/2); }.vv-mock-product-card { flex-basis:calc((100% - 20px)/2); } }
 @media(max-width:820px) { .vv-mock-hero { grid-template-columns:1fr; }.vv-mock-hero-art { min-height:300px; }.vv-mock-hero-art:after { background:linear-gradient(180deg,#12233a,transparent 40%); }.vv-storefront-illustration { object-position:center 76%; -webkit-mask-image:linear-gradient(180deg,transparent 0%,#000 28%); mask-image:linear-gradient(180deg,transparent 0%,#000 28%); }.vv-mock-how-heading { grid-template-columns:1fr; gap:10px; }.vv-mock-how-grid { grid-template-columns:1fr; }.vv-mock-how-grid article { min-height:0; }.vv-mock-vendors { grid-template-columns:repeat(2,minmax(0,1fr)); }.vv-mock-footer { grid-template-columns:1fr 1fr; }.vv-mock-footer>div:first-child { grid-column:1/-1; } }
 @media(max-width:620px) { .vv-mock-vendors { grid-template-columns:1fr; }.vv-mock-category-section,.vv-mock-vendor-section,.vv-mock-product-section { width:calc(100vw - 36px); }.vv-mock-category-heading { gap:10px; }.vv-mock-category-heading h2 { font-size:32px; }.vv-mock-category { flex-basis:100%; }.vv-mock-product-card { flex-basis:100%; }.vv-mock-section-heading { align-items:flex-end; }.vv-mock-product-heading { flex-wrap:nowrap; }.vv-mock-product-heading>div:first-child { flex:1 1 auto; flex-basis:auto; }.vv-mock-product-heading .vv-mock-text-button { font-size:12px; }.vv-mock-footer { padding:36px 18px 22px; gap:24px 14px; }.vv-mock-footer-bottom { gap:8px 14px; }.vv-mock-footer-bottom span { flex-basis:100%; }.vv-mock-dialog { grid-template-columns:1fr; }.vv-mock-dialog-visual { min-height:200px; max-height:250px; }.vv-mock-dialog-visual>.vv-mock-product-icon { min-height:220px; } }
 @media(prefers-reduced-motion:reduce) { .vv-mock-home *, .vv-mock-home *:before, .vv-mock-home *:after { scroll-behavior:auto !important; animation:none !important; transition:none !important; } }
@@ -1376,10 +1438,11 @@
 /* Marketplace hero (light, gold accent): badges, headline, pill search, popular chips, framed image with floating cards, trust strip. */
 .vv-mock-home .vv-mock-hero {
   --hero-gold: #b7882f; --hero-gold-deep: #8a6420; --hero-ink: #12161f; --hero-sand: #f6ece0;
-  position: relative; grid-template-columns: minmax(0, 1.08fr) minmax(0, 1fr); grid-template-rows: auto auto; min-height: 0;
+  position: relative; z-index: 2; grid-template-columns: minmax(0, 1.08fr) minmax(0, 1fr); grid-template-rows: auto auto; min-height: 0;
+  overflow-x: clip; overflow-y: visible;
   background: radial-gradient(circle at 85% 8%, #fbf3e6 0, transparent 46%), #fffdfa; color: var(--hero-ink); box-shadow: none;
 }
-.vv-mock-home .vv-mock-hero-copy { padding: 44px 0 28px max(28px, 5vw); }
+.vv-mock-home .vv-mock-hero-copy { position: relative; z-index: 12; padding: 44px 0 28px max(28px, 5vw); }
 .vv-hero-badges { display: inline-flex; align-items: center; gap: 14px; margin-bottom: 26px; padding: 11px 22px; border-radius: 999px; background: var(--hero-sand); font-size: 13px; font-weight: 500; }
 .vv-hero-badges span { display: inline-flex; align-items: center; gap: 8px; }
 .vv-hero-badges svg { color: var(--hero-gold); }
@@ -1388,7 +1451,7 @@
 .vv-mock-home .vv-mock-hero h1 em { position: relative; display: inline-block; color: var(--hero-gold); font-style: normal; }
 .vv-mock-home .vv-mock-hero h1 em:after { content: ""; position: absolute; left: 6%; right: 4%; bottom: -6px; height: 10px; border-bottom: 4px solid var(--hero-gold); border-radius: 0 0 60% 60% / 0 0 100% 100%; }
 .vv-mock-home .vv-mock-hero-copy > p { max-width: 540px; margin: 0 0 34px; color: #3d4352; font-size: clamp(16px, 1.5vw, 21px); line-height: 1.5; }
-.vv-mock-home .vv-mock-search { max-width: 700px; min-height: 72px; margin: 0 0 20px; padding: 8px; align-items: center; border: 1px solid #f0e8dc; box-shadow: 0 12px 34px rgba(60, 40, 10, .1); }
+.vv-mock-home .vv-mock-search { z-index: 20; max-width: 700px; min-height: 72px; margin: 0 0 20px; padding: 8px; align-items: center; border: 1px solid #f0e8dc; box-shadow: 0 12px 34px rgba(60, 40, 10, .1); }
 .vv-mock-home .vv-mock-search label { display: flex; flex-direction: row; align-items: center; gap: 12px; padding: 0 18px; color: #5b5f6b; }
 .vv-mock-home .vv-mock-search label svg { flex: none; }
 .vv-mock-home .vv-mock-search .vv-mock-search-what { flex: 1.6; }
@@ -1545,3 +1608,53 @@
 }
 @media (min-width: 821px) { .vv-mock-home .vv-mock-hero h1 { max-width: 8.4em; } }
 .vv-hero-trust b { font-variant-numeric: tabular-nums; }
+
+/* Keep the category section within the page instead of sizing it from the viewport. */
+.vv-mock-home .vv-mock-content { width: 100%; min-width: 0; padding-bottom: 16px; }
+.vv-mock-home .vv-mock-category-section {
+  left: auto;
+  width: 100%;
+  max-width: 100%;
+  transform: none;
+}
+.vv-mock-home .vv-mock-category-heading { margin-left: 0; }
+.vv-mock-home .vv-mock-category-section .vv-mock-category-rail { width: 100%; margin-left: 0; }
+.vv-mock-home .vv-mock-footer {
+  width: 100%;
+  margin: 24px 0 0;
+  padding: 56px max(28px, calc((100% - 1264px) / 2)) 28px;
+  transform: none;
+}
+
+@media (max-width: 620px) {
+  .vv-mock-home .vv-mock-content { padding-inline: 16px; }
+  .vv-mock-home .vv-mock-content > section { padding-block: 30px; }
+  .vv-mock-home .vv-mock-category-heading { margin-bottom: 16px; }
+  .vv-mock-home .vv-mock-category-heading h2 { font-size: clamp(26px, 7vw, 32px); }
+  .vv-mock-home .vv-mock-category-heading > div { display: none; }
+  .vv-mock-home .vv-mock-category-rail {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    overflow: visible;
+    scroll-snap-type: none;
+  }
+  .vv-mock-home .vv-mock-category {
+    width: 100%;
+    min-width: 0;
+    aspect-ratio: 1.12;
+    flex: none;
+    border-radius: 12px;
+  }
+  .vv-mock-home .vv-mock-category:last-child:nth-child(odd) {
+    grid-column: 1 / -1;
+    aspect-ratio: 2.35;
+  }
+  .vv-mock-home .vv-mock-category b { left: 12px; right: 12px; bottom: 12px; font-size: clamp(16px, 4.5vw, 20px); }
+  .vv-mock-home .vv-mock-intro { grid-template-columns: minmax(0, 1fr); }
+  .vv-mock-home .vv-mock-footer { margin: 16px 0 0; padding: 36px 16px 22px; }
+  .vv-mock-home .vv-hero-badges { max-width: 100%; font-size: 11px; }
+  .vv-mock-home .vv-hero-badges span { min-width: 0; }
+  .vv-mock-home .vv-mock-hero h1 { overflow-wrap: normal; }
+  .vv-mock-home .vv-mock-search label { min-width: 0; }
+}

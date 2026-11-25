@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Battery, Signal, Wifi, Search, X, LayoutGrid, CheckCircle2, AlertTriangle, Info, ChevronRight, FileCheck2, Rocket, Users2, Target, HelpCircle, Smartphone, Menu, Bell, Globe, ArrowLeftRight, PanelRightClose, PanelRightOpen, PanelLeftClose, PanelLeftOpen, LogOut, MapPin } from 'lucide-react'
+import { Battery, Signal, Wifi, Search, X, LayoutGrid, CheckCircle2, AlertTriangle, Info, ArrowLeft, ArrowRight, ChevronDown, ChevronRight, FileCheck2, Rocket, Users2, Target, HelpCircle, Smartphone, Menu, Bell, Globe, ArrowLeftRight, PanelRightClose, PanelRightOpen, PanelLeftClose, PanelLeftOpen, LogOut, MapPin } from 'lucide-react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faHouse, faScrewdriverWrench, faChampagneGlasses, faUserTie, faCode, faBoxesStacked, faIndustry, faTruck } from '@fortawesome/free-solid-svg-icons'
 import { AppProvider, COUNTRY_SETTINGS, LOCATION_PRESETS, useApp } from './store.jsx'
@@ -7,7 +7,7 @@ import { canOpenRoute } from './services/authorization.js'
 import { authService } from './services/authService.js'
 import { NavProvider, useNav } from './nav.jsx'
 import { HOME, TABS, ROLES, ADMIN_SIDEBAR } from './roles.js'
-import { INDUSTRIES } from './data.jsx'
+import { INDUSTRIES, SORTED_INDUSTRIES } from './data.jsx'
 import { SCREENS, GROUPS } from './registry.jsx'
 import { pathForScreen, screenForLocation } from './screen-routes.js'
 import { Logo } from './screens/auth.jsx'
@@ -26,6 +26,7 @@ import './screens/admin-dashboard-visuals.css'
 import './screens/dashboard-reference.css'
 import './layout.css'
 import './workspace-themes.css'
+import './screens/purchase-orders.css'
 
 const INITIAL_ROUTE = screenForLocation(window.location, SCREENS)
 const PUBLIC_MARKETPLACE_ROUTES = new Set(['c_home', 'c_categories', 'c_category', 'c_explore', 'c_listing', 'c_vendor'])
@@ -49,15 +50,60 @@ const MARKETPLACE_CATEGORIES = [
 
 function MarketplaceCategoriesMenu({ nav }) {
   const [open, setOpen] = useState(false)
-  const [activeId, setActiveId] = useState(INDUSTRIES[0]?.id)
+  const [activeId, setActiveId] = useState(() => SORTED_INDUSTRIES[0]?.id)
+  const [query, setQuery] = useState('')
+  const [mobileStep, setMobileStep] = useState('list')
+  const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.matchMedia('(max-width: 640px)').matches)
   const menuRef = useRef(null)
-  const activeIndustry = INDUSTRIES.find((industry) => industry.id === activeId) || INDUSTRIES[0]
+  const activeIndustry = SORTED_INDUSTRIES.find((industry) => industry.id === activeId) || SORTED_INDUSTRIES[0]
+  const trimmedQuery = query.trim().toLowerCase()
+
+  const filteredIndustries = useMemo(() => {
+    if (!trimmedQuery) return SORTED_INDUSTRIES
+    return SORTED_INDUSTRIES.filter((industry) =>
+      industry.name.toLowerCase().includes(trimmedQuery)
+      || industry.subs.some((sub) => sub.toLowerCase().includes(trimmedQuery))
+    )
+  }, [trimmedQuery])
+
+  const matchingSubcategories = useMemo(() => {
+    if (!trimmedQuery) return []
+    return SORTED_INDUSTRIES.flatMap((industry) =>
+      industry.subs
+        .filter((sub) => sub.toLowerCase().includes(trimmedQuery) || industry.name.toLowerCase().includes(trimmedQuery))
+        .map((sub) => ({ industry, sub }))
+    ).slice(0, 24)
+  }, [trimmedQuery])
 
   useEffect(() => {
-    const closeOnOutsideClick = (event) => { if (menuRef.current && !menuRef.current.contains(event.target)) setOpen(false) }
-    document.addEventListener('mousedown', closeOnOutsideClick)
-    return () => document.removeEventListener('mousedown', closeOnOutsideClick)
+    const mq = window.matchMedia('(max-width: 640px)')
+    const onChange = (event) => setIsMobile(event.matches)
+    mq.addEventListener('change', onChange)
+    return () => mq.removeEventListener('change', onChange)
   }, [])
+
+  useEffect(() => {
+    if (!open) {
+      setQuery('')
+      setMobileStep('list')
+      return undefined
+    }
+    const closeOnOutsideClick = (event) => { if (menuRef.current && !menuRef.current.contains(event.target)) setOpen(false) }
+    const closeOnEscape = (event) => { if (event.key === 'Escape') setOpen(false) }
+    document.addEventListener('mousedown', closeOnOutsideClick)
+    document.addEventListener('keydown', closeOnEscape)
+    return () => {
+      document.removeEventListener('mousedown', closeOnOutsideClick)
+      document.removeEventListener('keydown', closeOnEscape)
+    }
+  }, [open])
+
+  const openCategory = (group, q) => {
+    setOpen(false)
+    nav.go('c_explore', q ? { group, q } : { group })
+  }
+
+  const ActiveIcon = activeIndustry?.icon
 
   return <div ref={menuRef} className={cx('vv-category-menu', open && 'is-open')}>
     <button
@@ -65,30 +111,145 @@ function MarketplaceCategoriesMenu({ nav }) {
       className="is-featured"
       aria-haspopup="true"
       aria-expanded={open}
-      onClick={() => { setOpen((value) => !value); setActiveId((value) => value || INDUSTRIES[0]?.id) }}
+      onClick={() => { setOpen((value) => !value); setActiveId((value) => value || SORTED_INDUSTRIES[0]?.id); setMobileStep('list') }}
     >
       <LayoutGrid size={15} aria-hidden="true" />
       <span>Categories</span>
+      <ChevronDown className="vv-category-menu-caret" size={16} aria-hidden="true" />
     </button>
     <div className="vv-category-mega" role="menu">
       <div className="vv-category-mega-heading">
-        <div><strong>All categories</strong><span>Hover over a category to see its subcategories</span></div>
-      </div>
-      <div className="vv-category-browser">
-        <div className="vv-category-browser-list" role="menu" aria-label="All categories">
-          {INDUSTRIES.map((industry) => <button key={industry.id} type="button" role="menuitem" aria-current={activeIndustry?.id === industry.id ? 'true' : undefined} className={cx(activeIndustry?.id === industry.id && 'is-selected')} onMouseEnter={() => setActiveId(industry.id)} onFocus={() => setActiveId(industry.id)} onClick={() => { setOpen(false); nav.go('c_explore', { group: industry.name }) }}>
-            <span>{industry.name}</span><small>{industry.cats}</small><ChevronRight size={14} aria-hidden="true" />
-          </button>)}
+        <div className="vv-category-mega-title">
+          <div>
+            <strong>All categories</strong>
+            <span>{INDUSTRIES.length} industries · browse sectors &amp; services</span>
+          </div>
+          <button type="button" className="vv-category-mega-close" aria-label="Close categories menu" onClick={() => setOpen(false)}>
+            <X size={16} aria-hidden="true" />
+          </button>
         </div>
-        <div className="vv-category-browser-detail" role="menu" aria-label={`${activeIndustry?.name || 'Category'} subcategories`}>
-          {activeIndustry && <>
-            <div className="vv-category-browser-detail-heading"><strong>{activeIndustry.name}</strong><span>{activeIndustry.cats} sample categories</span></div>
-            <div className="vv-category-browser-subs">
-              {activeIndustry.subs.map((subcategory) => <button key={subcategory} type="button" role="menuitem" onClick={() => { setOpen(false); nav.go('c_explore', { group: activeIndustry.name, q: subcategory }) }}>{subcategory}</button>)}
+        <label className="vv-category-mega-search">
+          <Search size={15} aria-hidden="true" />
+          <input
+            type="search"
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Filter industries or subcategories…"
+            aria-label="Filter categories"
+          />
+          {query && (
+            <button type="button" aria-label="Clear category filter" onClick={() => setQuery('')}>
+              <X size={13} aria-hidden="true" />
+            </button>
+          )}
+        </label>
+      </div>
+
+      {trimmedQuery ? (
+        <div className="vv-category-search-results">
+          {filteredIndustries.length === 0 && matchingSubcategories.length === 0 ? (
+            <div className="vv-category-empty">
+              <p>No categories match “{query.trim()}”.</p>
+              <button type="button" onClick={() => setQuery('')}>Reset filter</button>
             </div>
+          ) : <>
+            {filteredIndustries.length > 0 && (
+              <div className="vv-category-search-section">
+                <p className="vv-category-search-label">Industries ({filteredIndustries.length})</p>
+                <div className="vv-category-search-chips">
+                  {filteredIndustries.map((industry) => {
+                    const Icon = industry.icon
+                    return (
+                      <button key={industry.id} type="button" role="menuitem" className="vv-category-industry-chip" onClick={() => openCategory(industry.name)}>
+                        {Icon && <Icon size={14} aria-hidden="true" />}
+                        <span>{industry.name}</span>
+                        <small>{industry.cats}</small>
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
+            {matchingSubcategories.length > 0 && (
+              <div className="vv-category-search-section">
+                <p className="vv-category-search-label">Subcategories ({matchingSubcategories.length})</p>
+                <div className="vv-category-browser-subs">
+                  {matchingSubcategories.map(({ industry, sub }) => (
+                    <button key={`${industry.id}-${sub}`} type="button" role="menuitem" className="vv-category-sub-btn" onClick={() => openCategory(industry.name, sub)}>
+                      <span><b>{sub}</b><small>{industry.name}</small></span>
+                      <ChevronRight size={14} aria-hidden="true" />
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </>}
         </div>
-      </div>
+      ) : (
+        <div className={cx('vv-category-browser', isMobile && mobileStep === 'detail' && 'is-mobile-detail')}>
+          <div className="vv-category-browser-list" role="menu" aria-label="All categories">
+            {SORTED_INDUSTRIES.map((industry) => {
+              const Icon = industry.icon
+              const selected = activeIndustry?.id === industry.id
+              return (
+                <button
+                  key={industry.id}
+                  type="button"
+                  role="menuitem"
+                  aria-current={selected ? 'true' : undefined}
+                  className={cx(selected && 'is-selected')}
+                  onMouseEnter={() => { if (!isMobile) setActiveId(industry.id) }}
+                  onFocus={() => { if (!isMobile) setActiveId(industry.id) }}
+                  onClick={() => {
+                    if (isMobile) {
+                      setActiveId(industry.id)
+                      setMobileStep('detail')
+                    } else {
+                      openCategory(industry.name)
+                    }
+                  }}
+                >
+                  <span className="vv-category-ico">{Icon && <Icon size={15} aria-hidden="true" />}</span>
+                  <span className="vv-category-name">{industry.name}</span>
+                  <small>{industry.cats}</small>
+                  <ChevronRight size={14} className="vv-category-arrow" aria-hidden="true" />
+                </button>
+              )
+            })}
+          </div>
+          <div className="vv-category-browser-detail" role="menu" aria-label={`${activeIndustry?.name || 'Category'} subcategories`}>
+            {activeIndustry && <>
+              <div className="vv-category-mobile-nav">
+                <button type="button" className="vv-category-mobile-back" onClick={() => setMobileStep('list')}>
+                  <ArrowLeft size={15} aria-hidden="true" />
+                  <span>All industries</span>
+                </button>
+              </div>
+              <div className="vv-category-browser-detail-heading">
+                <div className="vv-category-browser-detail-title">
+                  <span className="vv-category-detail-ico">{ActiveIcon && <ActiveIcon size={18} aria-hidden="true" />}</span>
+                  <div>
+                    <strong>{activeIndustry.name}</strong>
+                    <span>{activeIndustry.cats} categories · {activeIndustry.subs.length} popular</span>
+                  </div>
+                </div>
+                <button type="button" className="vv-category-view-all" onClick={() => openCategory(activeIndustry.name)}>
+                  <span>Explore all</span>
+                  <ArrowRight size={14} aria-hidden="true" />
+                </button>
+              </div>
+              <div className="vv-category-browser-subs">
+                {activeIndustry.subs.map((subcategory) => (
+                  <button key={subcategory} type="button" role="menuitem" className="vv-category-sub-btn" onClick={() => openCategory(activeIndustry.name, subcategory)}>
+                    <span>{subcategory}</span>
+                    <ChevronRight size={14} aria-hidden="true" />
+                  </button>
+                ))}
+              </div>
+            </>}
+          </div>
+        </div>
+      )}
     </div>
   </div>
 }
@@ -327,20 +488,43 @@ function WebHeader({ onMenu, hideTabs, workspaceHeader = false, workspaceTheme =
     const value = headerSearch.trim()
     nav.go('c_explore', { ...(nav.params?.group ? { group: nav.params.group } : {}), ...(value ? { q: value } : {}) })
   }
+  const renderMarketplaceLocation = () => (authService.isRemote ? (
+    <button type="button" onClick={() => setLocationOpen(true)} className="vv-mock-header-select vv-mock-location" aria-label="Choose location" title={t('searchLocation')}>
+      <MapPin size={15} aria-hidden="true" />
+      <span className="vv-mock-location-text">{locale.city || localeCountry}{locale.pincode ? ` ${locale.pincode}` : ''}</span>
+      <ChevronDown size={14} className="vv-mock-control-caret" aria-hidden="true" />
+    </button>
+  ) : (
+    <label className="vv-mock-header-select vv-mock-location">
+      <MapPin size={15} aria-hidden="true" />
+      <select aria-label="Location" value={localeCountry} onChange={(e) => changeCountry(e.target.value)}>
+        {Object.keys(countryLabel).map((country) => <option key={country} value={country}>{countryLabel[country]}</option>)}
+      </select>
+    </label>
+  ))
+  const renderMarketplaceLanguage = () => (
+    <label className="vv-mock-header-select vv-mock-language">
+      <Globe size={15} aria-hidden="true" />
+      <select aria-label="Language" value={headerLanguage} onChange={(e) => { const value = e.target.value; setHeaderLanguage(value); setLang(value); document.documentElement.dir = 'ltr' }}>
+        <option value="en">English</option>
+        <option value="hi">हिन्दी</option>
+      </select>
+    </label>
+  )
   return (
-    <header className={cx('sticky top-0 z-40 shrink-0 border-b border-ink-200 bg-white/95 shadow-[0_2px_10px_rgba(20,40,75,.04)] backdrop-blur', workspaceHeader && 'vv-workspace-global-header', mockMarketplaceHeader && 'vv-mock-global-header')}>
+    <header className={cx('sticky top-0 z-40 shrink-0 border-b border-ink-200 bg-white/95 shadow-[0_2px_10px_rgba(20,40,75,.04)] backdrop-blur', workspaceHeader && 'vv-workspace-global-header', mockMarketplaceHeader && 'vv-mock-global-header', mockMarketplaceHeader && marketplaceCategories && 'vv-has-category-nav')}>
       {mockMarketplaceHeader && marketplaceAnnouncement && <div className="vv-mock-announcement">Discover and work with verified vendors worldwide.</div>}
       <div className="mx-auto flex h-[72px] max-w-[1600px] items-center gap-3 px-4 sm:px-7 lg:px-10">
         {mockMarketplaceHeader ? <>
-          <button onClick={() => nav.reset('c_home')} className="vv-mock-brand" aria-label="VendorVerse home"><span className="vv-mock-wordmark">VENDOR<span>VERSE</span></span><span className="vv-mock-brand-tagline">Global Marketplace · products · services · quotes</span></button>
+          <button onClick={() => nav.reset('c_home')} className="vv-mock-brand" aria-label="VendorVerse home"><span className="vv-mock-wordmark">VENDOR<span>VERSE</span></span><span className="vv-mock-brand-tagline">Global Marketplace</span></button>
           {nav.id === 'c_explore' ? <form className="vv-mock-header-search" onSubmit={submitMarketplaceSearch} role="search"><SearchBar value={headerSearch} onChange={(e) => setHeaderSearch(e.target.value)} placeholder="Search vendors, products, services" /></form> : <div className="vv-mock-header-spacer" />}
           <div className="vv-mock-header-controls">
-            {authService.isRemote ? <button type="button" onClick={() => setLocationOpen(true)} className="vv-mock-header-select vv-mock-location" aria-label="Choose location" title={t('searchLocation')}><MapPin size={16}/><span className="max-w-[150px] truncate">{locale.city || localeCountry}{locale.pincode ? ` ${locale.pincode}` : ''}</span></button> : <label className="vv-mock-header-select vv-mock-location"><MapPin size={16}/><select aria-label="Location" value={localeCountry} onChange={(e) => changeCountry(e.target.value)}>{Object.keys(countryLabel).map((country) => <option key={country} value={country}>{countryLabel[country]}</option>)}</select></label>}
-            <select className="vv-mock-header-select" aria-label="Language" value={headerLanguage} onChange={(e) => { const value = e.target.value; setHeaderLanguage(value); setLang(value); document.documentElement.dir = 'ltr' }}><option value="en">English</option><option value="hi">हिन्दी</option></select>
-            <NotifBell role={me.role || 'customer'} dropdown className="vv-mock-header-notifications !rounded-[10px]" />
-            {!me.loggedIn ? <button className="vv-mock-header-primary" onClick={() => setAuthDialog({ mode: 'signup', role: 'customer' })}>Get started</button> : <>
-              <button className="vv-mock-header-link" onClick={() => nav.reset(accountHome)}>My account</button>
-            </>}
+            {renderMarketplaceLocation()}
+            {renderMarketplaceLanguage()}
+            <NotifBell role={me.role || 'customer'} dropdown className="vv-mock-header-notifications" />
+            {!me.loggedIn ? <button type="button" className="vv-mock-header-primary" onClick={() => setAuthDialog({ mode: 'signup', role: 'customer' })}>Get started</button> : (
+              <button type="button" className="vv-mock-header-link" onClick={() => nav.reset(accountHome)}>My account</button>
+            )}
           </div>
         </> : <>
           <button onClick={() => nav.reset(HOME[me.role || 'customer'])} className="flex shrink-0 items-center gap-2.5 rounded-xl text-left" aria-label="VendorVerse home"><Logo size={42} blue={blueBrand} /><span className="hidden lg:block"><span className="block text-[18px] font-black leading-tight tracking-tight text-ink-900">VendorVerse</span><span className="block text-[11px] font-medium text-ink-500">Global Marketplace · products · services · quotes</span></span></button>
@@ -358,7 +542,7 @@ function WebHeader({ onMenu, hideTabs, workspaceHeader = false, workspaceTheme =
         </div>
         </>}
       </div>
-      {mockMarketplaceHeader && marketplaceCategories && <nav className="vv-mock-category-nav" aria-label="Categories"><div className="vv-category-nav-items"><MarketplaceCategoriesMenu nav={nav} />{MARKETPLACE_CATEGORIES.map(([category, icon]) => <button key={category} className={cx(nav.id === 'c_explore' && nav.params?.group === category && 'is-active')} onClick={() => nav.go('c_explore', { group: category })}><FontAwesomeIcon icon={icon} aria-hidden="true" /><span>{category}</span></button>)}</div></nav>}
+      {mockMarketplaceHeader && marketplaceCategories && <nav className="vv-mock-category-nav" aria-label="Categories"><div className="vv-category-nav-items"><MarketplaceCategoriesMenu nav={nav} /><div className="vv-category-nav-links">{MARKETPLACE_CATEGORIES.map(([category, icon]) => <button key={category} className={cx(nav.id === 'c_explore' && nav.params?.group === category && 'is-active')} onClick={() => nav.go('c_explore', { group: category })}><FontAwesomeIcon icon={icon} aria-hidden="true" /><span>{category}</span></button>)}</div><div className="vv-mock-mobile-utils">{renderMarketplaceLanguage()}{renderMarketplaceLocation()}</div></div></nav>}
       <div className="sr-only" aria-live="polite">{screen.title}</div>
       {authService.isRemote && <LocationDialog open={locationOpen} onClose={() => setLocationOpen(false)} />}
       {authDialog && <MarketplaceAuthDialog mode={authDialog.mode} initialRole={authDialog.role} next={authDialog.next} nextParams={authDialog.nextParams} onClose={() => setAuthDialog(null)} onChangeMode={(mode) => setAuthDialog((current) => ({ ...current, mode }))} />}
