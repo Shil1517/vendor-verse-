@@ -117,7 +117,7 @@ function MarketplaceCategoriesMenu({ nav }) {
       onClick={() => { setOpen((value) => !value); setActiveId((value) => value || SORTED_INDUSTRIES[0]?.id); setMobileStep('list') }}
     >
       <LayoutGrid size={15} aria-hidden="true" />
-      <span>Categories</span>
+      <span>View all categories</span>
       <ChevronDown className="vv-category-menu-caret" size={16} aria-hidden="true" />
     </button>
     <div className="vv-category-mega" role="menu">
@@ -693,7 +693,12 @@ function WebHeader({ onMenu, hideTabs, workspaceHeader = false, workspaceTheme =
   const selectMarketplaceCategory = (categoryItem) => {
     if (!categoryItem) return
     setHeaderSearch('')
-    nav.go('c_explore', { cat: categoryItem.id, group: categoryItem.name, mode: 'vendors' })
+    nav.go('c_explore', {
+      ...(categoryItem.id ? { cat: categoryItem.id } : {}),
+      group: categoryItem.group || categoryItem.name,
+      ...(categoryItem.subcategory ? { q: categoryItem.subcategory } : {}),
+      mode: 'vendors',
+    })
   }
   const renderMarketplaceLocation = () => (
     <button type="button" onClick={() => setLocationOpen(true)} className="vv-mock-header-select vv-mock-location" aria-label="Choose location" title={t('searchLocation')}>

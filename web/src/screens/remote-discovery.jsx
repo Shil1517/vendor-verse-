@@ -15,7 +15,7 @@ import { authService } from '../services/authService.js'
 import { openAuthDialog } from '../components/MarketplaceAuthDialog.jsx'
 import { SAMPLE_GROUPS, SAMPLE_LISTINGS } from '../data/exploreSamples.js'
 import { INDUSTRIES, VENDORS0 } from '../data.jsx'
-import { FIELD_CATEGORY_MAP, getPopularSubcategories, vendorMatchesSubcategory } from '../data/vendorSeed.js'
+import { FIELD_CATEGORY_MAP, getPopularSubcategories, matchesSearchText, vendorMatchesSubcategory } from '../data/vendorSeed.js'
 
 const newKey = () => globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(16).slice(2)}`
 const deviceZone = () => Intl.DateTimeFormat().resolvedOptions().timeZone
@@ -81,7 +81,7 @@ export function useLoad(load, deps = []) {
   return { ...state, reload: run }
 }
 
-export const Loading = () => <div className="vv-loading-state" role="status" aria-live="polite">
+export const Loading = ({ compact = false } = {}) => <div className={cx('vv-loading-state', compact && 'is-compact')} role="status" aria-live="polite">
   <span className="vv-loading-spinner" aria-hidden="true" />
   <span>Loading results…</span>
 </div>
@@ -97,7 +97,7 @@ const PRIVATE_MATCH = { listing: 'Matches the listing', vendor: 'Matches the ven
 const privateTarget = (type, hit) => (type === 'rfq' ? [hit.role === 'vendor' ? 'v_rfq' : 'c_rfq', { id: hit.id }] : type === 'booking' ? [hit.role === 'vendor' ? 'v_booking' : 'c_booking', { id: hit.id }] : null)
 
 /** One search over vendors, categories and (signed in) the caller's own RFQs, bookings, contracts and purchase orders. Products and services are the listing results below. */
-function UniversalPanel({ q, country, cityId, signedIn, onCategory }) {
+function UniversalPanel({ q, country, cityId, signedIn, onCategory, suppressLoading = false }) {
   const nav = useNav()
   const text = q.trim()
   const [state, setState] = useState({ loading: false, error: '', data: null })
@@ -118,10 +118,12 @@ function UniversalPanel({ q, country, cityId, signedIn, onCategory }) {
   const vendors = sections.vendor?.items || []
   const categories = sections.category?.items || []
   const priv = PRIVATE_TYPES.filter((t) => sections[t]?.items?.length)
-  if (!state.loading && !vendors.length && !categories.length && !priv.length) return null
+  const hasMatches = Boolean(vendors.length || categories.length || priv.length)
+  const showCompactLoader = state.loading && !state.data && !suppressLoading
+  if (!showCompactLoader && !hasMatches) return null
   return (
     <div className="space-y-3">
-      {state.loading && !state.data && <Loading />}
+      {showCompactLoader && <Loading compact />}
       {vendors.length > 0 && <Section title="Vendors">{vendors.map((v) => (
         <Card key={v.id} onClick={() => nav.go('c_vendor', { id: v.id })}><p className="truncate text-[15px] font-bold text-ink-900">{v.name}</p><p className="text-xs text-ink-500">{v.roles.join(' · ') || 'Verified vendor'}</p></Card>
       ))}</Section>}
@@ -142,7 +144,7 @@ function UniversalPanel({ q, country, cityId, signedIn, onCategory }) {
           )
         })}</Section>
       ))}
-      <p className="text-[11px] text-ink-400">Your RFQs, bookings, contracts and orders are shown only to you{signedIn ? '' : '. Sign in to include them'}.</p>
+      {hasMatches && <p className="text-[11px] text-ink-400">Your RFQs, bookings, contracts and orders are shown only to you{signedIn ? '' : '. Sign in to include them'}.</p>}
     </div>
   )
 }
@@ -410,9 +412,9 @@ export function RemoteExplore({ params = {}, supplierOnly = false }) {
         if ((v.group || '').toLowerCase() !== group.toLowerCase()) return false
       }
       if (selectedSub && !vendorMatchesSubcategory(v, selectedSub)) return false
-      if (!tokens.length) return true
-      const hay = `${v.name} ${v.group || ''} ${v.specialty || ''} ${v.city || ''} ${v.country || ''} ${(v.subs || []).join(' ')}`.toLowerCase()
-      return tokens.every((tok) => hay.includes(tok))
+      if (!q.trim()) return true
+      const hay = `${v.name} ${v.group || ''} ${v.specialty || ''} ${v.city || ''} ${v.country || ''} ${(v.subs || []).join(' ')}`
+      return matchesSearchText(hay, q)
     }).map((v) => ({ ...v, sample: true }))
   }, [group, q, selectedSub])
   const vendorItems = useMemo(() => {
@@ -438,12 +440,13 @@ export function RemoteExplore({ params = {}, supplierOnly = false }) {
     selectedSub && { label: selectedSub },
   ].filter(Boolean)
 
+  const isInitialLoading = !state.error && state.loading && state.items.length === 0
+
   return (
     <Screen title="Explore" back={false} pad={false} headerless scrollClass="vv-remote-explore-scroll">
       <div className="vv-remote-explore mx-auto space-y-5 pb-6 pt-3 md:pb-8 md:pt-4">
       <div className="vv-remote-explore-grid grid items-start gap-5">
       <div className="vv-explore-listings space-y-3.5">
-        <UniversalPanel q={q} country={country} cityId={cityId} signedIn={Boolean(app.me?.loggedIn)} onCategory={(category) => { setCategoryId(category.id); setCategoryName(category.name) }} />
         {(hierarchy.length > 0 || popularSubcategories.length > 0) && (
           <div className="vv-discovery-taxonomy-bar">
             {hierarchy.length > 0 && (
@@ -489,12 +492,13 @@ export function RemoteExplore({ params = {}, supplierOnly = false }) {
             )}
           </div>
         )}
+        <UniversalPanel q={q} country={country} cityId={cityId} signedIn={Boolean(app.me?.loggedIn)} suppressLoading={isInitialLoading} onCategory={(category) => { setCategoryId(category.id); setCategoryName(category.name) }} />
         <p className="pt-1 text-[13px] font-bold uppercase tracking-wide text-ink-500">{type === 'vendor' ? 'Vendors' : type === 'product' ? 'Products' : type === 'service' ? 'Services' : 'Products and services'}{locale.city ? ` · ${locale.city}${locale.pincode ? ` ${locale.pincode}` : ''}` : ''}{resultCount > 0 && ` (${resultCount})`}</p>
         {!useSamples && state.error && <ErrorBox message={state.error} onRetry={() => search()} />}
         {!state.error && !state.loading && !state.marketLive && (
           <Banner tone="amber" title="Not live in this area yet">VendorVerse is not open for search in {locale.city || 'this area'} yet, so nothing is shown. Nothing here is hidden from you.</Banner>
         )}
-        {!state.error && state.loading && state.items.length === 0 && <Loading />}
+        {isInitialLoading && <Loading />}
         {resultCount > 0 && <div className={cx('vv-result-list vv-result-grid', showVendors && !showListings && 'vv-vendor-result-grid')}>
           {showVendors && shownVendors.map((vendor) => <VendorCard key={vendor.id || vendor.name} vendor={vendor} sample={vendor.sample ?? useSamples} />)}
           {showListings && resultListings.map((l) => <ResultCard key={l.id} listing={l} sample={useSamples} onClick={useSamples ? undefined : () => nav.go('c_listing', { id: l.id })} />)}

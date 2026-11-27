@@ -344,7 +344,8 @@
   }
   .vv-mock-category-nav .vv-category-menu > button:hover,
   .vv-mock-category-nav .vv-category-menu.is-open > button { background:#efeae0; border-color:#d8cebd; }
-  .vv-mock-category-nav .vv-category-menu > button .vv-category-menu-caret { display:block; margin-left:auto; }
+  .vv-mock-category-nav .vv-category-menu > button > span { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .vv-mock-category-nav .vv-category-menu > button .vv-category-menu-caret { display:block; margin-left:auto; flex:none; }
   .vv-mock-mobile-utils { display:flex; align-items:center; gap:6px; flex:0 1 auto; min-width:0; }
   .vv-mock-mobile-utils .vv-mock-header-select { min-height:38px; padding:0 9px; border-color:#e4ddd0; font-size:12px; gap:4px; }
   .vv-mock-mobile-utils .vv-mock-location { min-width:0; max-width:128px; }

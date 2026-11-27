@@ -16,6 +16,13 @@ describe('industry browse search', () => {
     expect(searchIndustries(INDUSTRIES, 'electricty')[0].matchedSubcategories).toContain('Electrician')
   })
 
+  it('finds Plumbing through the plumber alias', () => {
+    const results = searchIndustries(INDUSTRIES, 'plumber')
+
+    expect(results[0].industry.name).toBe('Home & household services')
+    expect(results[0].matchedSubcategories).toContain('Plumbing')
+  })
+
   it('returns all industries in their original order for an empty query', () => {
     const results = searchIndustries(INDUSTRIES, '  ')
 

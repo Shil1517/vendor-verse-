@@ -573,7 +573,7 @@ export function WebsiteHome() {
         <h1>Find the Right Vendor, <em>Globally</em></h1>
         <p>Discover verified vendors, skilled professionals and trusted businesses across the world, all in one place.</p>
         <form onSubmit={onSearch} onBlur={(e)=>{if(!e.currentTarget.contains(e.relatedTarget))setSuggestField('')}} className="vv-mock-search" role="search" autoComplete="off">
-          <label className="vv-mock-search-what"><Search size={20} aria-hidden="true"/><span className="sr-only">What</span><input id="home-what" value={query} onFocus={()=>setSuggestField('q')} onChange={(e)=>{setQuery(e.target.value);setSuggestField('q')}} placeholder="Search for vendors, services or products..." onKeyDown={(e)=>e.key==='Escape'&&setSuggestField('')}/></label>
+          <label className="vv-mock-search-what"><Search size={20} aria-hidden="true"/><span className="sr-only">What</span><input id="home-what" value={query} onFocus={()=>setSuggestField('q')} onChange={(e)=>{setQuery(e.target.value);setSuggestField('q')}} placeholder="Search vendors, services or products..." onKeyDown={(e)=>e.key==='Escape'&&setSuggestField('')}/></label>
           <label className="vv-mock-search-where"><MapPin size={18} aria-hidden="true"/><span className="sr-only">Where</span><input id="home-where" value={where} onFocus={()=>setSuggestField('w')} onChange={(e)=>onWhereChange(e.target.value)} placeholder="City, pincode or country" onKeyDown={(e)=>e.key==='Escape'&&setSuggestField('')}/><ChevronDown size={16} aria-hidden="true"/></label>
           <button className="vv-mock-search-submit" aria-label="Search">Search <ArrowRight size={18}/></button>
           {suggestField && (

@@ -253,16 +253,114 @@ export function getPopularSubcategories(groupOrCat) {
 }
 
 const SUBCATEGORY_KEYWORDS = {
-  'event catering': ['cater', 'buffet', 'feast', 'rasoi', 'tiffin', 'food'],
-  'artists & djs': ['dj', 'artist', 'music', 'band', 'entertainment'],
-  photography: ['photo', 'video', 'studio', 'camera'],
-  decoration: ['decor', 'floral', 'stage', 'drape'],
-  wedding: ['wedding', 'bridal', 'matrimon'],
+  plumbing: ['plumber', 'plumbing', 'pipe', 'leak', 'leakage', 'tap', 'faucet', 'bathroom', 'drain', 'sanitary'],
+  carpentry: ['carpenter', 'carpentry', 'woodwork', 'furniture', 'wardrobe', 'door'],
+  painting: ['painter', 'painting', 'paint', 'putty', 'whitewash', 'wall paint'],
+  'pest control': ['pest', 'termite', 'cockroach', 'fumigation', 'mosquito'],
+  'appliance repair': ['appliance', 'washing machine', 'fridge', 'refrigerator', 'microwave', 'geyser', 'tv repair'],
+  'electrical & ac repair': ['electrician', 'electric', 'electricity', 'ac ', 'air condition', 'wiring', 'switch'],
+  'home cleaning': ['cleaner', 'cleaning', 'maid', 'housekeep', 'sanitiz', 'deep clean'],
+  'sofa & carpet': ['sofa', 'carpet', 'upholstery', 'shampooing'],
+  'event catering': ['caterer', 'catering', 'buffet', 'feast', 'rasoi', 'tiffin', 'food'],
+  'artists & djs': ['dj', 'artist', 'music', 'band', 'entertainment', 'singer'],
+  photography: ['photographer', 'videographer', 'photo', 'video', 'studio', 'camera'],
+  decoration: ['decorator', 'decoration', 'decor', 'floral', 'stage', 'drape'],
+  wedding: ['wedding', 'bridal', 'matrimon', 'shaadi'],
   corporate: ['corporate', 'conference', 'summit'],
-  'electrical & ac repair': ['electric', 'ac ', 'air condition', 'wiring', 'switch'],
-  'home cleaning': ['clean', 'maid', 'housekeep', 'sanitiz'],
   'hardware & building materials': ['hardware', 'cement', 'steel', 'pipe', 'timber', 'ply'],
   'paints & finishing': ['paint', 'putty', 'coating', 'finish'],
+  'civil contractors': ['civil', 'contractor', 'renovation', 'masonry', 'construction'],
+  waterproofing: ['waterproof', 'damp', 'seepage', 'terrace'],
+  'ca & tax': ['ca ', 'chartered accountant', 'accountant', 'tax', 'gst', 'audit'],
+  legal: ['lawyer', 'advocate', 'legal', 'attorney', 'notary'],
+  architects: ['architect', 'architecture', 'floor plan', 'building design'],
+  consultants: ['consultant', 'consulting', 'advisory'],
+  'web development': ['web developer', 'website', 'web app', 'app developer', 'software'],
+  'digital marketing': ['seo', 'marketing', 'social media', 'ads', 'branding'],
+  'it support': ['it support', 'tech support', 'helpdesk', 'laptop repair'],
+  'packers & movers': ['packer', 'mover', 'movers', 'relocation', 'shifting'],
+  'freight forwarding': ['freight', 'cargo', 'shipping', 'transport', 'logistics'],
+  'courier and delivery': ['courier', 'parcel', 'delivery'],
+  warehousing: ['warehouse', 'warehousing', 'storage', 'godown'],
+  'car service': ['mechanic', 'car repair', 'car service', 'garage'],
+  towing: ['tow', 'towing', 'roadside'],
+  'solar installation': ['solar', 'rooftop solar', 'inverter', 'pv'],
+}
+
+const normalizeSearchTerm = (value) => String(value || '').trim().toLowerCase()
+
+const keywordMatchesQuery = (keyword, queryLower) => {
+  const kw = normalizeSearchTerm(keyword)
+  if (!kw || !queryLower) return false
+  if (kw === queryLower || kw.includes(queryLower) || queryLower.includes(kw)) return true
+  if (queryLower.length >= 4) {
+    return kw.startsWith(queryLower) || queryLower.startsWith(kw)
+  }
+  return false
+}
+
+/**
+ * Expands a search query with matching canonical subcategory terms (e.g. "plumber" -> ["plumber", "plumbing"]).
+ */
+export function expandQueryTerms(query) {
+  const q = normalizeSearchTerm(query)
+  if (!q) return []
+  const out = new Set([q])
+  for (const [sub, keywords] of Object.entries(SUBCATEGORY_KEYWORDS)) {
+    if (keywordMatchesQuery(sub, q) || keywords.some((kw) => keywordMatchesQuery(kw, q))) {
+      out.add(sub)
+    }
+  }
+  return [...out]
+}
+
+/**
+ * Checks whether a haystack string matches either the direct query tokens or expanded category aliases.
+ */
+export function matchesSearchText(haystack, query) {
+  const hay = normalizeSearchTerm(haystack)
+  const q = normalizeSearchTerm(query)
+  if (!q) return true
+  const tokens = q.split(/\s+/).filter(Boolean)
+  if (tokens.length > 0 && tokens.every((tok) => hay.includes(tok))) return true
+  const expanded = expandQueryTerms(q)
+  return expanded.some((term) => term !== q && hay.includes(term))
+}
+
+/**
+ * Finds the best matching marketplace field/subcategory for a navbar search query (supports aliases like "plumber" -> "Plumbing").
+ */
+export function findMatchingCategoryHint(query) {
+  const q = normalizeSearchTerm(query)
+  if (!q) return null
+
+  let best = null
+  for (const field of FIELD_CONFIGS) {
+    for (const sub of field.subs) {
+      const subLower = sub.toLowerCase()
+      const keywords = SUBCATEGORY_KEYWORDS[subLower] || []
+      let score = 0
+      if (subLower === q) score = 120
+      else if (subLower.startsWith(q)) score = 100
+      else if (subLower.includes(q)) score = 85
+      else if (keywords.some((kw) => normalizeSearchTerm(kw) === q)) score = 95
+      else if (keywords.some((kw) => keywordMatchesQuery(kw, q))) score = 75
+      if (score > (best?.score || 0)) {
+        best = { score, id: field.cat, group: field.group, subcategory: sub, name: sub }
+      }
+    }
+
+    const groupLower = field.group.toLowerCase()
+    let groupScore = 0
+    if (groupLower === q) groupScore = 90
+    else if (groupLower.startsWith(q)) groupScore = 70
+    else if (groupLower.includes(q)) groupScore = 60
+    if (groupScore > (best?.score || 0)) {
+      best = { score: groupScore, id: field.cat, group: field.group, subcategory: '', name: field.group }
+    }
+  }
+
+  return best ? { id: best.id, group: best.group, subcategory: best.subcategory, name: best.name } : null
 }
 
 /**

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { findCity, lookupPin } from '../geo.js'
-import { buildLocalePatch, formatLocationLabel } from './locationService.js'
+import { buildLocalePatch, formatHeroWhere, formatLocationLabel } from './locationService.js'
 import { DEFAULT_LOCALE, hasUserSelectedLocation, normalizeLocale } from '../store.jsx'
 
 describe('location defaults and user selection', () => {
@@ -26,6 +26,8 @@ describe('location defaults and user selection', () => {
     expect(hasUserSelectedLocation(userGeo)).toBe(true)
     expect(normalizeLocale(userGeo)).toMatchObject({ city: 'Bhopal', pincode: '462001', source: 'geo' })
     expect(formatLocationLabel(userGeo)).toBe('Bhopal 462001')
+    expect(formatHeroWhere(userGeo)).toBe('Bhopal 462001')
+    expect(formatHeroWhere(DEFAULT_LOCALE)).toBe('Jabalpur, India')
 
     const userManual = { ...DEFAULT_LOCALE, ...buildLocalePatch({ city: 'Jaipur', state: 'Rajasthan', source: 'manual' }, DEFAULT_LOCALE) }
     expect(hasUserSelectedLocation(userManual)).toBe(true)
