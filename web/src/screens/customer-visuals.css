@@ -73,8 +73,10 @@
 .vv-customer-route .text-brand-500,
 .vv-customer-route .text-brand-600,
 .vv-customer-route .text-brand-700,
-.vv-customer-route .text-brand-800 { color: #8a6420 !important; }
-.vv-customer-route .bg-brand-50 { background-color: #f7f4ee !important; }
+.vv-customer-route .text-brand-800,
+.vv-customer-route .text-teal-700 { color: #8a6420 !important; }
+.vv-customer-route .bg-brand-50,
+.vv-customer-route .bg-teal-50 { background-color: #f7f4ee !important; }
 .vv-customer-route .bg-brand-100 { background-color: #efeae0 !important; }
 .vv-customer-route .bg-brand-500,
 .vv-customer-route .bg-brand-600,
@@ -87,6 +89,12 @@
 .vv-customer-portal .vv-screen-layout > header { background: #fff; border-color: #e4ddd0; }
 .vv-customer-portal .vv-screen-layout > header h1 { color: #111; font-family: "Bricolage Grotesque", "Figtree", sans-serif; letter-spacing: -.025em; }
 .vv-customer-portal .vv-screen-scroll > div:not(.vv-profile-page):not(.vv-profile-edit-page):not(.vv-guest-wall-wrap) { width: min(100% - 48px, 1120px); padding-top: 30px; padding-bottom: 48px; color: #111; font-family: "Figtree", "DM Sans", "Segoe UI", system-ui, sans-serif; }
+@media (max-width: 767px) {
+  .vv-customer-portal .vv-screen-scroll > div:not(.vv-profile-page):not(.vv-profile-edit-page):not(.vv-guest-wall-wrap) {
+    width: 100%;
+    padding: 16px 14px 24px;
+  }
+}
 .vv-customer-portal .vv-screen-scroll > .vv-guest-wall-wrap {
   display: grid;
   width: 100%;

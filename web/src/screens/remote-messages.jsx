@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { ArrowLeft, ArrowUpRight, Globe2, MessageCircle, Send, ShieldCheck, Store } from 'lucide-react'
+import { ArrowLeft, ArrowUpRight, ChevronDown, ChevronRight, Globe2, MessageCircle, Send, ShieldCheck, Store } from 'lucide-react'
 import { Banner, Button, EmptyState, Screen } from '../ui.jsx'
 import { useApp } from '../store.jsx'
 import { useNav } from '../nav.jsx'
@@ -121,6 +121,8 @@ export function RemoteChat({ params = {}, initialConversations }) {
   const nav = useNav()
   const { me } = useApp()
   const [selectedId, setSelectedId] = useState(params.id)
+  const [mobilePane, setMobilePane] = useState(() => (nav.id === 'chat' ? 'chat' : 'list'))
+  const [consentOpen, setConsentOpen] = useState(false)
   const state = useLoad(() => authService.getConversation(selectedId), [selectedId])
   const inbox = useLoad(() => authService.listConversations(), [me.role])
   const conversations = inbox.data?.conversations || initialConversations || []
@@ -130,6 +132,10 @@ export function RemoteChat({ params = {}, initialConversations }) {
   const [contactScope, setContactScope] = useState('phone')
   const [ownUserId, setOwnUserId] = useState('')
   const endRef = useRef(null)
+  useEffect(() => {
+    if (params.id) setSelectedId(params.id)
+    setMobilePane(nav.id === 'chat' ? 'chat' : 'list')
+  }, [nav.id, params.id])
   const consents = useLoad(() => selectedId ? authService.apiRequest(`/conversations/${encodeURIComponent(selectedId)}/contact-consents`).then((r) => r.ok ? { ok: true, consents: r.data.consents } : r) : Promise.resolve({ ok: true, consents: [] }), [selectedId])
   useEffect(() => { authService.apiRequest('/me').then((r) => { if (r.ok) setOwnUserId(r.data?.userId || '') }) }, [])
   useEffect(() => {
@@ -161,12 +167,24 @@ export function RemoteChat({ params = {}, initialConversations }) {
     inbox.reload()
   }
   const lastMessageId = c?.messages?.[c.messages.length - 1]?.id
-  useEffect(() => { endRef.current?.scrollIntoView({ block: 'end' }) }, [lastMessageId, selectedId])
+  useEffect(() => { endRef.current?.scrollIntoView({ block: 'end' }) }, [lastMessageId, selectedId, mobilePane])
   const isVendor = c?.viewerRole === 'vendor' || me.role === 'vendor'
   const headName = isVendor ? (c?.customerName || selectedThread?.customerName) : (c?.vendorName || selectedThread?.vendorName)
   const conversationName = (thread) => isVendor ? (thread.customerName || thread.vendorName || 'Customer') : (thread.vendorName || 'Vendor')
+  const openThread = (threadId) => {
+    setFailure('')
+    setMessage('')
+    setConsentOpen(false)
+    setSelectedId(threadId)
+    setMobilePane('chat')
+  }
+  const backToList = () => {
+    setConsentOpen(false)
+    if (nav.id === 'chat') nav.go('messages')
+    else setMobilePane('list')
+  }
   return <Screen headerless pad={false} scrollClass="vv-conversation-scroll">
-    <div className="vv-conversation-page">
+    <div className={`vv-conversation-page ${mobilePane === 'chat' ? 'is-mobile-chat' : 'is-mobile-list'}`}>
     <div className="vv-conversation-page-title">Messages</div>
     <div className="vv-conversation-workspace">
       <aside className="vv-conversation-list" aria-label={isVendor ? 'Customer conversations' : 'Vendor conversations'}>
@@ -174,13 +192,38 @@ export function RemoteChat({ params = {}, initialConversations }) {
         {inbox.loading && conversations.length === 0 && <p className="vv-conversation-list-note">Loading conversations…</p>}
         {inbox.error && <div className="vv-conversation-list-note"><ErrorBox message={inbox.error} onRetry={inbox.reload} /></div>}
         {!inbox.loading && conversations.length === 0 && <p className="vv-conversation-list-note">Your conversations will appear here.</p>}
-        <div className="vv-conversation-list-items">{conversations.map((thread) => <button type="button" key={thread.id} aria-current={thread.id === selectedId ? 'page' : undefined} className={`vv-conversation-item${thread.id === selectedId ? ' is-selected' : ''}`} onClick={() => { setFailure(''); setMessage(''); setSelectedId(thread.id) }}>
+        <div className="vv-conversation-list-items">{conversations.map((thread) => <button type="button" key={thread.id} aria-current={thread.id === selectedId ? 'page' : undefined} className={`vv-conversation-item${thread.id === selectedId ? ' is-selected' : ''}`} onClick={() => openThread(thread.id)}>
           <span className="vv-conversation-avatar" aria-hidden="true">{conversationName(thread).trim().charAt(0).toUpperCase()}</span>
           <span className="vv-conversation-item-copy"><strong>{conversationName(thread)}</strong><small>{thread.lastMessageAt ? `Last message ${fmtWhen(thread.lastMessageAt)}` : 'Start the conversation'}</small></span>
+          <ChevronRight size={17} className="vv-conversation-item-chev" aria-hidden="true" />
         </button>)}</div>
       </aside>
       <section className="vv-conversation-chat" aria-label="Conversation">
-        <header className="vv-conversation-chat-heading">{nav.id === 'chat' && <button type="button" aria-label="Back to messages" onClick={() => nav.go('messages')}><ArrowLeft size={21} /></button>}{headName && <span className="vv-conversation-avatar vv-conversation-avatar-lg" aria-hidden="true">{headName.trim().charAt(0).toUpperCase()}</span>}<div><h1>{headName || (isVendor ? 'Customer' : 'Vendor')}</h1><p>{isVendor ? 'Customer conversation' : 'Vendor conversation'}</p></div></header>
+        <header className="vv-conversation-chat-heading">
+          <button type="button" className={nav.id === 'chat' ? 'vv-conversation-back' : 'vv-conversation-back vv-conversation-back-mobile'} aria-label="Back to messages" onClick={backToList}><ArrowLeft size={20} /></button>
+          {headName && <span className="vv-conversation-avatar vv-conversation-avatar-lg" aria-hidden="true">{headName.trim().charAt(0).toUpperCase()}</span>}
+          <div className="vv-conversation-chat-title"><h1>{headName || (isVendor ? 'Customer' : 'Vendor')}</h1><p>{isVendor ? 'Customer conversation' : 'Vendor conversation'}</p></div>
+        </header>
+        {c && (
+          <div className={`vv-conversation-consent${consentOpen ? ' is-open' : ''}`}>
+            <button type="button" className="vv-conversation-consent-toggle" aria-expanded={consentOpen} onClick={() => setConsentOpen((open) => !open)}>
+              <ShieldCheck size={16} aria-hidden="true" />
+              <span>{hasContactScope ? `Sharing ${contactScope.replaceAll('_', ' ')}` : 'Contact details are private'}</span>
+              <small>{consentOpen ? 'Hide' : 'Manage'}</small>
+              <ChevronDown size={15} className={consentOpen ? 'is-open' : ''} aria-hidden="true" />
+            </button>
+            {consentOpen && (
+              <div className="vv-conversation-consent-panel">
+                <p>Hidden in messages until you allow sharing.</p>
+                <div className="vv-conversation-consent-controls">
+                  <select aria-label="Contact detail type" value={contactScope} onChange={(event) => setContactScope(event.target.value)}><option value="phone">Phone</option><option value="email">Email</option><option value="phone_and_email">Phone and email</option></select>
+                  <Button size="sm" disabled={busy || consents.loading || !ownUserId || !!consents.error} onClick={changeConsent}>{hasContactScope ? 'Stop sharing' : 'Allow sharing'}</Button>
+                </div>
+                {consents.error && <span className="vv-conversation-consent-err">{consents.error}</span>}
+              </div>
+            )}
+          </div>
+        )}
         <div className="vv-conversation-messages">
           {failure && <Banner tone="red" title="Message not sent">{failure}</Banner>}
           {state.error && <ErrorBox message={state.error} onRetry={state.reload} />}
@@ -190,7 +233,6 @@ export function RemoteChat({ params = {}, initialConversations }) {
           <div ref={endRef} />
         </div>
         <div className="vv-conversation-compose"><input aria-label="Message" placeholder="Type a message" value={message} onChange={(event) => setMessage(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter') send() }} /><button type="button" className="vv-conversation-send" aria-label="Send message" disabled={!c || busy || !message.trim()} onClick={send}><Send size={18} /><span>Send</span></button></div>
-        {c && <div className="vv-conversation-consent"><ShieldCheck size={18} /><span className="vv-conversation-consent-text"><b>Contact details are private</b><small>Hidden in messages until you allow sharing.</small></span><select aria-label="Contact detail type" value={contactScope} onChange={(event) => setContactScope(event.target.value)}><option value="phone">Phone</option><option value="email">Email</option><option value="phone_and_email">Phone and email</option></select>{consents.error && <span>{consents.error}</span>}<Button disabled={busy || consents.loading || !ownUserId || !!consents.error} onClick={changeConsent}>{hasContactScope ? 'Stop sharing' : 'Allow sharing'}</Button></div>}
       </section>
     </div>
     </div>

@@ -28,6 +28,7 @@
   border-top-color: #e4ddd0 !important;
   background: rgba(255, 253, 249, .96) !important;
   box-shadow: 0 -8px 24px -14px rgba(60, 45, 12, .16) !important;
+  padding-bottom: max(6px, env(safe-area-inset-bottom)) !important;
 }
 .vv-bottom-tab {
   flex: 1 1 0%;
@@ -41,10 +42,13 @@
 }
 .vv-bottom-tab.is-active,
 .vv-bottom-tab.is-active:hover {
-  flex: 2.1 1 0%;
+  flex: 1 1 0%;
   background: #6f5018 !important;
   color: #ffffff !important;
   box-shadow: 0 4px 12px rgba(111, 80, 24, .25) !important;
+}
+.vv-bottom-tab-label {
+  letter-spacing: -0.01em;
 }
 .vv-bottom-tab-badge.is-active {
   --tw-ring-color: #6f5018 !important;
