@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import {
   VENDORS0, LISTINGS0, ORDERS0, BOOKINGS0, RFQS0, LEADS0, COMMISSIONS0, DISPUTES0, USERS0, AGENTS0, AUDIT0,
   NOTIFS0, THREADS0, SETTINGS0, REVIEWS0, CONTRACTS0, COMPANY_ORDERS0, ME,
@@ -8,6 +8,7 @@ import { clearState, loadState, saveState } from './services/browserRepository.j
 import { COMPANIES_SEED } from './bizdata.js'
 import { can, ownsCustomerRecord, ownsVendor } from './services/authorization.js'
 import { authService } from './services/authService.js'
+import { buildLocalePatch, detectLocationByBrowser } from './services/locationService.js'
 
 const Ctx = createContext(null)
 export const useApp = () => useContext(Ctx)
@@ -68,6 +69,9 @@ export const LOCATION_PRESETS = {
 
 const normalizeLocale = (value) => {
   const l = value || {}
+  if (l.city === 'Jaipur' && !l.source && !l.pincode) {
+    return { ...l, state: '', city: '', cityId: null, pincode: '', locality: '', source: 'unset' }
+  }
   const preset = LOCATION_PRESETS[l.countryName] || LOCATION_PRESETS.India
   const states = ['Rajasthan', 'Delhi', 'Maharashtra', 'Dubai', 'England', 'New York', 'Bavaria', 'Guangdong']
   const cities = ['Jaipur', 'Delhi', 'Mumbai', 'Dubai', 'London', 'New York', 'Munich', 'Berlin', 'Shenzhen', 'Shanghai', 'Bengaluru']
@@ -80,7 +84,7 @@ export function AppProvider({ children, initialMe }) {
     customCategories: [],
     categoryOverrides: {},
     industries: ['Construction & Infrastructure', 'Electrical & Energy', 'Office & Technology', 'Home & Facilities', 'Food & Events', 'Professional Services'],
-    lang: 'en', locale: { country: 'IN', countryName: 'India', state: 'Rajasthan', city: 'Jaipur', currency: 'INR', timeZone: 'Asia/Kolkata', coverage: 'local' }, vendors: VENDORS0, listings: LISTINGS0, orders: ORDERS0,
+    lang: 'en', locale: { country: 'IN', countryName: 'India', state: '', city: '', cityId: null, pincode: '', locality: '', currency: 'INR', timeZone: 'Asia/Kolkata', coverage: 'local', source: 'unset' }, vendors: VENDORS0, listings: LISTINGS0, orders: ORDERS0,
     bookings: BOOKINGS0, rfqs: RFQS0, leads: LEADS0, commissions: COMMISSIONS0, disputes: DISPUTES0, users: USERS0, agents: AGENTS0,
     audit: AUDIT0, notifs: NOTIFS0, threads: THREADS0, settings: SETTINGS0, reviews: REVIEWS0, saved: ['l3', 'l11', 'v7'], compare: [],
     contracts: CONTRACTS0, reviewed: [], prefs: { orders: true, bookings: true, quotes: true, promos: false, quiet: false },
@@ -90,6 +94,57 @@ export function AppProvider({ children, initialMe }) {
   useEffect(() => { if (!me.loggedIn) authService.endSession() }, [me.loggedIn])
   const [lang, setLang] = useState(restored.lang)
   const [locale, setLocale] = useState(() => normalizeLocale(restored.locale))
+  const localeRef = useRef(locale)
+  useEffect(() => { localeRef.current = locale }, [locale])
+
+  useEffect(() => {
+    if (typeof navigator === 'undefined' || !('geolocation' in navigator)) return undefined
+    let active = true
+    let permStatus = null
+
+    const runAutoDetect = async () => {
+      const result = await detectLocationByBrowser()
+      if (!active || !result.ok) return
+      setLocale((prev) => {
+        if (prev.source && prev.source !== 'unset' && prev.city) return prev
+        return { ...prev, ...buildLocalePatch(result.place, prev), source: 'geo' }
+      })
+    }
+
+    const onPermissionChange = () => {
+      if (permStatus?.state === 'granted') runAutoDetect()
+    }
+
+    if (navigator.permissions?.query) {
+      navigator.permissions.query({ name: 'geolocation' }).then((status) => {
+        if (!active) return
+        permStatus = status
+        status.addEventListener?.('change', onPermissionChange)
+        if (status.state === 'granted') {
+          if (!localeRef.current.city || localeRef.current.source === 'unset') runAutoDetect()
+        } else if (status.state === 'prompt' && (!localeRef.current.city || localeRef.current.source === 'unset')) {
+          let alreadyPrompted = false
+          try {
+            alreadyPrompted = window.sessionStorage?.getItem('vv.geo.prompted') === '1'
+            if (!alreadyPrompted) window.sessionStorage?.setItem('vv.geo.prompted', '1')
+          } catch { /* ignore storage errors */ }
+          if (!alreadyPrompted) runAutoDetect()
+        }
+      }).catch(() => {})
+    } else if (!localeRef.current.city || localeRef.current.source === 'unset') {
+      let alreadyPrompted = false
+      try {
+        alreadyPrompted = window.sessionStorage?.getItem('vv.geo.prompted') === '1'
+        if (!alreadyPrompted) window.sessionStorage?.setItem('vv.geo.prompted', '1')
+      } catch { /* ignore storage errors */ }
+      if (!alreadyPrompted) runAutoDetect()
+    }
+
+    return () => {
+      active = false
+      permStatus?.removeEventListener?.('change', onPermissionChange)
+    }
+  }, [])
   const [vendors, setVendors] = useState(restored.vendors)
   const [listings, setListings] = useState(restored.listings)
   const [orders, setOrders] = useState(restored.orders)

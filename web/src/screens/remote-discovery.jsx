@@ -7,8 +7,8 @@
  * is labelled, never shown as zero (F-DSC-05).
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { ArrowLeft, Briefcase, CalendarClock, CheckCircle2, GitCompare, Heart, MapPin, MessageCircle, Search, Share2, ShieldCheck, Star, Zap } from 'lucide-react'
-import { Avatar, Badge, Banner, Button, Card, Chips, EmptyState, Input, KV, ListRow, Screen, Section, Segmented, SearchBar, Toggle, cx } from '../ui.jsx'
+import { ArrowLeft, Briefcase, CalendarClock, CheckCircle2, ChevronRight, GitCompare, Heart, MapPin, MessageCircle, Search, Share2, ShieldCheck, Star, Zap } from 'lucide-react'
+import { Avatar, Badge, Banner, Button, Card, Chips, EmptyState, Input, KV, ListRow, Screen, Section, Segmented, cx } from '../ui.jsx'
 import { useApp } from '../store.jsx'
 import { useNav } from '../nav.jsx'
 import { authService } from '../services/authService.js'
@@ -124,7 +124,7 @@ function UniversalPanel({ q, country, cityId, signedIn, onCategory }) {
         <Card key={v.id} onClick={() => nav.go('c_vendor', { id: v.id })}><p className="truncate text-[15px] font-bold text-ink-900">{v.name}</p><p className="text-xs text-ink-500">{v.roles.join(' · ') || 'Verified vendor'}</p></Card>
       ))}</Section>}
       {categories.length > 0 && <Section title="Categories"><div className="flex flex-wrap gap-2">{categories.map((c) => (
-        <button key={c.id} onClick={() => onCategory(c.id)} className="rounded-full bg-white px-3 py-1.5 text-sm font-semibold text-ink-800 ring-1 ring-ink-200">{c.name}</button>
+        <button key={c.id} onClick={() => onCategory(c)} className="rounded-full bg-white px-3 py-1.5 text-sm font-semibold text-ink-800 ring-1 ring-ink-200">{c.name}</button>
       ))}</div></Section>}
       {priv.map((type) => (
         <Section key={type} title={PRIVATE_LABEL[type]}>{sections[type].items.map((h) => {
@@ -282,29 +282,23 @@ export function RemoteExplore({ params = {}, supplierOnly = false }) {
   const locale = app.locale ?? app.loc ?? {} // web keeps the place in `locale`, mobile in `loc`
   const [q, setQ] = useState(params.q || '')
   const [group, setGroup] = useState(params.group || '') // top-level category picked in the marketplace header
-  const [type, setType] = useState(params.mode === 'vendors' ? 'vendor' : 'all')
   const [categoryId, setCategoryId] = useState('all')
-  const [instantOnly, setInstantOnly] = useState(false)
-  const [vendorRole, setVendorRole] = useState('SUPPLIER')
-  const [min, setMin] = useState('')
-  const [max, setMax] = useState('')
+  const [categoryName, setCategoryName] = useState('')
   const [state, setState] = useState({ loading: true, error: '', items: [], nextCursor: null, marketLive: true })
   const country = locale.country || 'IN'
+  const type = params.mode === 'vendors' ? 'vendor' : 'all'
 
   // Picking another header category while this screen is open starts a fresh browse of it.
-  useEffect(() => { setGroup(params.group || ''); setQ(params.q || ''); setCategoryId('all'); setType(params.mode === 'vendors' ? 'vendor' : 'all') }, [params.group, params.q, params.mode])
+  useEffect(() => { setGroup(params.group || ''); setQ(params.q || ''); setCategoryId('all'); setCategoryName('') }, [params.group, params.q])
 
   // Resolve the saved city name to a geography id once.
   const cities = useLoad(() => authService.listCities(country), [country])
   const cityId = useMemo(() => cities.data?.cities?.find((c) => c.name === locale.city)?.id, [cities.data, locale.city])
-  const categories = useLoad(() => authService.listCategories({ countryCode: country, cityId }), [country, cityId])
 
   const filters = useMemo(() => ({
     countryCode: country, cityId, q: q.trim() || undefined, categoryId: categoryId === 'all' ? undefined : categoryId,
-    listingType: type === 'product' || type === 'service' ? type : undefined, instantOnly: instantOnly || undefined,
-    minPriceMinor: min ? Number(min) * 100 : undefined, maxPriceMinor: max ? Number(max) * 100 : undefined,
-    vendorRole: supplierOnly ? vendorRole : undefined,
-  }), [country, cityId, q, categoryId, type, instantOnly, min, max, supplierOnly, vendorRole])
+    vendorRole: supplierOnly ? 'SUPPLIER' : undefined,
+  }), [country, cityId, q, categoryId, supplierOnly])
 
   const search = useCallback(async (cursor) => {
     setState((s) => ({ ...s, loading: true, error: '', ...(cursor ? {} : { items: [] }) }))
@@ -321,91 +315,47 @@ export function RemoteExplore({ params = {}, supplierOnly = false }) {
   }, [search, cities.loading])
 
   // Sample data fills the screen until real listings exist (see data/exploreSamples.js).
-  const realCategories = categories.data?.categories || []
   const groupSubs = group && group !== 'New vendors' ? SAMPLE_GROUPS[group] || [] : null
   // The API has flat categories; the header groups them by name, so apply the group here.
   const visibleItems = useMemo(() => (groupSubs ? state.items.filter((l) => groupSubs.includes(l.categoryName)) : state.items), [state.items, groupSubs])
   const useSamples = !supplierOnly && !state.loading && visibleItems.length === 0 && (Boolean(state.error) || state.marketLive)
-  const sampleCategories = Object.entries(SAMPLE_GROUPS).filter(([g]) => !group || group === 'New vendors' || g === group).flatMap(([, subs]) => subs)
-  const chipOptions = realCategories.length > 0
-    ? realCategories.filter((c) => !groupSubs || groupSubs.includes(c.name)).map((c) => ({ id: c.categoryId, label: c.name }))
-    : sampleCategories.map((name) => ({ id: name, label: name }))
   const sampleItems = useMemo(() => {
     const text = q.trim().toLowerCase()
     return SAMPLE_LISTINGS.filter((l) => {
       if (group === 'New vendors' ? !l.isNew : group && l.group !== group) return false
-      if (type !== 'all' && type !== 'vendor' && l.listingType !== type) return false
       if (categoryId !== 'all' && l.categoryName !== categoryId) return false
-      if (instantOnly && !l.instantBooking) return false
-      if (min && l.price.maxMinor < Number(min) * 100) return false
-      if (max && l.price.minMinor > Number(max) * 100) return false
       return !text || [l.title, l.vendor.name, l.categoryName, l.group, l.city].some((v) => v.toLowerCase().includes(text))
     })
-  }, [q, group, type, categoryId, instantOnly, min, max])
+  }, [q, group, categoryId])
   const resultListings = useSamples ? sampleItems : visibleItems
   const vendorItems = useMemo(() => vendorsFromListings(resultListings), [resultListings])
   const showListings = type !== 'vendor'
   const showVendors = type === 'vendor'
   const resultCount = (showListings ? resultListings.length : 0) + (showVendors ? vendorItems.length : 0)
-  const activeFilterCount = [type !== 'all', categoryId !== 'all', Boolean(min), Boolean(max), instantOnly].filter(Boolean).length
+  const hierarchy = [
+    group && { label: group },
+    categoryName && { label: categoryName },
+  ].filter(Boolean)
 
   return (
     <Screen title="Explore" back={false} pad={false} headerless scrollClass="vv-remote-explore-scroll">
       <div className="vv-remote-explore mx-auto space-y-5 pb-6 pt-3 md:pb-8 md:pt-4">
       <div className="vv-remote-explore-grid grid items-start gap-5">
-      <aside className="vv-explore-filter md:sticky md:top-4">
-      <div className="overflow-hidden rounded-3xl bg-white shadow-[0_18px_55px_-30px_rgba(15,23,42,0.45)] ring-1 ring-ink-100">
-        <div className="flex items-center justify-between border-b border-ink-100 bg-gradient-to-br from-ink-50 via-white to-brand-50/40 px-5 py-4 md:px-6">
-          <div><p className="text-[11px] font-bold uppercase tracking-[0.18em] text-brand-700">Search filters</p><h2 className="mt-1 text-lg font-bold tracking-tight text-ink-900">Refine results</h2></div>
-          {activeFilterCount > 0 && <span className="rounded-full bg-brand-50 px-2.5 py-1 text-xs font-bold text-brand-700 ring-1 ring-brand-100">{activeFilterCount} active</span>}
-        </div>
-
-        <div className="vv-explore-filter-body space-y-4 p-4 md:p-5">
-          <div>
-            <div className="mb-2.5 flex items-center justify-between gap-3">
-              <p className="text-xs font-bold uppercase tracking-[0.14em] text-ink-500">Browse by type</p>
-              <span className="text-xs text-ink-400">Choose one</span>
-            </div>
-            <Segmented className="bg-ink-50" value={type} onChange={setType} options={[{ id: 'all', label: 'All' }, { id: 'product', label: 'Products' }, { id: 'service', label: 'Services' }, { id: 'vendor', label: 'Vendors' }]} />
-          </div>
-
-          {supplierOnly && (
-            <div>
-              <p className="mb-2.5 text-xs font-bold uppercase tracking-[0.14em] text-ink-500">Business type</p>
-              <Segmented className="bg-ink-50" value={vendorRole} onChange={setVendorRole} options={[{ id: 'SUPPLIER', label: 'Suppliers' }, { id: 'MANUFACTURER', label: 'Manufacturers' }]} />
-            </div>
-          )}
-
-          {!group && chipOptions.length > 0 && (
-            <div>
-              <p className="mb-2.5 text-xs font-bold uppercase tracking-[0.14em] text-ink-500">Category</p>
-              <Chips className="-mx-1 px-1" value={categoryId} onChange={setCategoryId} options={[{ id: 'all', label: 'All categories' }, ...chipOptions]} />
-            </div>
-          )}
-
-          <div className="rounded-2xl bg-ink-50/75 p-4 ring-1 ring-inset ring-ink-100">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <p className="text-sm font-bold text-ink-900">Refine your search</p>
-                <p className="mt-0.5 text-xs text-ink-500">Optional filters to narrow the results.</p>
-              </div>
-              <span className="rounded-full bg-white px-2.5 py-1 text-[11px] font-semibold text-ink-500 ring-1 ring-ink-200">Optional</span>
-            </div>
-            <div className="mt-3 grid gap-3 sm:grid-cols-2">
-              <Input className="!h-11 bg-white" label="Minimum price" inputMode="numeric" value={min} onChange={(e) => setMin(e.target.value.replace(/\D/g, ''))} />
-              <Input className="!h-11 bg-white" label="Maximum price" inputMode="numeric" value={max} onChange={(e) => setMax(e.target.value.replace(/\D/g, ''))} />
-            </div>
-          </div>
-
-          <div className="rounded-2xl border border-ink-100 bg-white px-4 py-3">
-            <Toggle label="Instant booking only" desc="Show listings you can book without waiting for a reply" on={instantOnly} onChange={setInstantOnly} />
-          </div>
-        </div>
-      </div>
-      </aside>
       <div className="vv-explore-listings space-y-3.5">
-        <UniversalPanel q={q} country={country} cityId={cityId} signedIn={Boolean(app.me?.loggedIn)} onCategory={setCategoryId} />
-        <p className="pt-1 text-[13px] font-bold uppercase tracking-wide text-ink-500">{type === 'vendor' ? 'Vendors' : type === 'product' ? 'Products' : type === 'service' ? 'Services' : 'Products and services'}{resultCount > 0 && ` (${resultCount})`}</p>
+        <UniversalPanel q={q} country={country} cityId={cityId} signedIn={Boolean(app.me?.loggedIn)} onCategory={(category) => { setCategoryId(category.id); setCategoryName(category.name) }} />
+        {hierarchy.length > 0 && (
+          <nav className="vv-discovery-hierarchy" aria-label="Product and service category path">
+            <ol>
+              {hierarchy.map((item, index) => (
+                <li key={item.label}>
+                  {index > 0 && <ChevronRight size={15} aria-hidden="true" />}
+                  <span aria-current={index === hierarchy.length - 1 ? 'page' : undefined}>{item.label}</span>
+                </li>
+              ))}
+            </ol>
+          </nav>
+        )}
+        <p className="pt-1 text-[13px] font-bold uppercase tracking-wide text-ink-500">{type === 'vendor' ? 'Vendors' : type === 'product' ? 'Products' : type === 'service' ? 'Services' : 'Products and services'}{locale.city ? ` · ${locale.city}${locale.pincode ? ` ${locale.pincode}` : ''}` : ''}{resultCount > 0 && ` (${resultCount})`}</p>
         {!useSamples && state.error && <ErrorBox message={state.error} onRetry={() => search()} />}
         {!state.error && !state.loading && !state.marketLive && (
           <Banner tone="amber" title="Not live in this area yet">VendorVerse is not open for search in {locale.city || 'this area'} yet, so nothing is shown. Nothing here is hidden from you.</Banner>
@@ -905,7 +855,7 @@ export function BookingRows({ state, empty, detail }) {
   const rows = all.filter((b) => filter === 'all' || b.state === filter)
   return (
     <>
-      <div className="bg-white px-4 py-3"><Chips value={filter} onChange={setFilter} options={FILTERS} /></div>
+      <div className="bg-white px-3 py-2.5 sm:px-4 sm:py-3"><Chips scroll={false} value={filter} onChange={setFilter} options={FILTERS} /></div>
       <div className="space-y-3 p-4">
         {loading && !data && <Loading />}
         {error && <ErrorBox message={error} onRetry={reload} />}

@@ -218,6 +218,8 @@ The matrix statuses above measure screen coverage. With `VITE_API_BASE_URL`, web
 
 | Date & time (YYYY-MM-DD HH:MM, local) | Updated by | Change | Reason |
 |---|---|---|---|
+| 2026-11-25 16:24 | Amit | Modified: F-GEO-01, F-GEO-02, F-DSC-01 web location detection and pincode support | User request; removed Jaipur default, added automatic browser geolocation permission detection and reverse-geocoding, auto-detect-and-set for any pincode, and allowed setting any custom location across the website. |
+| 2026-11-25 16:11 | Amit | Modified: F-DSC-01 web home hero and section animations | User request; added staggered hero entrance, gold underline/sheen, SVG outline draw, floating cards & pointer parallax, interactive micro-interactions, and scroll-reveal cascades with reduced-motion support. |
 | 2026-11-24 11:57 | tanya sen | Modified: F-XCT-06 and F-DSC-01 change-log entries merged | Preserve both branch histories while resolving the documentation merge conflict. |
 | 2026-11-23 18:40 | Sahil Soni | Modified: F-DSC-01 web home hero stat strip counts up | Owner request; numbers animate once when the strip scrolls into view and show final values for reduced-motion users. |
 | 2026-11-23 18:20 | Sahil Soni | Modified: F-DSC-01 web home hero sizing on laptop screens | Hero was taller than a laptop window so the buttons and stat strip were cut off; it now sizes from the viewport height. |

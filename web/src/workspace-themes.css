@@ -419,28 +419,28 @@ html[data-theme] .vv-vendor-workspace.vx-shell .vx-theme-picker-trigger {
   background: var(--vv-theme-surface) !important;
 }
 
-html[data-theme] .vv-global-vendor-shell nav[class~='z-20'] {
+html[data-theme] .vv-global-vendor-shell nav[class~='z-20']:not(.vv-bottom-tabs) {
   border-color: var(--vv-theme-line) !important;
   background: var(--vv-theme-surface-strong) !important;
   color: var(--vv-theme-ink);
   box-shadow: 0 -8px 24px var(--vv-theme-shadow);
 }
 
-html[data-theme] .vv-global-vendor-shell nav[class~='z-20'] button:not([class~='bg-brand-50']):not([class~='bg-brand-600']) {
+html[data-theme] .vv-global-vendor-shell nav[class~='z-20']:not(.vv-bottom-tabs) button:not([class~='bg-brand-50']):not([class~='bg-brand-600']) {
   color: var(--vv-theme-muted);
 }
 
-html[data-theme] .vv-global-vendor-shell nav[class~='z-20'] button[class~='bg-brand-50'] {
+html[data-theme] .vv-global-vendor-shell nav[class~='z-20']:not(.vv-bottom-tabs) button[class~='bg-brand-50'] {
   background: var(--vv-theme-glow) !important;
   color: var(--vv-theme-accent) !important;
 }
 
-html[data-theme] .vv-global-vendor-shell nav[class~='z-20'] button[class~='bg-brand-600'] {
+html[data-theme] .vv-global-vendor-shell nav[class~='z-20']:not(.vv-bottom-tabs) button[class~='bg-brand-600'] {
   background: linear-gradient(135deg, var(--vv-theme-accent), var(--vv-theme-accent-2)) !important;
   color: #fff !important;
 }
 
-html[data-theme] .vv-global-vendor-shell nav[class~='z-20'] button[class~='hover:bg-ink-50']:hover {
+html[data-theme] .vv-global-vendor-shell nav[class~='z-20']:not(.vv-bottom-tabs) button[class~='hover:bg-ink-50']:hover {
   background: var(--vv-theme-glow);
   color: var(--vv-theme-ink);
 }
@@ -796,7 +796,7 @@ html[data-theme] .vv-agent-route .vv-screen-scroll > div > .vv-agent-hero h1 { f
 .vv-agent-route .vv-screen-scroll :is(input, textarea, select) { max-width: 100%; }
 .vv-agent-route .vv-screen-scroll :is(img, svg, canvas) { max-width: 100%; }
 
-@media (max-width: 1080px) and (min-width: 821px) {
+@media (max-width: 1080px) and (min-width: 768px) {
   .vv-agent-shell {
     grid-template-columns: minmax(0, 190px) minmax(0, 1fr);
     gap: 9px;
@@ -808,7 +808,7 @@ html[data-theme] .vv-agent-route .vv-screen-scroll > div > .vv-agent-hero h1 { f
   .vv-agent-route .vv-screen-scroll > div > .vv-agent-dashboard-content > .grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
-@media (max-width: 820px) {
+@media (max-width: 767px) {
   .vv-agent-shell,
   .vv-agent-shell.is-agent-sidebar-collapsed {
     display: flex;
@@ -883,7 +883,7 @@ html[data-theme] .vv-agent-route [class~='bg-brand-500'] {
 
 html[data-theme] .vv-agent-route [class~='bg-brand-600'],
 html[data-theme] .vv-agent-route [class~='bg-brand-700'],
-html[data-theme] .vv-agent-shell nav[class~='z-20'] [class~='bg-brand-600'] {
+html[data-theme] .vv-agent-shell nav[class~='z-20']:not(.vv-bottom-tabs) [class~='bg-brand-600'] {
   background-color: var(--vv-theme-accent) !important;
 }
 
@@ -1553,13 +1553,13 @@ html[data-theme] .vv-agent-route .vv-screen-scroll :is(button, a):focus-visible 
   82% { transform: translateX(140%); }
 }
 
-@media (max-width: 1180px) and (min-width: 821px) {
+@media (max-width: 1180px) and (min-width: 768px) {
   html[data-theme] .vv-agent-shell { grid-template-columns: minmax(176px, 190px) minmax(0, 1fr); gap: 9px; padding: 9px; }
   html[data-theme] .vv-agent-shell.is-agent-sidebar-collapsed { grid-template-columns: 68px minmax(0, 1fr); }
   html[data-theme] .vv-agent-route .vv-agent-kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
-@media (max-width: 820px) {
+@media (max-width: 767px) {
   html[data-theme] .vv-agent-shell,
   html[data-theme] .vv-agent-shell.is-agent-sidebar-collapsed { display: flex; padding: 0; gap: 0; }
   html[data-theme] .vv-agent-shell .vv-agent-sidebar { display: none; }

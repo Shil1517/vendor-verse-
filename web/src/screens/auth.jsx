@@ -9,13 +9,31 @@ import { authService, isEmail, isPhone, normalizePhone, roleForAccount } from '.
 import { openAuthDialog } from '../components/MarketplaceAuthDialog.jsx'
 import './auth-visuals.css'
 
-export function Logo({ size = 64, light, blue = false }) {
+export function BrandLogoMark({ size = 36, dark = false, className = '' }) {
+  const accent = dark ? '#3b82f6' : '#1d60ea'
+  const stripe = dark ? '#e2e8f0' : '#1f3350'
   return (
-    <svg width={size} height={size} viewBox="0 0 64 64" fill="none">
-      <rect width="64" height="64" rx="18" fill={blue ? '#1769aa' : light ? '#fff' : '#00857c'} />
-      <circle cx="32" cy="32" r="21" stroke={blue ? '#fff' : light ? '#00857c' : '#fff'} strokeOpacity=".28" strokeWidth="2" />
-      <path d="M18 21h8.2l5.8 15.6L37.8 21H46L35.5 46h-7L18 21Z" fill={blue ? '#fff' : light ? '#00857c' : '#fff'} />
-      <circle cx="48" cy="19" r="4.5" fill={blue ? '#9ccfff' : light ? '#14284b' : '#ffd166'} />
+    <svg width={size} height={size} viewBox="0 0 48 48" fill="none" className={cx('block shrink-0', className)} aria-hidden="true">
+      <path d="M3 12h9.5L24 36.4 35.5 12H45L28.5 47h-9L3 12Z" fill={accent} />
+      <path d="M15.2 12H21l8.25 17.5L26.6 36.2 15.2 12Z" fill={stripe} fillOpacity={dark ? '.9' : '.93'} />
+      <circle cx="24" cy="4.2" r="3.2" fill={accent} />
+      <circle cx="4.2" cy="38.2" r="3.2" fill={accent} />
+      <circle cx="43.8" cy="38.2" r="3.2" fill={accent} />
+    </svg>
+  )
+}
+
+export function Logo({ size = 64, light, blue = false, className = '' }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 64 64" fill="none" className={cx('block shrink-0', className)} aria-hidden="true">
+      <rect width="64" height="64" rx="16" fill="#ffffff" stroke={light ? 'none' : blue ? '#dbeafe' : '#dce4f2'} strokeWidth="1.5" />
+      <g transform="translate(8 8)">
+        <path d="M3 12h9.5L24 36.4 35.5 12H45L28.5 47h-9L3 12Z" fill="#1d60ea" />
+        <path d="M15.2 12H21l8.25 17.5L26.6 36.2 15.2 12Z" fill="#1f3350" fillOpacity=".93" />
+        <circle cx="24" cy="4.2" r="3.2" fill="#1d60ea" />
+        <circle cx="4.2" cy="38.2" r="3.2" fill="#1d60ea" />
+        <circle cx="43.8" cy="38.2" r="3.2" fill="#1d60ea" />
+      </g>
     </svg>
   )
 }
