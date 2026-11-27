@@ -910,7 +910,7 @@ function Shell() {
       {showAgentSidebar && <AgentSidebar collapsed={agentSidebarCollapsed} onToggle={() => setAgentSidebarCollapsed((value) => !value)} onNavigate={(id) => nav.reset(id)} onLogout={agentLogout} me={me} t={t} activeId={nav.id} />}
       {showAdminSidebar && <AdminSidebar collapsed={adminSidebarCollapsed} onToggle={() => setAdminSidebarCollapsed((value) => !value)} onNavigate={jump} onLogout={adminLogout} me={me} t={t} activeId={nav.id} />}
       <div className={cx('flex min-h-0 min-w-0 flex-1 flex-col', showAgentSidebar && 'vv-agent-main', showAdminSidebar && 'vv-admin-main')}>
-        {!showVendorWorkspace && !showCustomerWorkspace && (!customerPortalRoute || ['c_profile', 'c_profile_edit', 'c_dash', 'c_activity', 'c_saved', 'c_orders'].includes(nav.id)) && <WebHeader onMenu={() => setDrawer(true)} hideTabs={showAgentSidebar || showAdminSidebar} blueBrand={showAgentSidebar} workspaceTheme={showAgentSidebar} marketplaceCategories={!PORTAL_NO_BANNER_IDS.has(nav.id)} marketplaceAnnouncement={!PORTAL_NO_BANNER_IDS.has(nav.id)} />}
+        {!showVendorWorkspace && !showCustomerWorkspace && (!customerPortalRoute || CUSTOMER_PORTAL_IDS.has(nav.id)) && <WebHeader onMenu={() => setDrawer(true)} hideTabs={showAgentSidebar || showAdminSidebar} blueBrand={showAgentSidebar} workspaceTheme={showAgentSidebar} marketplaceCategories={!PORTAL_NO_BANNER_IDS.has(nav.id)} marketplaceAnnouncement={!PORTAL_NO_BANNER_IDS.has(nav.id)} />}
         <main className={cx('relative flex min-h-0 flex-1 flex-col bg-white', showAgentSidebar && 'vv-agent-main-content')}>
           <Phone frame={false} scale={1} web={desktop} onMenu={() => setDrawer(true)} />
         </main>
