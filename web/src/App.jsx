@@ -16,9 +16,10 @@ import { VendorWorkspace, CUSTOMER_WORKSPACE_IDS } from './screens/vendor.jsx'
 import { NotifBell } from './screens/shared.jsx'
 import { MarketplaceAuthDialog, OPEN_AUTH_EVENT, openAuthDialog } from './components/MarketplaceAuthDialog.jsx'
 import { LocationDialog } from './components/LocationDialog.jsx'
+import { NavbarProductSearch } from './components/NavbarProductSearch.jsx'
 import { formatLocationLabel } from './services/locationService.js'
 import { FRS, NFR, MVP, PHASE2, ACCEPTANCE, DECISIONS, ROLE_TABLE } from './specs.js'
-import { cx, SearchBar } from './ui.jsx'
+import { cx } from './ui.jsx'
 import { ThemeProvider } from './hooks/useTheme.jsx'
 import './screens/customer-visuals.css'
 import './screens/vendor-dashboard-visuals.css'
@@ -102,7 +103,7 @@ function MarketplaceCategoriesMenu({ nav }) {
 
   const openCategory = (group, q) => {
     setOpen(false)
-    nav.go('c_explore', q ? { group, q } : { group })
+    nav.go('c_explore', q ? { group, q, mode: 'vendors' } : { group, mode: 'vendors' })
   }
 
   const ActiveIcon = activeIndustry?.icon
@@ -584,7 +585,7 @@ function MarketplaceMobileDrawer({ open, onClose, nav, me, setMe, threads, toast
             <p className="vv-mock-drawer-label">Browse sectors</p>
             <div className="vv-mock-drawer-cats">
               {MARKETPLACE_CATEGORIES.map(([category, icon]) => (
-                <button key={category} type="button" className={cx('vv-mock-drawer-cat', nav.id === 'c_explore' && nav.params?.group === category && 'is-active')} onClick={() => navigate('c_explore', { group: category })}>
+                <button key={category} type="button" className={cx('vv-mock-drawer-cat', nav.id === 'c_explore' && nav.params?.group === category && 'is-active')} onClick={() => navigate('c_explore', { group: category, mode: 'vendors' })}>
                   <FontAwesomeIcon icon={icon} aria-hidden="true" />
                   <span>{category}</span>
                 </button>
@@ -676,15 +677,28 @@ function WebHeader({ onMenu, hideTabs, workspaceHeader = false, workspaceTheme =
   const localeCountry = ['India', 'United Arab Emirates', 'United Kingdom'].includes(locale.countryName) ? locale.countryName : 'India'
   const changeCountry = (countryName) => setLocale({ ...locale, ...COUNTRY_SETTINGS[countryName], ...LOCATION_PRESETS[countryName], countryName })
   const changeCurrency = (currency) => changeCountry(({ INR: 'India', AED: 'United Arab Emirates', GBP: 'United Kingdom' })[currency])
-  const submitMarketplaceSearch = (e) => {
-    e.preventDefault()
-    const value = headerSearch.trim()
-    nav.go('c_explore', { ...(nav.params?.group ? { group: nav.params.group } : {}), ...(value ? { q: value } : {}) })
+  const submitMarketplaceSearch = (rawQuery) => {
+    const value = String(rawQuery ?? headerSearch).trim()
+    nav.go('c_explore', { ...(nav.params?.group ? { group: nav.params.group } : {}), ...(value ? { q: value } : {}), mode: 'vendors' })
+  }
+  const selectMarketplaceProduct = (item) => {
+    if (!item) return
+    setHeaderSearch(item.title || '')
+    if (item.sample || !item.id) {
+      nav.go('c_explore', { ...(item.title ? { q: item.title } : {}), mode: 'vendors' })
+      return
+    }
+    nav.go('c_vendor', { id: item.id })
+  }
+  const selectMarketplaceCategory = (categoryItem) => {
+    if (!categoryItem) return
+    setHeaderSearch('')
+    nav.go('c_explore', { cat: categoryItem.id, group: categoryItem.name, mode: 'vendors' })
   }
   const renderMarketplaceLocation = () => (
     <button type="button" onClick={() => setLocationOpen(true)} className="vv-mock-header-select vv-mock-location" aria-label="Choose location" title={t('searchLocation')}>
       <MapPin size={15} aria-hidden="true" />
-      <span className="vv-mock-location-text">{formatLocationLabel(locale, 'Select location')}</span>
+      <span className="vv-mock-location-text">{formatLocationLabel(locale, 'Jabalpur')}</span>
       <ChevronDown size={14} className="vv-mock-control-caret" aria-hidden="true" />
     </button>
   )
@@ -704,7 +718,14 @@ function WebHeader({ onMenu, hideTabs, workspaceHeader = false, workspaceTheme =
         {mockMarketplaceHeader ? <>
           <button type="button" className="vv-mock-menu-btn" aria-label="Open navigation menu" aria-expanded={mobileMenuOpen} onClick={() => setMobileMenuOpen(true)}><Menu size={20} aria-hidden="true" /></button>
           <button onClick={() => nav.reset('c_home')} className="vv-mock-brand" aria-label="VendorVerse home"><img src="/vendorverse-logo.png" alt="VendorVerse" className="vv-mock-brand-logo" /></button>
-          {nav.id === 'c_explore' ? <form className="vv-mock-header-search" onSubmit={submitMarketplaceSearch} role="search"><SearchBar value={headerSearch} onChange={(e) => setHeaderSearch(e.target.value)} placeholder="Search vendors, products, services" /></form> : <div className="vv-mock-header-spacer" />}
+          <NavbarProductSearch
+            value={headerSearch}
+            onChange={setHeaderSearch}
+            onSubmitSearch={submitMarketplaceSearch}
+            onSelectProduct={selectMarketplaceProduct}
+            onSelectCategory={selectMarketplaceCategory}
+            placeholder="Search vendors, fields or services..."
+          />
           <div className="vv-mock-header-controls">
             {renderMarketplaceLocation()}
             {renderMarketplaceLanguage()}
@@ -722,14 +743,14 @@ function WebHeader({ onMenu, hideTabs, workspaceHeader = false, workspaceTheme =
           {workspaceHeader && !workspaceMobile && <button type="button" onClick={workspaceToggle} aria-controls="business-workspace-navigation" aria-label={workspaceCollapsed ? 'Expand sidebar' : 'Collapse sidebar'} aria-expanded={!workspaceCollapsed} className="grid size-10 place-items-center rounded-xl text-ink-600 hover:bg-ink-50">{workspaceCollapsed ? <PanelLeftOpen size={19} /> : <PanelLeftClose size={19} />}</button>}
           <button onClick={onMenu} aria-label="More pages and tools" title="More pages and tools" className="grid size-10 place-items-center rounded-xl text-ink-600 hover:bg-ink-50"><Menu size={20} /></button>
           {me.loggedIn && me.role !== 'business' && me.hasVendorAccount && <button onClick={async () => { const nextRole = me.role === 'business' ? 'vendor' : me.role === 'vendor' ? 'customer' : 'vendor'; const switched = await authService.switchMode?.(nextRole === 'customer' ? 'CUSTOMER' : 'VENDOR'); if (switched && !switched.ok) { toast(switched.message, 'warn'); return }; setMe({ ...me, role: nextRole, name: nextRole === 'customer' ? (me.customerName || me.name) : nextRole === 'vendor' && me.vendorOwnerName ? me.vendorOwnerName : (me.vendorName || me.name), buyerMode: false }); nav.reset(nextRole === 'customer' ? 'c_home' : 'v_dash') }} className="flex h-10 items-center gap-1.5 rounded-xl bg-brand-50 px-2.5 text-xs font-bold text-brand-800 hover:bg-brand-100" title={me.role === 'business' ? 'Switch to vendor workspace' : me.role === 'vendor' ? 'Switch to customer' : 'Switch to vendor workspace'}><ArrowLeftRight size={16} /><span className="hidden sm:inline">{me.role === 'business' ? 'Vendor' : me.role === 'vendor' ? 'Customer' : 'Vendor'}</span></button>}
-          <button onClick={() => setLocationOpen(true)} className="hidden max-w-[210px] truncate rounded-xl bg-ink-50 px-3 py-2 text-left text-xs font-bold text-ink-700 hover:bg-brand-50 sm:block" title={t('searchLocation')}><MapPin size={14} className="mr-1 inline text-brand-700" />{locale.city ? `${locale.city}${locale.pincode ? ` ${locale.pincode}` : ''}${locale.state ? `, ${locale.state}` : ''}, ${locale.countryName || 'India'}` : formatLocationLabel(locale, 'Select location')}</button>
+          <button onClick={() => setLocationOpen(true)} className="hidden max-w-[210px] truncate rounded-xl bg-ink-50 px-3 py-2 text-left text-xs font-bold text-ink-700 hover:bg-brand-50 sm:block" title={t('searchLocation')}><MapPin size={14} className="mr-1 inline text-brand-700" />{locale.city ? `${locale.city}${locale.pincode ? ` ${locale.pincode}` : ''}${locale.state ? `, ${locale.state}` : ''}, ${locale.countryName || 'India'}` : formatLocationLabel(locale, 'Jabalpur')}</button>
           <button onClick={() => setLang(lang === 'en' ? 'hi' : 'en')} className="hidden h-10 items-center gap-2 rounded-xl px-2.5 text-sm font-semibold text-ink-600 hover:bg-ink-50 sm:flex" aria-label="Switch language"><Globe size={17} /><span>{lang === 'en' ? 'EN' : 'हि'}</span></button>
           <NotifBell role={me.role || 'customer'} dropdown />
           {!me.loggedIn ? <button onClick={() => openAuthDialog('signup')} className="h-10 rounded-xl bg-brand-600 px-4 text-sm font-bold text-white shadow-sm hover:bg-brand-700">Get started</button> : <button onClick={() => nav.reset(accountHome)} className="h-10 rounded-xl bg-brand-600 px-4 text-sm font-bold text-white shadow-sm hover:bg-brand-700">My account</button>}
         </div>
         </>}
       </div>
-      {mockMarketplaceHeader && marketplaceCategories && <nav className="vv-mock-category-nav" aria-label="Categories"><div className="vv-category-nav-items"><MarketplaceCategoriesMenu nav={nav} /><div className="vv-category-nav-links">{MARKETPLACE_CATEGORIES.map(([category, icon]) => <button key={category} className={cx(nav.id === 'c_explore' && nav.params?.group === category && 'is-active')} onClick={() => nav.go('c_explore', { group: category })}><FontAwesomeIcon icon={icon} aria-hidden="true" /><span>{category}</span></button>)}</div><div className="vv-mock-mobile-utils">{renderMarketplaceLanguage()}{renderMarketplaceLocation()}</div></div></nav>}
+      {mockMarketplaceHeader && marketplaceCategories && <nav className="vv-mock-category-nav" aria-label="Categories"><div className="vv-category-nav-items"><MarketplaceCategoriesMenu nav={nav} /><div className="vv-category-nav-links">{MARKETPLACE_CATEGORIES.map(([category, icon]) => <button key={category} className={cx(nav.id === 'c_explore' && nav.params?.group === category && 'is-active')} onClick={() => nav.go('c_explore', { group: category, mode: 'vendors' })}><FontAwesomeIcon icon={icon} aria-hidden="true" /><span>{category}</span></button>)}</div><div className="vv-mock-mobile-utils">{renderMarketplaceLanguage()}{renderMarketplaceLocation()}</div></div></nav>}
       <div className="sr-only" aria-live="polite">{screen.title}</div>
       {mockMarketplaceHeader && <MarketplaceMobileDrawer open={mobileMenuOpen} onClose={() => setMobileMenuOpen(false)} nav={nav} me={me} setMe={setMe} threads={threads} toast={toast} accountHome={accountHome} onOpenAuth={(mode, role, extra = {}) => setAuthDialog({ mode, role, ...extra })} renderLocation={renderMarketplaceLocation} renderLanguage={renderMarketplaceLanguage} />}
       <LocationDialog open={locationOpen} onClose={() => setLocationOpen(false)} />

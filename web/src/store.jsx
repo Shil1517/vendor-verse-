@@ -59,7 +59,7 @@ export const COUNTRY_SETTINGS = {
 }
 
 export const LOCATION_PRESETS = {
-  India: { state: 'Rajasthan', city: 'Jaipur' },
+  India: { state: 'Madhya Pradesh', city: 'Jabalpur' },
   'United Arab Emirates': { state: 'Dubai', city: 'Dubai' },
   'United Kingdom': { state: 'England', city: 'London' },
   'United States': { state: 'New York', city: 'New York' },
@@ -67,10 +67,41 @@ export const LOCATION_PRESETS = {
   China: { state: 'Guangdong', city: 'Shenzhen' },
 }
 
-const normalizeLocale = (value) => {
+export const DEFAULT_LOCALE = {
+  country: 'IN',
+  countryName: 'India',
+  state: 'Madhya Pradesh',
+  city: 'Jabalpur',
+  cityId: null,
+  pincode: '',
+  locality: '',
+  currency: 'INR',
+  timeZone: 'Asia/Kolkata',
+  coverage: 'local',
+  source: 'default',
+}
+
+export const hasUserSelectedLocation = (value) => Boolean(
+  value?.city && ((value?.source && !['unset', 'default'].includes(value.source)) || value?.pincode),
+)
+
+export const normalizeLocale = (value) => {
   const l = value || {}
-  if (l.city === 'Jaipur' && !l.source && !l.pincode) {
-    return { ...l, state: '', city: '', cityId: null, pincode: '', locality: '', source: 'unset' }
+  if (!l.city || l.source === 'unset' || l.source === 'default' || (l.city === 'Jaipur' && !l.source && !l.pincode)) {
+    return {
+      ...DEFAULT_LOCALE,
+      ...l,
+      country: 'IN',
+      countryName: 'India',
+      state: 'Madhya Pradesh',
+      city: 'Jabalpur',
+      cityId: null,
+      pincode: '',
+      locality: '',
+      currency: 'INR',
+      timeZone: 'Asia/Kolkata',
+      source: 'default',
+    }
   }
   const preset = LOCATION_PRESETS[l.countryName] || LOCATION_PRESETS.India
   const states = ['Rajasthan', 'Delhi', 'Maharashtra', 'Dubai', 'England', 'New York', 'Bavaria', 'Guangdong']
@@ -84,7 +115,7 @@ export function AppProvider({ children, initialMe }) {
     customCategories: [],
     categoryOverrides: {},
     industries: ['Construction & Infrastructure', 'Electrical & Energy', 'Office & Technology', 'Home & Facilities', 'Food & Events', 'Professional Services'],
-    lang: 'en', locale: { country: 'IN', countryName: 'India', state: '', city: '', cityId: null, pincode: '', locality: '', currency: 'INR', timeZone: 'Asia/Kolkata', coverage: 'local', source: 'unset' }, vendors: VENDORS0, listings: LISTINGS0, orders: ORDERS0,
+    lang: 'en', locale: { ...DEFAULT_LOCALE }, vendors: VENDORS0, listings: LISTINGS0, orders: ORDERS0,
     bookings: BOOKINGS0, rfqs: RFQS0, leads: LEADS0, commissions: COMMISSIONS0, disputes: DISPUTES0, users: USERS0, agents: AGENTS0,
     audit: AUDIT0, notifs: NOTIFS0, threads: THREADS0, settings: SETTINGS0, reviews: REVIEWS0, saved: ['l3', 'l11', 'v7'], compare: [],
     contracts: CONTRACTS0, reviewed: [], prefs: { orders: true, bookings: true, quotes: true, promos: false, quiet: false },
@@ -106,13 +137,13 @@ export function AppProvider({ children, initialMe }) {
       const result = await detectLocationByBrowser()
       if (!active || !result.ok) return
       setLocale((prev) => {
-        if (prev.source && prev.source !== 'unset' && prev.city) return prev
+        if (hasUserSelectedLocation(prev)) return prev
         return { ...prev, ...buildLocalePatch(result.place, prev), source: 'geo' }
       })
     }
 
     const onPermissionChange = () => {
-      if (permStatus?.state === 'granted') runAutoDetect()
+      if (permStatus?.state === 'granted' && !hasUserSelectedLocation(localeRef.current)) runAutoDetect()
     }
 
     if (navigator.permissions?.query) {
@@ -121,8 +152,8 @@ export function AppProvider({ children, initialMe }) {
         permStatus = status
         status.addEventListener?.('change', onPermissionChange)
         if (status.state === 'granted') {
-          if (!localeRef.current.city || localeRef.current.source === 'unset') runAutoDetect()
-        } else if (status.state === 'prompt' && (!localeRef.current.city || localeRef.current.source === 'unset')) {
+          if (!hasUserSelectedLocation(localeRef.current)) runAutoDetect()
+        } else if (status.state === 'prompt' && !hasUserSelectedLocation(localeRef.current)) {
           let alreadyPrompted = false
           try {
             alreadyPrompted = window.sessionStorage?.getItem('vv.geo.prompted') === '1'
@@ -131,7 +162,7 @@ export function AppProvider({ children, initialMe }) {
           if (!alreadyPrompted) runAutoDetect()
         }
       }).catch(() => {})
-    } else if (!localeRef.current.city || localeRef.current.source === 'unset') {
+    } else if (!hasUserSelectedLocation(localeRef.current)) {
       let alreadyPrompted = false
       try {
         alreadyPrompted = window.sessionStorage?.getItem('vv.geo.prompted') === '1'

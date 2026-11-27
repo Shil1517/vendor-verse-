@@ -6,6 +6,7 @@ import { useNav } from '../nav.jsx'
 import { authService } from '../services/authService.js'
 import { openAuthDialog } from '../components/MarketplaceAuthDialog.jsx'
 import { ErrorBox, Loading, fmtWhen, priceLabel, useLoad } from './remote-discovery.jsx'
+import { VENDORS0 } from '../data.jsx'
 import './remote-vendor-profile.css'
 
 const displayName = (code, type) => {
@@ -15,13 +16,23 @@ const displayName = (code, type) => {
 export function RemoteVendorProfile({ params = {} }) {
   const nav = useNav()
   const { me } = useApp()
-  const vendor = useLoad(() => authService.getPublicVendor(params.id), [params.id])
+  const seededVendor = VENDORS0.find((item) => item.id === params.id)
+  const vendor = useLoad(() => (seededVendor && !params.listingId ? Promise.resolve({ ok: true, vendor: null, seeded: true }) : authService.getPublicVendor(params.id)), [params.id, params.listingId])
   const listing = useLoad(() => params.listingId ? authService.getPublicListing(params.listingId) : Promise.resolve({ ok: true, listing: null }), [params.listingId])
   const [busy, setBusy] = useState(false)
   const [failure, setFailure] = useState('')
   if (vendor.loading && !vendor.data) return <Screen title="Vendor profile"><Loading /></Screen>
-  if (vendor.error) return <Screen title="Vendor profile"><ErrorBox message={vendor.error} onRetry={vendor.reload} /></Screen>
-  const v = vendor.data.vendor
+  if (vendor.error && !seededVendor) return <Screen title="Vendor profile"><ErrorBox message={vendor.error} onRetry={vendor.reload} /></Screen>
+  const v = vendor.data?.vendor || (seededVendor ? {
+    id: seededVendor.id,
+    name: seededVendor.name,
+    registrationCountry: seededVendor.country === 'UAE' ? 'AE' : seededVendor.country === 'United Kingdom' ? 'GB' : 'IN',
+    yearEstablished: seededVendor.since,
+    roles: [{ label: seededVendor.vendorType || seededVendor.group || 'Verified vendor' }],
+    description: `${seededVendor.specialty ? `${seededVendor.specialty} · ` : ''}Based in ${seededVendor.city}${seededVendor.areas?.length ? ` · Serves ${seededVendor.areas.join(', ')}` : ''}.`,
+    seeded: true,
+  } : null)
+  if (!v) return <Screen title="Vendor profile"><ErrorBox message="Vendor not found." onRetry={vendor.reload} /></Screen>
   const l = listing.data?.listing
   const featuredListing = l?.vendor?.id === v.id ? l : null
   const country = v.registrationCountry ? displayName(v.registrationCountry, 'region') : null
@@ -47,10 +58,21 @@ export function RemoteVendorProfile({ params = {} }) {
           {v.description && <p className="vv-remote-vendor-description">{v.description}</p>}
           <div className="vv-remote-vendor-action">
             {failure && <Banner tone="red" title="Could not message vendor">{failure}</Banner>}
-            <button type="button" className="vv-remote-vendor-message" disabled={busy} onClick={message}>
-              <MessageCircle size={19} aria-hidden="true" />{busy ? 'Opening…' : 'Message vendor'}
-            </button>
-            <p>Ask a question or discuss your requirements directly.</p>
+            {v.seeded ? (
+              <>
+                <button type="button" className="vv-remote-vendor-message" onClick={() => (me.loggedIn ? nav.go('c_rfq_new', { cat: seededVendor?.cat }) : openAuthDialog('signin'))}>
+                  <Store size={19} aria-hidden="true" />Request quotation
+                </button>
+                <p>Directory vendor preview · post an RFQ to receive quotes from verified vendors.</p>
+              </>
+            ) : (
+              <>
+                <button type="button" className="vv-remote-vendor-message" disabled={busy} onClick={message}>
+                  <MessageCircle size={19} aria-hidden="true" />{busy ? 'Opening…' : 'Message vendor'}
+                </button>
+                <p>Ask a question or discuss your requirements directly.</p>
+              </>
+            )}
           </div>
         </section>
 

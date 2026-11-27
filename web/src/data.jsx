@@ -1,3 +1,4 @@
+import { buildVendorDirectory } from './data/vendorSeed.js'
 import {
   Briefcase, Building2, Car, Cpu, Dumbbell, Factory, FlaskConical, Gem, GraduationCap, Hammer, HardHat, HeartPulse, Hotel, Landmark,
   Laptop, Megaphone, Monitor, PartyPopper, Pickaxe, Plane, Printer, Radio, Recycle, ShieldCheck, Ship, Shirt, Sparkles, Sprout,
@@ -90,7 +91,7 @@ const BASE_VENDORS = [
   { id: 'v15', name: 'GreenSun Solar Solutions', owner: 'Nitin Choudhary', cat: 'agri', city: 'Jodhpur', country: 'India', areas: ['Jodhpur', 'Jaipur', 'Rajasthan'], branches: 3, rating: 4.6, reviews: 73, status: 'approved', tone: 'lime', since: 2018, gstin: '08AABCG6152M1Z8', phone: '+91 98290 78787', email: 'projects@greensun.example', plan: 'Growth', docs: docs(), history: [{ s: 'approved', at: '15 May 2026', by: 'Arjun Rao' }] },
   { id: 'v16', name: 'Mehra & Associates', owner: 'CA Ritu Mehra', cat: 'staff', city: 'Mumbai', country: 'India', areas: ['Mumbai', 'Delhi NCR', 'Remote'], remote: true, branches: 1, rating: 4.7, reviews: 63, status: 'approved', tone: 'indigo', since: 2014, gstin: '27AABFM3184C1Z2', phone: '+91 98200 88880', email: 'hello@mehraassociates.example', plan: 'Pro', docs: docs(), history: [{ s: 'approved', at: '12 Oct 2026', by: 'Global verification team' }] },
 ]
-export const VENDORS0 = BASE_VENDORS
+export const VENDORS0 = buildVendorDirectory(BASE_VENDORS)
 
 /* ---------- listings ---------- */
 export const LISTINGS0 = [

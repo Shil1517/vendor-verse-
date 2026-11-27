@@ -56,12 +56,20 @@
 
 /* The result heading carries the selected marketplace taxonomy, rather than
    leaving the product grid detached from its industry and category context. */
+.vv-discovery-taxonomy-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 12px;
+}
 .vv-discovery-hierarchy {
   width: fit-content;
   max-width: 100%;
+  flex: none;
   overflow-x: auto;
+  border: 1px solid #e4d5be;
   border-radius: 10px;
-  background: #fff3f8;
+  background: #f5efe4;
   scrollbar-width: none;
 }
 .vv-discovery-hierarchy::-webkit-scrollbar { display: none; }
@@ -76,21 +84,226 @@
   list-style: none;
 }
 .vv-discovery-hierarchy li { display: inline-flex; align-items: center; gap: 7px; }
-.vv-discovery-hierarchy li > svg { flex: none; color: #d6bdc8; }
+.vv-discovery-hierarchy li > svg { flex: none; color: #b89f74; }
+.vv-discovery-hierarchy button,
 .vv-discovery-hierarchy span {
-  color: #ff3d86;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #8a6420;
   font: 600 14px/1.25 "DM Sans", system-ui, sans-serif;
   white-space: nowrap;
 }
-.vv-discovery-hierarchy span[aria-current="page"] { color: #17233a; font-weight: 700; }
+.vv-discovery-hierarchy button { cursor: pointer; }
+.vv-discovery-hierarchy button:hover { color: #6f5018; text-decoration: underline; text-underline-offset: 3px; }
+.vv-discovery-hierarchy span[aria-current="page"],
+.vv-discovery-hierarchy button[aria-current="page"] { color: #4f3812; font-weight: 700; text-decoration: none; }
+
+.vv-discovery-subchips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+}
+.vv-discovery-subchips-label {
+  color: #7c6744;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  margin-right: 2px;
+}
+.vv-discovery-subchip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  padding: 0 13px;
+  border: 1px solid #e4d5be;
+  border-radius: 999px;
+  background: #fff;
+  color: #5c4520;
+  font: 600 13px/1.2 "DM Sans", system-ui, sans-serif;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color .15s ease, border-color .15s ease, color .15s ease, transform .12s ease;
+}
+.vv-discovery-subchip:hover {
+  border-color: #c8ad7f;
+  background: #faf5eb;
+  color: #4f3812;
+}
+.vv-discovery-subchip.is-active {
+  border-color: #8a6420;
+  background: #8a6420;
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(138, 100, 32, .22);
+}
+.vv-discovery-subchip:focus-visible {
+  outline: 2px solid #8a6420;
+  outline-offset: 2px;
+}
 
 @media (max-width: 480px) {
   .vv-discovery-hierarchy ol { padding: 9px 13px; }
   .vv-discovery-hierarchy span { font-size: 13px; }
 }
 .vv-result-grid {
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 255px), 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 275px), 1fr));
   align-items: stretch;
+}
+.vv-result-grid.vv-vendor-result-grid {
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 310px), 1fr));
+  gap: 16px;
+}
+.vv-vendor-directory-card {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 18px !important;
+  border: 1px solid #e8e0d2;
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: 0 2px 10px rgba(60, 45, 12, .04);
+  transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+}
+.vv-vendor-directory-card:hover {
+  transform: translateY(-2px);
+  border-color: #d4bf99;
+  box-shadow: 0 14px 28px -18px rgba(111, 80, 24, .32);
+}
+.vv-vendor-directory-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+.vv-vendor-directory-avatar {
+  display: grid;
+  width: 48px;
+  height: 48px;
+  flex: none;
+  place-items: center;
+  border: 1px solid #e6dac4;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #fbf7ef, #f2e8d5);
+  color: #6f5018;
+  font-size: 18px;
+  font-weight: 800;
+}
+.vv-vendor-directory-title-wrap {
+  min-width: 0;
+  flex: 1;
+}
+.vv-vendor-directory-title-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+.vv-vendor-directory-name {
+  margin: 0;
+  color: #142236;
+  font-size: 15.5px;
+  font-weight: 750;
+  line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.vv-vendor-directory-sub {
+  margin: 3px 0 0;
+  color: #6f5018;
+  font-size: 12.5px;
+  font-weight: 600;
+  line-height: 1.35;
+}
+.vv-vendor-directory-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+  margin-top: 12px;
+  font-size: 12px;
+  color: #5b5f6b;
+}
+.vv-vendor-directory-rating {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: 600;
+  color: #1e293b;
+}
+.vv-vendor-directory-place {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.vv-vendor-directory-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+  margin-bottom: 14px;
+}
+.vv-vendor-directory-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: #f7f4ee;
+  border: 1px solid #eadfcd;
+  color: #5c4b2c;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: .03em;
+  text-transform: uppercase;
+}
+.vv-vendor-directory-foot {
+  margin-top: auto;
+  padding-top: 14px;
+  border-top: 1px solid #f1ece2;
+}
+.vv-vendor-directory-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+.vv-vendor-directory-actions > button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 0 12px;
+  border-radius: 10px;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color .15s ease, border-color .15s ease, color .15s ease;
+}
+.vv-vendor-btn-secondary {
+  border: 1px solid #e2d8c6;
+  background: #fff;
+  color: #1f2937;
+}
+.vv-vendor-btn-secondary:hover {
+  border-color: #c9b592;
+  background: #faf6ee;
+  color: #6f5018;
+}
+.vv-vendor-btn-primary {
+  border: 1px solid #8a6420;
+  background: #8a6420;
+  color: #fff;
+}
+.vv-vendor-btn-primary:hover {
+  border-color: #6f5018;
+  background: #6f5018;
+}
+.vv-vendor-btn-primary:disabled {
+  opacity: .65;
+  cursor: wait;
 }
 .vv-result-card-layout {
   display: grid;

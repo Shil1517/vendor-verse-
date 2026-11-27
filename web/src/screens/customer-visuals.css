@@ -929,9 +929,9 @@
 .vv-category-hierarchy {
   max-width: 100%;
   overflow-x: auto;
-  border: 0;
+  border: 1px solid #e4d5be;
   border-radius: 10px;
-  background: #fff3f8;
+  background: #f5efe4;
   scrollbar-width: none;
 }
 .vv-category-hierarchy::-webkit-scrollbar { display: none; }
@@ -953,15 +953,15 @@
   border: 0;
   border-radius: 4px;
   background: transparent;
-  color: #ff3d86;
+  color: #8a6420;
   font: 600 15px/1.2 "DM Sans", system-ui, sans-serif;
   white-space: nowrap;
 }
 .vv-category-hierarchy button { cursor: pointer; transition: color .15s ease, opacity .15s ease; }
-.vv-category-hierarchy button:hover { color: #d91f68; text-decoration: underline; text-underline-offset: 3px; }
-.vv-category-hierarchy button:focus-visible { outline: 2px solid #ff3d86; outline-offset: 3px; }
-.vv-category-hierarchy span[aria-current="page"] { color: #17233a; font-weight: 700; }
-.vv-category-hierarchy-separator { flex: none; color: #d6bdc8; }
+.vv-category-hierarchy button:hover { color: #6f5018; text-decoration: underline; text-underline-offset: 3px; }
+.vv-category-hierarchy button:focus-visible { outline: 2px solid #8a6420; outline-offset: 3px; }
+.vv-category-hierarchy span[aria-current="page"] { color: #4f3812; font-weight: 700; }
+.vv-category-hierarchy-separator { flex: none; color: #b89f74; }
 .vv-cat-page-hierarchy { width: fit-content; margin-bottom: 14px; }
 
 @media (max-width: 480px) {

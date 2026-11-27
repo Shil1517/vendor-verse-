@@ -142,6 +142,7 @@ export function VendorRow({ v, onClick, showProfileAction = false }) {
   const nav = useNav()
   const c = cat(v.cat)
   const cover = v.cover || ({ elec: 'https://images.unsplash.com/photo-1621905252507-b35492cc74b4?auto=format&fit=crop&w=900&q=80', build: 'https://images.unsplash.com/photo-1504307651254-35680f356dfd?auto=format&fit=crop&w=900&q=80', office: 'https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=900&q=80', clean: 'https://images.unsplash.com/photo-1581578731548-c64695cc6952?auto=format&fit=crop&w=900&q=80', home: 'https://images.unsplash.com/photo-1581244277943-fe4a9c777189?auto=format&fit=crop&w=900&q=80', event: 'https://images.unsplash.com/photo-1519167758481-83f550bb49b3?auto=format&fit=crop&w=900&q=80' }[v.cat] || 'https://images.unsplash.com/photo-1497366811353-6870744d04b2?auto=format&fit=crop&w=900&q=80')
+  const badgeLabel = v.vendorType || vendorKind(v)
   return (
     <Card onClick={onClick || (() => nav.go('c_vendor', { id: v.id }))} className="!p-0 min-w-0 overflow-hidden transition hover:-translate-y-0.5 hover:shadow-lg">
       <div className="h-28 w-full bg-cover bg-center" style={{ backgroundImage: `linear-gradient(90deg, rgba(8,45,55,.45), rgba(8,45,55,.05)), url(${cover})` }} />
@@ -149,9 +150,9 @@ export function VendorRow({ v, onClick, showProfileAction = false }) {
         <div className="mt-0 grid size-14 shrink-0 place-items-center rounded-2xl border-4 border-white bg-white shadow"><Avatar name={v.name} size={42} /></div>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
-            <p className="truncate text-sm font-bold">{v.name}</p><Badge tone={vendorKind(v) === 'Supplier' ? 'teal' : vendorKind(v) === 'Service provider' ? 'sky' : 'gray'}>{vendorKind(v)}</Badge>
+            <p className="truncate text-sm font-bold">{v.name}</p><Badge tone={vendorKind(v) === 'Supplier' ? 'teal' : vendorKind(v) === 'Service provider' ? 'sky' : 'gray'}>{badgeLabel}</Badge>
           </div>
-          <p className="mt-0.5 flex items-center gap-1 text-xs text-ink-500"><MapPin size={12} />{v.city} · {c.name}</p>
+          <p className="mt-0.5 flex items-center gap-1 truncate text-xs text-ink-500"><MapPin size={12} className="shrink-0" />{v.city} · {v.specialty || v.group || c.name}</p>
           <div className="mt-1.5 flex items-center gap-2">
             <VerifiedBadge id={v.id} />
             {v.rating > 0 && <Rating value={v.rating} count={v.reviews} />}

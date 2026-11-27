@@ -50,7 +50,7 @@ export function buildLocalePatch(place = {}, currentLocale = {}) {
   }
 }
 
-export function formatLocationLabel(locale, fallback = 'Select location') {
+export function formatLocationLabel(locale, fallback = 'Jabalpur') {
   if (!locale) return fallback
   const city = String(locale.city || '').trim()
   const pin = String(locale.pincode || '').trim()

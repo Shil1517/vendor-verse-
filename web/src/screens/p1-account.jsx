@@ -266,7 +266,7 @@ export function LocationPicker({ params = {} }) {
     <Banner tone="blue" title="Launching city by city">VendorVerse switches on cities only when there is enough verified supply. Phase 1 is live in Jaipur, Ajmer, Sikar and Delhi NCR. You can still set any location to browse nationwide and remote vendors.</Banner>
     <Button full variant="secondary" icon={MapPin} disabled={locating} onClick={useCurrentLocation}>{locating ? 'Detecting your location…' : 'Use current location'}</Button>
     <Section title="Enter your pincode and we detect the rest">
-      <Input inputMode="text" maxLength={8} icon={MapPin} placeholder="e.g. 302021 · 90001 · SW1A 1AA" value={pin} onChange={(e) => onPin(e.target.value)} error={err} hint="Supports Indian pincodes, US ZIP codes and UK postcodes" />
+      <Input inputMode="text" maxLength={8} icon={MapPin} placeholder="Enter pincode, ZIP or postcode" value={pin} onChange={(e) => onPin(e.target.value)} error={err} hint="Supports Indian pincodes, US ZIP codes and UK postcodes" />
       {det && !det.unknown && <div className="mt-2 flex items-center gap-3 rounded-2xl bg-emerald-50 p-3 ring-1 ring-emerald-200"><span className="text-2xl">{det.flag}</span><div className="min-w-0 flex-1"><p className="text-sm font-bold text-emerald-900">{det.city}, {det.state}</p><p className="text-xs text-emerald-800">{det.countryName} · {LAUNCH_LABEL[det.status]}</p></div></div>}
     </Section>
     <Section title="1 · Country">
