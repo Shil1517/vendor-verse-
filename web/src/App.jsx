@@ -7,7 +7,7 @@ import { AppProvider, COUNTRY_SETTINGS, LOCATION_PRESETS, useApp } from './store
 import { canOpenRoute } from './services/authorization.js'
 import { authService } from './services/authService.js'
 import { NavProvider, useNav } from './nav.jsx'
-import { HOME, TABS, ROLES, ADMIN_SIDEBAR } from './roles.js'
+import { HOME, TABS, ROLES, ADMIN_SIDEBAR, resolveActiveTab, shouldShowTabBar } from './roles.js'
 import { INDUSTRIES, SORTED_INDUSTRIES } from './data.jsx'
 import { SCREENS, GROUPS } from './registry.jsx'
 import { pathForScreen, screenForLocation } from './screen-routes.js'
@@ -117,7 +117,7 @@ function MarketplaceCategoriesMenu({ nav }) {
       onClick={() => { setOpen((value) => !value); setActiveId((value) => value || SORTED_INDUSTRIES[0]?.id); setMobileStep('list') }}
     >
       <LayoutGrid size={15} aria-hidden="true" />
-      <span>Categories</span>
+      <span>View all categories</span>
       <ChevronDown className="vv-category-menu-caret" size={16} aria-hidden="true" />
     </button>
     <div className="vv-category-mega" role="menu">
@@ -287,8 +287,11 @@ function StatusBar({ tone = 'light' }) {
 function TabBar() {
   const nav = useNav()
   const { me, t, threads, vendors, leads, listings } = useApp()
-  const tabs = TABS[me.role || 'customer'] || TABS.customer
-  if (!tabs.some((x) => x.id === nav.id)) return null
+  const reg = SCREENS[nav.id]
+  if (!shouldShowTabBar(reg)) return null
+  const role = me.role || 'customer'
+  const tabs = TABS[role] || TABS.customer
+  const activeTab = resolveActiveTab(nav, role)
   const badge = (id) => {
     if (id === 'messages') {
       if (authService.isRemote) return 0
@@ -299,15 +302,17 @@ function TabBar() {
     return 0
   }
   return (
-    <nav aria-label="Bottom navigation" className="vv-bottom-tabs z-20 flex shrink-0 items-center justify-between gap-1 border-t border-ink-100 bg-white/95 px-3 pb-1.5 pt-2 shadow-[0_-8px_24px_-14px_rgba(20,40,75,0.25)] backdrop-blur">
+    <nav aria-label="Bottom navigation" className="vv-bottom-tabs z-20 flex shrink-0 items-center justify-between gap-1 border-t border-ink-100 bg-white/95 px-2 pb-1.5 pt-1.5 shadow-[0_-8px_24px_-14px_rgba(20,40,75,0.25)] backdrop-blur">
       {tabs.map((x) => {
-        const on = x.id === nav.id
+        const on = x.id === activeTab
         const n = badge(x.id)
         return (
-          <button key={x.id} type="button" aria-label={t(x.k)} aria-current={on ? 'page' : undefined} onClick={() => !on && nav.reset(x.id)} className={cx('vv-bottom-tab relative flex h-11 items-center justify-center gap-1.5 rounded-full transition-all duration-300 active:scale-90', on && 'is-active flex-[2.1] px-3')}>
-            <x.icon size={21} strokeWidth={on ? 2.4 : 2} className="shrink-0" />
-            {on && <span className="truncate text-[12.5px] font-bold">{t(x.k)}</span>}
-            {n > 0 && <span className={cx('vv-bottom-tab-badge absolute grid min-w-4 place-items-center rounded-full bg-red-500 px-1 text-[9px] font-bold leading-4 text-white ring-2', on ? 'right-1.5 top-0.5 is-active' : 'right-2 top-0.5 ring-white')}>{n}</span>}
+          <button key={x.id} type="button" aria-label={t(x.k)} aria-current={on ? 'page' : undefined} onClick={() => nav.id !== x.id && nav.reset(x.id)} className={cx('vv-bottom-tab relative flex min-h-[52px] flex-1 flex-col items-center justify-center gap-0.5 rounded-2xl px-1 py-1 transition-all duration-200 active:scale-95', on && 'is-active')}>
+            <span className="relative inline-flex items-center justify-center">
+              <x.icon size={19} strokeWidth={on ? 2.3 : 1.9} className="shrink-0" />
+              {n > 0 && <span className={cx('vv-bottom-tab-badge absolute -right-2 -top-1 grid min-w-4 place-items-center rounded-full bg-red-500 px-1 text-[9px] font-bold leading-4 text-white ring-2', on ? 'is-active' : 'ring-white')}>{n}</span>}
+            </span>
+            <span className={cx('vv-bottom-tab-label max-w-full truncate text-[10.5px] leading-tight', on ? 'font-bold' : 'font-semibold')}>{t(x.k)}</span>
           </button>
         )
       })}
@@ -327,13 +332,20 @@ function Toast() {
   )
 }
 
+const CUSTOMER_PORTAL_IDS = new Set([
+  'c_profile', 'c_profile_edit', 'c_dash', 'c_activity', 'c_saved', 'c_cases', 'c_case', 'c_report',
+  'c_orders', 'c_reviews', 'c_review', 'c_review_no', 'c_settings', 'c_notif_prefs', 'c_sessions',
+  'c_export', 'c_delete', 'c_contact_share', 'acct_state', 'messages', 'chat',
+])
+const PORTAL_NO_BANNER_IDS = new Set([...CUSTOMER_PORTAL_IDS, 'c_location', 'c_location_wait', 'fees', 'invoice', 'v_register'])
+
 function ScreenHost({ onMenu }) {
   const nav = useNav()
   const { me } = useApp()
   const reg = SCREENS[nav.id] || SCREENS.welcome
   const C = reg.C
   const customerRoute = reg.role === 'customer' || PUBLIC_MARKETPLACE_ROUTES.has(nav.id) || (reg.role === 'shared' && me.role === 'customer')
-  const customerPortalRoute = (me.role === 'customer' || !me.loggedIn) && ['c_profile', 'c_profile_edit', 'c_dash', 'c_activity', 'c_saved', 'c_cases', 'c_case', 'c_orders', 'c_reviews', 'c_settings', 'messages', 'chat'].includes(nav.id)
+  const customerPortalRoute = (me.role === 'customer' || !me.loggedIn) && CUSTOMER_PORTAL_IDS.has(nav.id)
   const businessWorkspaceRoute = me.role === 'business' && ['b_home', 'b_company', 'b_services', 'b_messages', 'b_more'].includes(nav.id)
   const vendorWorkspaceRoute = ['vendor', 'business'].includes(me.role) && (reg.role === 'vendor' || ['messages', 'chat'].includes(nav.id))
   const customerWorkspaceRoute = Boolean(me.loggedIn) && me.role === 'customer' && CUSTOMER_WORKSPACE_IDS.includes(nav.id)
@@ -670,8 +682,9 @@ function WebHeader({ onMenu, hideTabs, workspaceHeader = false, workspaceTheme =
     return () => window.removeEventListener(OPEN_AUTH_EVENT, open)
   }, [])
   const screen = SCREENS[nav.id] || SCREENS.welcome
-  const tabs = TABS[me.role || 'customer'] || TABS.customer
-  const activeTab = nav.stack.slice().reverse().map((entry) => tabs.find((tab) => tab.id === entry.id)).find(Boolean)?.id || nav.id
+  const role = me.role || 'customer'
+  const tabs = TABS[role] || TABS.customer
+  const activeTab = resolveActiveTab(nav, role) || nav.id
   const mockMarketplaceHeader = !workspaceHeader && !workspaceTheme && !blueBrand && (['customer', 'vendor', 'business'].includes(me.role) || (!me.loggedIn && !['ad_login', 'splash', 'welcome'].includes(nav.id)))
   const countryLabel = { India: 'India', 'United Arab Emirates': 'UAE', 'United Kingdom': 'UK' }
   const localeCountry = ['India', 'United Arab Emirates', 'United Kingdom'].includes(locale.countryName) ? locale.countryName : 'India'
@@ -693,7 +706,12 @@ function WebHeader({ onMenu, hideTabs, workspaceHeader = false, workspaceTheme =
   const selectMarketplaceCategory = (categoryItem) => {
     if (!categoryItem) return
     setHeaderSearch('')
-    nav.go('c_explore', { cat: categoryItem.id, group: categoryItem.name, mode: 'vendors' })
+    nav.go('c_explore', {
+      ...(categoryItem.id ? { cat: categoryItem.id } : {}),
+      group: categoryItem.group || categoryItem.name,
+      ...(categoryItem.subcategory ? { q: categoryItem.subcategory } : {}),
+      mode: 'vendors',
+    })
   }
   const renderMarketplaceLocation = () => (
     <button type="button" onClick={() => setLocationOpen(true)} className="vv-mock-header-select vv-mock-location" aria-label="Choose location" title={t('searchLocation')}>
@@ -824,7 +842,7 @@ function Shell() {
   const showAdminSidebar = me.role === 'admin' && adminSidebarIds.includes(nav.id)
   const showBusinessWorkspace = me.role === 'business' && ['b_home', 'b_company', 'b_services', 'b_messages', 'b_more'].includes(nav.id)
   const showVendorWorkspace = (['vendor', 'business'].includes(me.role) && ((SCREENS[nav.id] || {}).role === 'vendor' || ['messages', 'chat'].includes(nav.id))) || showBusinessWorkspace
-  const customerPortalRoute = (me.role === 'customer' || !me.loggedIn) && ['c_profile', 'c_profile_edit', 'c_dash', 'c_activity', 'c_saved', 'c_cases', 'c_case', 'c_orders', 'c_reviews', 'c_settings', 'messages', 'chat'].includes(nav.id)
+  const customerPortalRoute = (me.role === 'customer' || !me.loggedIn) && CUSTOMER_PORTAL_IDS.has(nav.id)
   const showCustomerWorkspace = Boolean(me.loggedIn) && me.role === 'customer' && CUSTOMER_WORKSPACE_IDS.includes(nav.id)
   const agentLogout = () => {
     setMe({ role: null, loggedIn: false, guest: false, vendorId: 'v-me', name: '' })
@@ -892,7 +910,7 @@ function Shell() {
       {showAgentSidebar && <AgentSidebar collapsed={agentSidebarCollapsed} onToggle={() => setAgentSidebarCollapsed((value) => !value)} onNavigate={(id) => nav.reset(id)} onLogout={agentLogout} me={me} t={t} activeId={nav.id} />}
       {showAdminSidebar && <AdminSidebar collapsed={adminSidebarCollapsed} onToggle={() => setAdminSidebarCollapsed((value) => !value)} onNavigate={jump} onLogout={adminLogout} me={me} t={t} activeId={nav.id} />}
       <div className={cx('flex min-h-0 min-w-0 flex-1 flex-col', showAgentSidebar && 'vv-agent-main', showAdminSidebar && 'vv-admin-main')}>
-        {!showVendorWorkspace && !showCustomerWorkspace && (!customerPortalRoute || ['c_profile', 'c_profile_edit', 'c_dash', 'c_activity', 'c_saved', 'c_orders'].includes(nav.id)) && <WebHeader onMenu={() => setDrawer(true)} hideTabs={showAgentSidebar || showAdminSidebar} blueBrand={showAgentSidebar} workspaceTheme={showAgentSidebar} marketplaceCategories={!['c_profile', 'c_profile_edit', 'c_dash', 'c_activity', 'c_saved', 'c_orders', 'v_register'].includes(nav.id)} marketplaceAnnouncement={!['c_profile', 'c_profile_edit', 'c_dash', 'c_activity', 'c_saved', 'c_orders', 'v_register'].includes(nav.id)} />}
+        {!showVendorWorkspace && !showCustomerWorkspace && (!customerPortalRoute || ['c_profile', 'c_profile_edit', 'c_dash', 'c_activity', 'c_saved', 'c_orders'].includes(nav.id)) && <WebHeader onMenu={() => setDrawer(true)} hideTabs={showAgentSidebar || showAdminSidebar} blueBrand={showAgentSidebar} workspaceTheme={showAgentSidebar} marketplaceCategories={!PORTAL_NO_BANNER_IDS.has(nav.id)} marketplaceAnnouncement={!PORTAL_NO_BANNER_IDS.has(nav.id)} />}
         <main className={cx('relative flex min-h-0 flex-1 flex-col bg-white', showAgentSidebar && 'vv-agent-main-content')}>
           <Phone frame={false} scale={1} web={desktop} onMenu={() => setDrawer(true)} />
         </main>

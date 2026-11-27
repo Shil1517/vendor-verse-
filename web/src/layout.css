@@ -28,6 +28,7 @@
   border-top-color: #e4ddd0 !important;
   background: rgba(255, 253, 249, .96) !important;
   box-shadow: 0 -8px 24px -14px rgba(60, 45, 12, .16) !important;
+  padding-bottom: max(6px, env(safe-area-inset-bottom)) !important;
 }
 .vv-bottom-tab {
   flex: 1 1 0%;
@@ -41,10 +42,13 @@
 }
 .vv-bottom-tab.is-active,
 .vv-bottom-tab.is-active:hover {
-  flex: 2.1 1 0%;
+  flex: 1 1 0%;
   background: #6f5018 !important;
   color: #ffffff !important;
   box-shadow: 0 4px 12px rgba(111, 80, 24, .25) !important;
+}
+.vv-bottom-tab-label {
+  letter-spacing: -0.01em;
 }
 .vv-bottom-tab-badge.is-active {
   --tw-ring-color: #6f5018 !important;
@@ -344,7 +348,8 @@
   }
   .vv-mock-category-nav .vv-category-menu > button:hover,
   .vv-mock-category-nav .vv-category-menu.is-open > button { background:#efeae0; border-color:#d8cebd; }
-  .vv-mock-category-nav .vv-category-menu > button .vv-category-menu-caret { display:block; margin-left:auto; }
+  .vv-mock-category-nav .vv-category-menu > button > span { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .vv-mock-category-nav .vv-category-menu > button .vv-category-menu-caret { display:block; margin-left:auto; flex:none; }
   .vv-mock-mobile-utils { display:flex; align-items:center; gap:6px; flex:0 1 auto; min-width:0; }
   .vv-mock-mobile-utils .vv-mock-header-select { min-height:38px; padding:0 9px; border-color:#e4ddd0; font-size:12px; gap:4px; }
   .vv-mock-mobile-utils .vv-mock-location { min-width:0; max-width:128px; }

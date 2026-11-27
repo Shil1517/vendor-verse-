@@ -2,6 +2,7 @@ import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import { ArrowRight, Layers, Loader2, Search, Store, X } from 'lucide-react'
 import { useApp } from '../store.jsx'
 import { CATS, VENDORS0, cat } from '../data.jsx'
+import { expandQueryTerms, findMatchingCategoryHint } from '../data/vendorSeed.js'
 import { authService } from '../services/authService.js'
 import { cx, fmt } from '../ui.jsx'
 
@@ -168,6 +169,7 @@ export function rankVendorSuggestions(items, query, { city = '', country = '', l
     return picked
   }
 
+  const expandedQueries = expandQueryTerms(trimmed)
   const tokens = trimmed.split(/\s+/).filter(Boolean)
   const scored = []
   for (const item of list) {
@@ -178,7 +180,9 @@ export function rankVendorSuggestions(items, query, { city = '', country = '', l
     const vendorType = (item.vendorType || '').toLowerCase()
     const place = `${item.city || ''} ${item.country || ''} ${(item.areas || []).join(' ')}`.toLowerCase()
     const combined = `${name} ${category} ${specialty} ${subs} ${vendorType} ${place}`
-    if (!tokens.every((token) => combined.includes(token))) continue
+    const directHit = tokens.every((token) => combined.includes(token))
+    const aliasHit = !directHit && expandedQueries.some((alias) => alias !== trimmed && combined.includes(alias))
+    if (!directHit && !aliasHit) continue
 
     let score = 0
     if (name === trimmed) score += 180
@@ -186,6 +190,7 @@ export function rankVendorSuggestions(items, query, { city = '', country = '', l
     else if (name.includes(trimmed)) score += 95
     if (tokens.every((token) => name.includes(token))) score += 45
     if (tokens.some((token) => specialty.includes(token) || subs.includes(token))) score += 40
+    if (aliasHit && expandedQueries.some((alias) => specialty.includes(alias) || subs.includes(alias))) score += 38
     if (tokens.some((token) => category.includes(token))) score += 32
     if (tokens.some((token) => vendorType.includes(token))) score += 18
     if (cityLower && item.city.toLowerCase() === cityLower) score += 16
@@ -228,7 +233,7 @@ export function NavbarProductSearch({
   const isRemote = authService.isRemote
   const [open, setOpen] = useState(false)
   const [activeIndex, setActiveIndex] = useState(-1)
-  const [remoteState, setRemoteState] = useState({ loading: false, items: null })
+  const [remoteState, setRemoteState] = useState({ loading: false, items: null, categories: [] })
   const containerRef = useRef(null)
   const inputRef = useRef(null)
   const listboxId = useId()
@@ -253,12 +258,13 @@ export function NavbarProductSearch({
         const cityId = locale?.cityId || undefined
         if (trimmed.length >= 2) {
           const [uniRes, listRes] = await Promise.all([
-            authService.universalSearch({ q: trimmed, countryCode, cityId, types: ['vendor'], limit: 8 }),
+            authService.universalSearch({ q: trimmed, countryCode, cityId, types: ['vendor', 'category'], limit: 8 }),
             authService.searchListings({ q: trimmed, countryCode, cityId, limit: 8 }),
           ])
           if (!active) return
           const byId = new Map()
           const uniVendors = uniRes.ok ? (uniRes.sections?.vendor?.items || []) : []
+          const uniCategories = uniRes.ok ? (uniRes.sections?.category?.items || []) : []
           uniVendors.forEach((v) => {
             const norm = normalizeVendorSuggestion(v, { sample: false })
             if (norm) byId.set(norm.id || norm.title, norm)
@@ -279,7 +285,7 @@ export function NavbarProductSearch({
               if (norm && !byId.has(norm.id || norm.title)) byId.set(norm.id || norm.title, norm)
             }
           })
-          setRemoteState({ loading: false, items: [...byId.values()] })
+          setRemoteState({ loading: false, items: [...byId.values()], categories: uniCategories })
         } else {
           const listRes = await authService.searchListings({ countryCode, cityId, limit: 12 })
           if (!active) return
@@ -301,10 +307,10 @@ export function NavbarProductSearch({
               }
             })
           }
-          setRemoteState({ loading: false, items: [...byId.values()] })
+          setRemoteState({ loading: false, items: [...byId.values()], categories: [] })
         }
       } catch {
-        if (active) setRemoteState({ loading: false, items: [] })
+        if (active) setRemoteState({ loading: false, items: [], categories: [] })
       }
     }, delay)
     return () => {
@@ -327,14 +333,22 @@ export function NavbarProductSearch({
 
   const matchingCategory = useMemo(() => {
     if (!trimmed) return null
+    const hint = findMatchingCategoryHint(trimmed)
+    if (hint) return hint
+    const remoteCat = remoteState.categories?.[0]
+    if (remoteCat?.name) {
+      const fromRemote = findMatchingCategoryHint(remoteCat.name)
+      if (fromRemote) return fromRemote
+      return { id: remoteCat.id, name: remoteCat.name, group: remoteCat.name, subcategory: '' }
+    }
     const lower = trimmed.toLowerCase()
     const catMatch = CATS.find((c) =>
       c.name.toLowerCase().includes(lower)
       || c.subs.some((s) => s.toLowerCase().includes(lower))
     )
     if (!catMatch) return null
-    return { id: catMatch.id, name: catMatch.name }
-  }, [trimmed])
+    return { id: catMatch.id, name: catMatch.name, group: catMatch.name, subcategory: '' }
+  }, [trimmed, remoteState.categories])
 
   const suggestions = useMemo(() => {
     const limit = trimmed ? SEARCH_SUGGESTION_LIMIT : DEFAULT_SUGGESTION_LIMIT
@@ -507,7 +521,11 @@ export function NavbarProductSearch({
                 </span>
                 <span className="vv-nav-suggestion-copy">
                   <span className="vv-mock-suggestion-label">View vendors in {matchingCategory.name}</span>
-                  <span className="vv-nav-suggestion-sub">Browse verified vendors in this field</span>
+                  <span className="vv-nav-suggestion-sub">
+                    {matchingCategory.subcategory && matchingCategory.group && matchingCategory.group !== matchingCategory.name
+                      ? `${matchingCategory.group} · Browse verified ${matchingCategory.name.toLowerCase()} vendors`
+                      : 'Browse verified vendors in this field'}
+                  </span>
                 </span>
                 <small className="vv-mock-suggestion-meta">Category</small>
                 <ArrowRight size={14} className="vv-mock-suggestion-arrow" aria-hidden="true" />

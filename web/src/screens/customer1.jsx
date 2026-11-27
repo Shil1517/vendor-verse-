@@ -9,7 +9,7 @@ import { useApp } from '../store.jsx'
 import { useNav } from '../nav.jsx'
 import { findCity } from '../geo.js'
 import { CATS, INDUSTRIES, SORTED_INDUSTRIES, cat, calcPrice, BUSY_SLOTS, SLOTS, listing as findListing } from '../data.jsx'
-import { FIELD_CATEGORY_MAP, getPopularSubcategories, vendorMatchesSubcategory } from '../data/vendorSeed.js'
+import { FIELD_CATEGORY_MAP, getPopularSubcategories, matchesSearchText, vendorMatchesSubcategory } from '../data/vendorSeed.js'
 import { searchIndustries } from '../../../packages/shared/taxonomy-search.js'
 import {
   Screen, Card, Section, Button, Thumb, Chips, Segmented, Sheet, Input, Select, Toggle, Badge, Rating, Banner, EmptyState,
@@ -508,7 +508,7 @@ export function Explore({ params = {}, supplierOnlyOverride, hideVendorMode = fa
       r = r.filter((v) => vendorMatchesSubcategory(v, subcategory))
     }
     if (q) {
-      r = r.filter((v) => matchTokens(`${v.name} ${cat(v.cat).name} ${v.group || ''} ${v.specialty || ''} ${v.vendorType || ''} ${v.city || ''} ${v.country || ''} ${(v.subs || []).join(' ')} ${(v.areas || []).join(' ')}`))
+      r = r.filter((v) => matchesSearchText(`${v.name} ${cat(v.cat).name} ${v.group || ''} ${v.specialty || ''} ${v.vendorType || ''} ${v.city || ''} ${v.country || ''} ${(v.subs || []).join(' ')} ${(v.areas || []).join(' ')}`, q))
     }
     if (f.verified) r = r.filter((v) => v.status === 'approved')
     if (f.city !== 'Any') r = r.filter((v) => v.areas?.includes(f.city) || v.city === f.city)

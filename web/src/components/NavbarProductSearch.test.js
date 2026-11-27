@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { CATS, LISTINGS0, VENDORS0 } from '../data.jsx'
-import { getPopularSubcategories, vendorMatchesSubcategory } from '../data/vendorSeed.js'
+import { findMatchingCategoryHint, getPopularSubcategories, matchesSearchText, vendorMatchesSubcategory } from '../data/vendorSeed.js'
 import { SAMPLE_LISTINGS } from '../data/exploreSamples.js'
 import {
   normalizeSuggestionItem,
@@ -65,6 +65,17 @@ describe('NavbarProductSearch vendor & product helpers', () => {
     const bySpecialty = rankVendorSuggestions(vendorSuggestions, 'plumbing', { limit: 6 })
     expect(bySpecialty.length).toBe(6)
     expect(bySpecialty.every((v) => `${v.title} ${v.specialty} ${v.subs.join(' ')}`.toLowerCase().includes('plumbing'))).toBe(true)
+
+    const byAlias = rankVendorSuggestions(vendorSuggestions, 'plumber', { limit: 6 })
+    expect(byAlias.length).toBe(6)
+    expect(byAlias.every((v) => `${v.title} ${v.specialty} ${v.subs.join(' ')}`.toLowerCase().includes('plumbing'))).toBe(true)
+    expect(findMatchingCategoryHint('plumber')).toEqual({
+      id: 'home',
+      group: 'Home services',
+      subcategory: 'Plumbing',
+      name: 'Plumbing',
+    })
+    expect(matchesSearchText('Narmada Plumbing Home Services', 'plumber')).toBe(true)
 
     const byName = rankVendorSuggestions(vendorSuggestions, 'Sharma Electricals', { limit: 6 })
     expect(byName[0].title).toBe('Sharma Electricals & Hardware')

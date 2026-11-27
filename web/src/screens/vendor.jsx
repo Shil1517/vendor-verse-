@@ -749,7 +749,20 @@ export const CUSTOMER_NAV = [
   ['Account', [[faUser, 'Profile', 'c_profile_edit'], [faGear, 'Account settings', 'c_settings']]],
 ]
 /** Pages that stay inside the customer workspace but have no sidebar entry of their own highlight their parent. */
-const CUSTOMER_PARENT = { c_profile: 'c_settings', c_reviews: 'c_review', c_case: 'c_cases', chat: 'messages' }
+const CUSTOMER_PARENT = {
+  c_profile: 'c_settings',
+  c_notif_prefs: 'c_settings',
+  c_sessions: 'c_settings',
+  c_export: 'c_settings',
+  c_delete: 'c_settings',
+  c_contact_share: 'c_settings',
+  acct_state: 'c_settings',
+  c_reviews: 'c_review',
+  c_review_no: 'c_review',
+  c_case: 'c_cases',
+  c_report: 'c_cases',
+  chat: 'messages',
+}
 /** Every customer page that renders inside the workspace shell (sidebar entries, their children, and pages reached from the dashboard). */
 export const CUSTOMER_WORKSPACE_IDS = [...CUSTOMER_NAV.flatMap(([, items]) => items.map(([, , id]) => id)), ...Object.keys(CUSTOMER_PARENT), 'messages', 'chat']
 

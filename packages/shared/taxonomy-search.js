@@ -1,5 +1,13 @@
 const SUBCATEGORY_ALIASES = [
+  { industryId: 'i_home', subcategory: 'Plumbing', terms: ['plumber', 'plumbing service', 'pipe', 'leak', 'leakage', 'tap', 'faucet', 'bathroom', 'drain', 'sanitary'] },
+  { industryId: 'i_home', subcategory: 'Carpentry', terms: ['carpenter', 'woodwork', 'furniture repair', 'wardrobe'] },
+  { industryId: 'i_home', subcategory: 'Painting', terms: ['painter', 'wall painting', 'whitewash', 'putty'] },
   { industryId: 'i_home', subcategory: 'Electrician', terms: ['electricity', 'electric', 'electrical repair', 'electrical service', 'wiring'] },
+  { industryId: 'i_events', subcategory: 'Catering', terms: ['caterer', 'food service', 'buffet'] },
+  { industryId: 'i_events', subcategory: 'Photography', terms: ['photographer', 'videographer', 'wedding shoot'] },
+  { industryId: 'i_prof', subcategory: 'Legal', terms: ['lawyer', 'advocate', 'attorney', 'notary'] },
+  { industryId: 'i_prof', subcategory: 'CA & tax', terms: ['accountant', 'chartered accountant', 'gst', 'tax'] },
+  { industryId: 'i_logi', subcategory: 'Packers & movers', terms: ['packer', 'mover', 'movers', 'relocation', 'shifting'] },
   { industryId: 'i_constr', subcategory: 'Electrical projects', terms: ['electricity', 'electrical contractor', 'electrical work', 'electrical installation'] },
   { industryId: 'i_whole', subcategory: 'Electrical supplies', terms: ['electricity', 'electrical material', 'electrical equipment', 'electrical products'] },
 ]

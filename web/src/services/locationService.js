@@ -65,8 +65,9 @@ export function formatHeroWhere(locale) {
   const city = String(locale.city || '').trim()
   const pin = String(locale.pincode || '').trim()
   const countryName = String(locale.countryName || '').trim()
-  if (city) return `${city}${pin ? ` ${pin}` : ''}${countryName ? `, ${countryName}` : ''}`
-  if (pin) return `${pin}${countryName ? `, ${countryName}` : ''}`
+  if (city && pin) return `${city} ${pin}`
+  if (city) return countryName ? `${city}, ${countryName}` : city
+  if (pin) return countryName ? `${pin}, ${countryName}` : pin
   return ''
 }
 
