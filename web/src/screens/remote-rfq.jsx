@@ -51,9 +51,9 @@ function RfqRows({ rfqs, detail, empty }) {
 /** One tab of the Activity hub: a count badge makes empty and busy tabs obvious before opening them. */
 function ActivityTabs({ tabs, value, onChange }) {
   return (
-    <div role="tablist" aria-label="Activity" className="flex gap-1 overflow-x-auto border-b border-ink-100 bg-white px-4 no-scrollbar">
+    <div role="tablist" aria-label="Activity" className="flex flex-wrap gap-1 border-b border-ink-100 bg-white px-3 sm:flex-nowrap sm:overflow-x-auto sm:px-4 no-scrollbar">
       {tabs.map((t) => (
-        <button key={t.id} type="button" role="tab" aria-selected={value === t.id} onClick={() => onChange(t.id)} className={`flex shrink-0 items-center gap-2 border-b-2 px-3 py-3 text-sm font-semibold transition-colors ${value === t.id ? 'border-brand-600 text-ink-900' : 'border-transparent text-ink-500 hover:text-ink-800'}`}>
+        <button key={t.id} type="button" role="tab" aria-selected={value === t.id} onClick={() => onChange(t.id)} className={`flex shrink-0 items-center gap-1.5 sm:gap-2 border-b-2 px-2.5 py-2.5 sm:px-3 sm:py-3 text-xs sm:text-sm font-semibold transition-colors ${value === t.id ? 'border-brand-600 text-ink-900' : 'border-transparent text-ink-500 hover:text-ink-800'}`}>
           {t.label}
           <span className={`min-w-5 rounded-full px-1.5 py-0.5 text-center text-[11px] font-bold ${value === t.id ? 'bg-brand-600 text-white' : 'bg-ink-100 text-ink-600'}`}>{t.count ?? '–'}</span>
         </button>

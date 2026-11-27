@@ -5,6 +5,7 @@ import { useApp } from '../store.jsx'
 import { useNav } from '../nav.jsx'
 import { Page, Lifecycle, StatePreview } from './blocks.jsx'
 import { GEO, lookupPin } from '../geo.js'
+import { buildLocalePatch, detectLocationByBrowser, resolvePincodeLocation } from '../services/locationService.js'
 import { ACCOUNT_STATES, ACCOUNT_STATE_IDS, stateOf } from '../services/accountState.js'
 import { authService } from '../services/authService.js'
 
@@ -214,24 +215,56 @@ export function LocationPicker({ params = {} }) {
   const [city, setCity] = useState(params.city || locale.city || null)
   const [pin, setPin] = useState(locale.pincode || '')
   const [q, setQ] = useState('')
+  const [locating, setLocating] = useState(false)
+  const [detectedPlace, setDetectedPlace] = useState(null)
   const C = GEO.find((c) => c.code === cc)
   const S = C?.states.find((x) => x.name === st)
   const Ct = S?.cities.find((x) => x.n === city)
-  const det = pin.length >= 5 ? lookupPin(pin) : null
-  const onPin = (v) => {
+  const det = detectedPlace || (pin.length >= 5 ? lookupPin(pin) : null)
+  const onPin = async (v) => {
     const x = v.toUpperCase().replace(/[^A-Z0-9 ]/g, '').slice(0, 8)
     setPin(x)
     const d = lookupPin(x)
-    if (d && !d.unknown) { setCc(d.country); setSt(d.state); setCity(d.city) }
+    if (d && !d.unknown) { setDetectedPlace(null); setCc(d.country); setSt(d.state); setCity(d.city); return }
+    if (/^[1-9]\d{5}$/.test(x.trim())) {
+      const res = await resolvePincodeLocation(x.trim())
+      if (res.ok) {
+        setDetectedPlace({ country: res.place.countryCode, countryName: res.place.countryName, state: res.place.state, city: res.place.resolvedCity, status: res.place.launchStatus === 'live' ? 'live' : 'soon', flag: '🇮🇳', unknown: false })
+        setCc(res.place.countryCode || 'IN')
+        setSt(res.place.state || null)
+        setCity(res.place.resolvedCity || null)
+        setLocale((prev) => ({ ...prev, ...buildLocalePatch({ ...res.place, city: res.place.resolvedCity, pincode: res.place.postalCode, locality: res.place.areas?.[0] || '', source: 'pincode' }, prev) }))
+        toast(`Location set to ${res.place.resolvedCity} ${res.place.postalCode}`)
+      }
+    }
   }
-  const err = pin && /^\d{6}$/.test(pin) && det?.unknown ? "We couldn't match this pincode. Pick your city below." : pin && !det && pin.length >= 5 ? 'Pincode not recognised. Try another or choose manually.' : ''
+  const useCurrentLocation = async () => {
+    setLocating(true)
+    const res = await detectLocationByBrowser()
+    setLocating(false)
+    if (!res.ok) { toast(res.message || 'Could not detect location.', 'warn'); return }
+    const patch = buildLocalePatch({ ...res.place, source: 'geo' }, locale)
+    setCc(patch.country)
+    setSt(patch.state || null)
+    setCity(patch.city || null)
+    setPin(patch.pincode || '')
+    setLocale((prev) => ({ ...prev, ...patch }))
+    toast(`Location set to ${patch.city}${patch.pincode ? ` ${patch.pincode}` : ''}`)
+    nav.back()
+  }
+  const err = pin && /^\d{6}$/.test(pin) && det?.unknown ? "We couldn't match this pincode. Pick your city below." : pin && !det && pin.length >= 5 && !/^[1-9]\d{5}$/.test(pin) ? 'Pincode not recognised. Try another or choose manually.' : ''
   const live = Ct?.s === 'live'
   const joined = Ct && waitlist.includes(`${cc}-${Ct.n}`)
   const countries = GEO.filter((c) => !q || c.name.toLowerCase().includes(q.toLowerCase()))
-  const apply = () => { setLocale({ ...locale, country: cc, countryName: C.name, state: st, city, pincode: pin, currency: C.cur }); toast(`Showing vendors that serve ${city}${pin ? ` ${pin}` : ''}`); nav.back() }
-  return <Page title="Where do you need vendors?" subtitle="Country, state, city and pincode" footer={live ? <Button full size="lg" disabled={!!err || !pin || (det && !det.unknown && det.city !== city)} onClick={apply}>Use this location</Button> : Ct ? <Button full size="lg" variant={joined ? 'secondary' : 'primary'} onClick={() => { setWaitlist(joined ? waitlist.filter((w) => w !== `${cc}-${Ct.n}`) : [...waitlist, `${cc}-${Ct.n}`]); toast(joined ? 'Left the waitlist' : `You are on the ${Ct.n} waitlist`) }}>{joined ? 'On the waitlist (tap to leave)' : `Join the ${Ct.n} waitlist`}</Button> : null}>
-    <Banner tone="blue" title="Launching city by city">VendorVerse switches on cities only when there is enough verified supply. Phase 1 is live in Jaipur, Ajmer, Sikar and Delhi NCR. Pick yours; if it is not live yet, join the waitlist.</Banner>
-    <Button full variant="secondary" icon={MapPin} onClick={() => { setCc('IN'); setSt('Rajasthan'); setCity('Jaipur'); setPin('302021'); toast('Location permission granted: Jaipur 302021') }}>Use current location</Button>
+  const apply = () => {
+    const nextPatch = buildLocalePatch({ country: cc, countryName: C?.name || 'India', state: st || '', city: city || '', pincode: pin, source: pin ? 'pincode' : 'manual' }, locale)
+    setLocale((prev) => ({ ...prev, ...nextPatch }))
+    toast(`Showing vendors that serve ${nextPatch.city}${pin ? ` ${pin}` : ''}`)
+    nav.back()
+  }
+  return <Page title="Where do you need vendors?" subtitle="Country, state, city and pincode" footer={city ? <div className="space-y-2"><Button full size="lg" onClick={apply}>Use this location</Button>{Ct && !live && <Button full size="sm" variant={joined ? 'secondary' : 'ghost'} onClick={() => { setWaitlist(joined ? waitlist.filter((w) => w !== `${cc}-${Ct.n}`) : [...waitlist, `${cc}-${Ct.n}`]); toast(joined ? 'Left the waitlist' : `You are on the ${Ct.n} waitlist`) }}>{joined ? 'On the waitlist (tap to leave)' : `Join the ${Ct.n} waitlist`}</Button>}</div> : null}>
+    <Banner tone="blue" title="Launching city by city">VendorVerse switches on cities only when there is enough verified supply. Phase 1 is live in Jaipur, Ajmer, Sikar and Delhi NCR. You can still set any location to browse nationwide and remote vendors.</Banner>
+    <Button full variant="secondary" icon={MapPin} disabled={locating} onClick={useCurrentLocation}>{locating ? 'Detecting your location…' : 'Use current location'}</Button>
     <Section title="Enter your pincode and we detect the rest">
       <Input inputMode="text" maxLength={8} icon={MapPin} placeholder="e.g. 302021 · 90001 · SW1A 1AA" value={pin} onChange={(e) => onPin(e.target.value)} error={err} hint="Supports Indian pincodes, US ZIP codes and UK postcodes" />
       {det && !det.unknown && <div className="mt-2 flex items-center gap-3 rounded-2xl bg-emerald-50 p-3 ring-1 ring-emerald-200"><span className="text-2xl">{det.flag}</span><div className="min-w-0 flex-1"><p className="text-sm font-bold text-emerald-900">{det.city}, {det.state}</p><p className="text-xs text-emerald-800">{det.countryName} · {LAUNCH_LABEL[det.status]}</p></div></div>}

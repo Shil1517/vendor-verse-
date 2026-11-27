@@ -4,7 +4,7 @@ import {
   Package, CalendarCheck, FileText, IndianRupee, Plus, AlertTriangle, ChevronRight, Store, ShieldCheck, Clock, MessageCircle, Truck, Check, X, Briefcase, Building2,
   Upload, Wallet, BarChart3, Star, Settings, LogOut, MapPin, Boxes, CalendarClock, Crown, Download, Trash2, ImagePlus, Phone, TrendingUp, BadgeCheck, Minus, Info,
   LayoutDashboard, PanelLeftClose, PanelLeftOpen, Search, ChevronLeft, ChevronDown, Sun, Moon, UsersRound, MessageSquare, PackageCheck, UserRound,
-  Compass, Heart, Home, ClipboardList, ShieldAlert, ArrowLeft,
+  Compass, Heart, Home, ClipboardList, ShieldAlert, ArrowLeft, Menu,
 } from 'lucide-react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faGaugeHigh, faHeart, faClipboardList, faBoxOpen, faFileSignature, faComments, faStar, faShieldHalved, faGear, faUser, faRightFromBracket } from '@fortawesome/free-solid-svg-icons'
@@ -18,6 +18,7 @@ import {
   Pill, IconBtn, StatusBadge, ListRow, Group, Timeline, Avatar, DocTile, Stepper, BarChart, HBar, Spark, Checkbox, Meta, SOFT, DemoPhonePePayment,
 } from '../ui.jsx'
 import { NotifBell } from './shared.jsx'
+import { BrandLogoMark } from './auth.jsx'
 import { useTheme } from '../hooks/useTheme.jsx'
 import { useCompany } from './biz-screens.jsx'
 import { companyDone } from '../bizdata.js'
@@ -406,56 +407,31 @@ const VX_CSS = `@import url('https://fonts.googleapis.com/css2?family=Plus+Jakar
   .vx-chart-card,.vx-listing-mix { min-height:0; }
   .vx-stats { grid-template-columns:repeat(2,minmax(0,1fr)); }
 }
-@media (max-width:680px) {
+@media (max-width:767px) {
   .vv-vendor-workspace-route > .vv-vendor-workspace.vx-shell {
-    display:block; grid-template-columns:minmax(0,1fr); height:100%; min-height:0;
-    max-height:100%; padding:0; overflow:hidden;
+    display:flex; flex-direction:column; grid-template-columns:minmax(0,1fr); height:100%; min-height:0;
+    max-height:100%; padding:0; gap:0; overflow:hidden;
   }
-  .vx-shell { display:block; padding:0; }
-  .vx-side {
-    position:absolute; inset:12px auto 12px 12px; z-index:22;
-    width:min(280px,calc(100vw - 56px)); height:auto; max-height:none;
-    transform:translateX(calc(-100% - 16px)); visibility:hidden;
-    border-radius:18px; box-shadow:0 20px 60px rgba(12,44,37,.22);
-    transition:transform .28s var(--ease),visibility .28s;
+  .vx-shell { display:flex; flex-direction:column; padding:0; gap:0; }
+  .vx-side,
+  .vx-toggle,
+  .vx-mobile-scrim {
+    display:none !important;
   }
-  .vx-shell.is-mobile-open .vx-side { transform:translateX(0); visibility:visible; }
-  .vx-shell.is-mobile-open .vx-mobile-scrim {
-    position:absolute; inset:0; z-index:21; display:block;
-    border:0; background:rgba(13,36,31,.38); backdrop-filter:blur(2px);
-  }
-  .vx-shell.is-collapsed .vx-side { align-items:stretch; padding:20px 12px 14px; }
-  .vx-shell.is-collapsed .vx-bt,
-  .vx-shell.is-collapsed .vx-group,
-  .vx-shell.is-collapsed .vx-lbl,
-  .vx-shell.is-collapsed .vx-plan > div,
-  .vx-shell.is-collapsed .vx-biz > div { display:initial; }
-  .vx-shell.is-collapsed .vx-bt { display:flex; }
-  .vx-shell.is-collapsed .vx-group { display:block; }
-  .vx-shell.is-collapsed .vx-lbl { display:inline-block; }
-  .vx-shell.is-collapsed .vx-plan > div { display:flex; }
-  .vx-shell.is-collapsed .vx-biz > div { display:block; }
-  .vx-shell.is-collapsed .vx-brand { justify-content:flex-start; padding:2px 6px 18px; }
-  .vx-shell.is-collapsed .vx-nav-item { justify-content:flex-start; padding:10px 11px; }
-  .vx-shell.is-collapsed .vx-biz { justify-content:flex-start; margin:10px 4px 0; padding:8px; }
-  .vx-shell.is-collapsed .vx-plan { margin:auto 4px 0; padding:14px; }
-  .vx-shell.is-collapsed .vx-logout { margin-top:6px; }
-  .vx-main { width:100%; height:100%; gap:0; }
+  .vx-main { width:100%; min-width:0; flex:1 1 0%; min-height:0; height:100%; gap:0; padding-top:0; }
   .vx-top {
-    min-height:72px; height:72px; flex-basis:72px; gap:7px;
-    padding:10px 12px; border-radius:0 0 16px 16px;
+    min-height:56px; height:auto; flex:0 0 auto; gap:8px;
+    padding:10px 12px; border-radius:0;
   }
-  .vx-toggle { width:34px; height:34px; }
-  .vx-toggle svg { transform:none !important; }
-  .vx-search { height:42px; padding-inline:10px; border-radius:11px; }
+  .vx-search { flex:1 1 0%; min-width:0; height:40px; padding-inline:10px; border-radius:11px; }
   .vx-search > svg { width:15px; flex:0 0 auto; }
-  .vx-search input { font-size:11px; }
-  .vx-theme-toggle,.vx-ico { width:36px; height:36px; border-radius:11px; }
-  .vx-me { padding:3px; border:0; background:transparent; }
+  .vx-search input { font-size:12px; }
+  .vx-theme-toggle,.vx-ico { flex:0 0 auto; width:36px; height:36px; border-radius:11px; }
+  .vx-me { flex:0 0 auto; padding:3px; border:0; background:transparent; }
   .vx-me > div:last-child { display:none; }
   .vx-av { width:34px; height:34px; }
-  .vx-panel { height:calc(100% - 72px); padding:22px 16px 28px; overflow:auto; border-radius:0; }
-  .vx-dash { padding:22px 16px 28px !important; }
+  .vx-panel { flex:1 1 0%; min-height:0; height:auto; padding:16px 12px 24px; overflow-y:auto; overflow-x:hidden; border-radius:0; }
+  .vx-dash { padding:16px 12px 24px !important; }
   .vx-head { align-items:flex-start; }
   .vx-head-actions { width:auto; }
   .vx-head-actions .vx-verified { display:none; }
@@ -465,9 +441,9 @@ const VX_CSS = `@import url('https://fonts.googleapis.com/css2?family=Plus+Jakar
   .vx-seg { max-width:100%; }
 }
 @media (max-width:420px) {
-  .vx-top { gap:5px; padding-right:8px; padding-left:50px; }
+  .vx-top { gap:5px; padding-right:8px; padding-left:10px; }
   .vx-search { padding-inline:8px; }
-  .vx-search input { font-size:10px; }
+  .vx-search input { font-size:13px; }
   .vx-theme-toggle,.vx-ico { width:34px; height:34px; }
   .vx-head { flex-wrap:wrap; }
   .vx-head-actions { width:100%; justify-content:flex-end; }
@@ -659,7 +635,7 @@ const VX_CSS = `@import url('https://fonts.googleapis.com/css2?family=Plus+Jakar
     height:56px;
     flex-basis:56px;
     gap:6px;
-    padding:8px 10px 8px 48px;
+    padding:8px 10px;
   }
   .vv-vendor-workspace-route:not(.vv-business-workspace-route) .vv-vendor-workspace.vx-shell:not([data-theme='dark']) .vx-toggle { width:32px; height:32px; }
   .vv-vendor-workspace-route:not(.vv-business-workspace-route) .vv-vendor-workspace.vx-shell:not([data-theme='dark']) .vx-search { flex:1 1 120px; width:auto; }
@@ -741,7 +717,7 @@ function VendorSidebar({ active, vendor, collapsed, onNavigate }) {
 
   return (
     <aside className="vx-side">
-      <div className="vx-brand"><span className="vx-logo">V</span><div className="vx-bt"><b>VendorVerse</b><small>{businessSupplier ? 'Supplier workspace' : 'Vendor workspace'}</small></div></div>
+      <div className="vx-brand"><span className="vx-logo" style={{ background: '#ffffff', border: '1px solid rgba(22, 41, 68, 0.12)', boxShadow: '0 4px 12px rgba(22, 41, 68, 0.08)' }}><BrandLogoMark size={26} /></span><div className="vx-bt"><b>VendorVerse</b><small>{businessSupplier ? 'Supplier workspace' : 'Vendor workspace'}</small></div></div>
       <nav id="vendor-workspace-navigation" className="vx-nav" ref={navRef} aria-label={businessSupplier ? 'Business supplier workspace' : 'Vendor workspace'}>
         <span className="vx-pill" aria-hidden="true" style={pill ? { transform: `translateY(${pill.y}px)`, height: pill.h, opacity: 1 } : undefined} />
         {VENDOR_NAV.map(([group, items]) => (
@@ -811,7 +787,7 @@ function CustomerSidebar({ active, collapsed, onNavigate }) {
 
   return (
     <aside className="vx-side">
-      <div className="vx-brand"><span className="vx-logo">V</span><div className="vx-bt"><b>VendorVerse</b><small>Customer workspace</small></div><button type="button" className="vx-home-back" aria-label="Back to home" title="Back to home" onClick={() => nav.go('c_home')}><ArrowLeft size={18} /></button></div>
+      <div className="vx-brand"><span className="vx-logo" style={{ background: '#ffffff', border: '1px solid rgba(22, 41, 68, 0.12)', boxShadow: '0 4px 12px rgba(22, 41, 68, 0.08)' }}><BrandLogoMark size={26} /></span><div className="vx-bt"><b>VendorVerse</b><small>Customer workspace</small></div><button type="button" className="vx-home-back" aria-label="Back to home" title="Back to home" onClick={() => nav.go('c_home')}><ArrowLeft size={18} /></button></div>
       <nav id="customer-workspace-navigation" className="vx-nav" ref={navRef} aria-label="Customer workspace">
         <span className="vx-pill" aria-hidden="true" style={pill ? { transform: `translateY(${pill.y}px)`, height: pill.h, opacity: 1 } : undefined} />
         {CUSTOMER_NAV.map(([group, items]) => (
@@ -868,7 +844,7 @@ function BusinessSidebar({ active, collapsed, onNavigate }) {
 
   return (
     <aside className="vx-side">
-      <div className="vx-brand"><span className="vx-logo">V</span><div className="vx-bt"><b>VendorVerse</b><small>Business workspace</small></div></div>
+      <div className="vx-brand"><span className="vx-logo" style={{ background: '#ffffff', border: '1px solid rgba(22, 41, 68, 0.12)', boxShadow: '0 4px 12px rgba(22, 41, 68, 0.08)' }}><BrandLogoMark size={26} /></span><div className="vx-bt"><b>VendorVerse</b><small>Business workspace</small></div></div>
       <nav id="business-workspace-navigation" className="vx-nav" aria-label="Business workspace">
         <div className="vx-group">Workspace</div>
         {items.map(([Icon, label, id]) => (
@@ -905,11 +881,11 @@ export function VendorWorkspace({ children, variant = 'vendor', header }) {
   const { theme } = useTheme()
   const collapseAt = variant === 'business' ? 1100 : 760
   const [collapsed, setCollapsed] = useState(() => customer ? false : window.innerWidth <= collapseAt)
-  const [mobile, setMobile] = useState(() => window.innerWidth <= 680)
+  const [mobile, setMobile] = useState(() => window.innerWidth <= 767)
   const [mobileOpen, setMobileOpen] = useState(false)
   useEffect(() => {
     const handleResize = () => {
-      const isMobile = window.innerWidth <= 680
+      const isMobile = window.innerWidth <= 767
       setMobile(isMobile)
       setMobileOpen(false)
       setCollapsed(customer ? false : window.innerWidth <= collapseAt)
@@ -928,18 +904,17 @@ export function VendorWorkspace({ children, variant = 'vendor', header }) {
           labels, producing a broken light/dark hybrid customer workspace. */}
       <div className={cx('vx-shell vv-vendor-workspace', collapsed && 'is-collapsed', mobileOpen && 'is-mobile-open')} data-theme={customer ? 'light' : theme}>
         <style>{VX_CSS}</style>
-        {mobile && <button type="button" className="vx-mobile-scrim" aria-label="Close workspace menu" onClick={() => setMobileOpen(false)} />}
-        {variant === 'business'
+        {!mobile && (variant === 'business'
           ? <BusinessSidebar active={nav.id} collapsed={collapsed} onNavigate={() => setMobileOpen(false)} />
           : customer
             ? <CustomerSidebar active={nav.id} collapsed={collapsed} onNavigate={() => setMobileOpen(false)} />
-            : <VendorSidebar active={nav.id} vendor={vendor} collapsed={collapsed} onNavigate={() => setMobileOpen(false)} />}
+            : <VendorSidebar active={nav.id} vendor={vendor} collapsed={collapsed} onNavigate={() => setMobileOpen(false)} />)}
         <section className="vx-main">
           {variant === 'business' && header
             ? header({ onWorkspaceToggle: toggleWorkspace, mobile, mobileOpen, collapsed })
             : <header className="vx-top">
-              {!customer && <button type="button" className="vx-toggle" aria-controls="vendor-workspace-navigation" aria-label={mobile ? mobileOpen ? 'Close workspace menu' : 'Open workspace menu' : collapsed ? 'Expand sidebar' : 'Collapse sidebar'} aria-expanded={mobile ? !mobileOpen : !collapsed} onClick={toggleWorkspace}>
-                {mobile ? mobileOpen ? <PanelLeftClose size={17} /> : <PanelLeftOpen size={17} /> : <ChevronLeft size={15} />}
+              {!mobile && !customer && <button type="button" className="vx-toggle" aria-controls="vendor-workspace-navigation" aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'} aria-expanded={!collapsed} onClick={toggleWorkspace}>
+                <ChevronLeft size={15} />
               </button>}
               {variant === 'vendor' && <nav className="vx-top-nav" aria-label="Vendor workspace shortcuts">
                 {topNavItems.map(([Icon, text, id]) => (

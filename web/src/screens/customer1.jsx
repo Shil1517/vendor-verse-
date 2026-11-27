@@ -18,10 +18,33 @@ import { NotifBell, ListingCard, VendorRow, VerifiedBadge, useGate, useStartChat
 
 const visibleVendors = (vendors) => vendors.filter((v) => v.status === 'approved' || v.status === 'submitted')
 
+export function CategoryHierarchy({ items, className = '' }) {
+  const visibleItems = items.filter((item) => item?.label)
+  return (
+    <nav className={cx('vv-category-hierarchy', className)} aria-label="Category hierarchy">
+      <ol>
+        {visibleItems.map((item, index) => {
+          const current = item.current ?? index === visibleItems.length - 1
+          return (
+            <li key={`${item.label}-${index}`}>
+              {index > 0 && <ChevronRight className="vv-category-hierarchy-separator" size={14} aria-hidden="true" />}
+              {current || !item.onClick ? (
+                <span aria-current={current ? 'page' : undefined}>{item.label}</span>
+              ) : (
+                <button type="button" onClick={item.onClick}>{item.label}</button>
+              )}
+            </li>
+          )
+        })}
+      </ol>
+    </nav>
+  )
+}
+
 /* ================= HOME ================= */
 export function CustomerHome() {
   const nav = useNav()
-  const { t, lang, me, vendors, listings, threads } = useApp()
+  const { t, lang, me, locale, vendors, listings, threads } = useApp()
   const top = vendors.filter((v) => v.status === 'approved' && v.rating >= 4.6).slice(0, 5)
   const popular = listings.filter((l) => l.status === 'approved').sort((a, b) => b.reviews - a.reviews).slice(0, 4)
   const unread = threads.customer.reduce((s, t) => s + t.unread, 0)
@@ -30,8 +53,8 @@ export function CustomerHome() {
     <Screen headerless pad={false}>
       <div className="bg-gradient-to-b from-brand-600 to-brand-700 px-4 pb-6 pt-3 text-white">
         <div className="flex items-center justify-between">
-          <button className="flex items-center gap-1.5 rounded-full bg-white/15 py-1.5 pl-2.5 pr-2 text-[13px] font-semibold">
-            <MapPin size={15} />Jaipur, RJ<ChevronDown size={15} />
+          <button onClick={() => nav.go('c_location')} className="flex items-center gap-1.5 rounded-full bg-white/15 py-1.5 pl-2.5 pr-2 text-[13px] font-semibold">
+            <MapPin size={15} />{locale.city ? `${locale.city}${locale.pincode ? ` ${locale.pincode}` : ''}` : 'Select location'}<ChevronDown size={15} />
           </button>
           <div className="[&_button]:text-white [&_button:hover]:bg-white/15 [&_span]:ring-brand-600"><NotifBell role="customer" /></div>
         </div>
@@ -144,6 +167,10 @@ export function Categories() {
     <div className="vv-categories-page h-full overflow-y-auto">
       <section className="vv-cat-hero">
         <div className="vv-cat-shell">
+          <CategoryHierarchy className="vv-cat-page-hierarchy" items={[
+            { label: 'Home', onClick: () => nav.go('c_home') },
+            { label: 'Categories', current: true },
+          ]} />
           <div className="vv-cat-topbar">
             <button type="button" className="vv-cat-back" onClick={() => nav.back()}>
               <ArrowLeft size={15} aria-hidden="true" />
@@ -329,11 +356,18 @@ export function Category({ params }) {
   const nav = useNav()
   const { listings, vendors } = useApp()
   const c = cat(params.id || 'elec')
-  const [sub, setSub] = useState('All')
+  const initialSub = c.subs.includes(params.sub) ? params.sub : 'All'
+  const [sub, setSub] = useState(initialSub)
   const items = listings.filter((l) => l.cat === c.id && l.status === 'approved' && (sub === 'All' || l.sub === sub))
   const vs = visibleVendors(vendors).filter((v) => v.cat === c.id)
   return (
     <Screen title={c.name} subtitle={c.type === 'service' ? 'Services' : 'Products'} right={<IconBtn label="Search" onClick={() => nav.go('c_explore', { cat: c.id })}><Search size={20} /></IconBtn>}>
+      <CategoryHierarchy items={[
+        { label: 'Home', onClick: () => nav.go('c_home') },
+        { label: 'Categories', onClick: () => nav.go('c_categories') },
+        { label: c.name, onClick: sub !== 'All' ? () => setSub('All') : undefined, current: sub === 'All' },
+        sub !== 'All' ? { label: sub, current: true } : null,
+      ]} />
       <div className={cx('relative overflow-hidden rounded-3xl bg-gradient-to-br p-5 text-white', GRAD[c.tone])}>
         <div className="absolute -right-6 -top-6 size-28 rounded-full bg-white/20" />
         <c.icon size={30} />
@@ -377,13 +411,13 @@ export function Explore({ params = {}, supplierOnlyOverride, hideVendorMode = fa
   const supplierOnly = supplierOnlyOverride ?? (me.role === 'vendor' && me.buyerMode)
   const isBusinessSupplier = (id) => ['v-me', 'v-global-2'].includes(id)
   const coverageMatch = (v) => {
-    const city = locale.city || 'Jaipur'
+    const city = locale.city || ''
     const country = locale.countryName || 'India'
     const remote = v.remote || v.areas?.some((x) => String(x).toLowerCase() === 'remote')
     if (coverage === 'remote') return remote
     if (remote) return false
-    if (coverage === 'local') return v.city === city || v.areas?.includes(city)
-    if (coverage === 'nationwide') return (v.country || 'India') === country && !(v.city === city || v.areas?.includes(city))
+    if (coverage === 'local') return city ? (v.city === city || v.areas?.includes(city)) : (v.country || 'India') === country
+    if (coverage === 'nationwide') return (v.country || 'India') === country && (!city || !(v.city === city || v.areas?.includes(city)))
     if (coverage === 'worldwide') return (v.country || 'India') !== country
     return true
   }
@@ -438,7 +472,7 @@ export function Explore({ params = {}, supplierOnlyOverride, hideVendorMode = fa
             <p className="mb-2 text-[13px] font-semibold text-ink-700">Price range (₹)</p>
             <div className="flex gap-3"><Input placeholder="Min" inputMode="numeric" value={draft.min} onChange={(e) => setDraft({ ...draft, min: e.target.value.replace(/\D/g, '') })} /><Input placeholder="Max" inputMode="numeric" value={draft.max} onChange={(e) => setDraft({ ...draft, max: e.target.value.replace(/\D/g, '') })} /></div>
           </div>
-          <Select label="Location" value={draft.city} onChange={(e) => setDraft({ ...draft, city: e.target.value })} options={['Any', 'Jaipur', 'Delhi NCR', 'Ajmer', 'Sikar']} />
+          <Select label="Location" value={draft.city} onChange={(e) => setDraft({ ...draft, city: e.target.value })} options={['Any', ...(locale.city && !['Jaipur', 'Delhi NCR', 'Ajmer', 'Sikar'].includes(locale.city) ? [locale.city] : []), 'Jaipur', 'Delhi NCR', 'Ajmer', 'Sikar']} />
           <div><p className="mb-2 text-[13px] font-semibold text-ink-700">Minimum rating</p><Chips scroll={false} value={draft.rating} onChange={(v) => setDraft({ ...draft, rating: v })} options={[{ id: 0, label: 'Any' }, { id: 4, label: '4.0+' }, { id: 4.5, label: '4.5+' }, { id: 4.8, label: '4.8+' }]} /></div>
           <div><p className="mb-2 text-[13px] font-semibold text-ink-700">Sort by</p><Chips scroll={false} value={draft.sort} onChange={(v) => setDraft({ ...draft, sort: v })} options={[{ id: 'relevance', label: 'Relevance' }, { id: 'low', label: 'Price: low to high' }, { id: 'high', label: 'Price: high to low' }, { id: 'rating', label: 'Rating' }]} /></div>
           <Toggle label="Verified vendors only" desc="Hide vendors that are not Super Admin verified" on={draft.verified} onChange={(v) => setDraft({ ...draft, verified: v })} />
@@ -447,6 +481,12 @@ export function Explore({ params = {}, supplierOnlyOverride, hideVendorMode = fa
     >
       {supplierOnly && <div className="vv-supplier-banner border-b border-violet-100 bg-violet-50 px-4 py-3"><div className="flex items-center gap-3"><Package size={19} className="shrink-0 text-violet-700" /><div className="min-w-0 flex-1"><p className="text-sm font-bold text-violet-950">Business suppliers only</p><p className="mt-0.5 text-xs text-violet-800/80">Browse company supplier products, send bulk RFQs and create purchase orders.</p></div><button onClick={() => { setMe({ ...me, buyerMode: false }); nav.reset('v_dash') }} className="shrink-0 rounded-lg bg-white px-2.5 py-2 text-xs font-bold text-violet-800 ring-1 ring-violet-200">Exit buyer</button></div></div>}
       <div className="vv-explore-tools space-y-3 bg-white px-4 pb-3 pt-3 shadow-sm">
+        <CategoryHierarchy items={[
+          { label: 'Home', onClick: () => nav.go('c_home') },
+          { label: 'Categories', onClick: () => nav.go('c_categories') },
+          c !== 'all' ? { label: cat(c).name, onClick: subcategory !== 'all' ? () => setSubcategory('all') : undefined, current: subcategory === 'all' } : { label: 'All', current: true },
+          subcategory !== 'all' ? { label: subcategory, current: true } : null,
+        ]} />
         <SearchBar value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search vendors, products, services" right={
           <button onClick={() => { setDraft(f); setOpen(true) }} className="relative grid size-11 shrink-0 place-items-center rounded-xl bg-ink-900 text-white" aria-label="Filters">
             <SlidersHorizontal size={19} />

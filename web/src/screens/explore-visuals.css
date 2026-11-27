@@ -38,31 +38,6 @@
   -webkit-backdrop-filter: blur(18px);
 }
 
-/* Keep the desktop filter rail compact so the listing column gets the space. */
-.vv-explore-route .vv-explore-filter > div {
-  border-radius: 24px;
-}
-.vv-explore-route .vv-explore-filter h2 {
-  font-size: 16px;
-}
-.vv-explore-route .vv-explore-filter p {
-  line-height: 1.35;
-}
-.vv-explore-route .vv-explore-filter label > span {
-  margin-bottom: 5px;
-  font-size: 12px;
-}
-.vv-explore-route .vv-explore-filter input,
-.vv-explore-route .vv-explore-filter select {
-  font-size: 13px;
-}
-.vv-explore-route .vv-explore-filter button {
-  font-size: 13px;
-}
-.vv-explore-route .vv-explore-filter .rounded-2xl {
-  padding: 16px;
-}
-
 /* Match the category navigation's desktop content span. */
 .vv-remote-explore {
   width: min(calc(100% - 32px), 1600px);
@@ -78,8 +53,43 @@
   display: grid;
   gap: 14px;
 }
+
+/* The result heading carries the selected marketplace taxonomy, rather than
+   leaving the product grid detached from its industry and category context. */
+.vv-discovery-hierarchy {
+  width: fit-content;
+  max-width: 100%;
+  overflow-x: auto;
+  border-radius: 10px;
+  background: #fff3f8;
+  scrollbar-width: none;
+}
+.vv-discovery-hierarchy::-webkit-scrollbar { display: none; }
+.vv-discovery-hierarchy ol {
+  display: flex;
+  width: max-content;
+  min-width: 100%;
+  align-items: center;
+  gap: 7px;
+  margin: 0;
+  padding: 10px 16px;
+  list-style: none;
+}
+.vv-discovery-hierarchy li { display: inline-flex; align-items: center; gap: 7px; }
+.vv-discovery-hierarchy li > svg { flex: none; color: #d6bdc8; }
+.vv-discovery-hierarchy span {
+  color: #ff3d86;
+  font: 600 14px/1.25 "DM Sans", system-ui, sans-serif;
+  white-space: nowrap;
+}
+.vv-discovery-hierarchy span[aria-current="page"] { color: #17233a; font-weight: 700; }
+
+@media (max-width: 480px) {
+  .vv-discovery-hierarchy ol { padding: 9px 13px; }
+  .vv-discovery-hierarchy span { font-size: 13px; }
+}
 .vv-result-grid {
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 360px), 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 255px), 1fr));
   align-items: stretch;
 }
 .vv-result-card-layout {
@@ -97,22 +107,26 @@
   padding: 18px;
 }
 .vv-result-grid .vv-result-card-layout {
-  grid-template-columns: clamp(96px, 26%, 170px) minmax(0, 1fr);
+  display: flex;
+  flex-direction: column;
+  height: 100%;
 }
 .vv-result-grid .vv-result-card-image {
-  height: auto;
-  margin: 10px 0 10px 10px;
-  aspect-ratio: 1;
-  align-self: start;
+  height: 112px;
+  width: auto;
+  margin: 10px 10px 0;
+  aspect-ratio: auto;
+  align-self: stretch;
 }
 .vv-result-grid .vv-result-card-body {
   display: flex;
+  flex: 1 1 auto;
   min-width: 0;
   flex-direction: column;
-  padding: 9px 12px;
+  padding: 10px 12px 12px;
 }
 .vv-result-grid .vv-result-card-body > div:first-child > div:first-child > button {
-  font-size: 15px;
+  font-size: 14.5px;
   line-height: 1.25;
 }
 .vv-result-grid .vv-result-card-body > div:first-child > p {
@@ -120,14 +134,14 @@
   font-size: 12px;
 }
 .vv-result-grid .vv-result-card-body > div:first-child > div:last-child {
-  margin-top: 3px;
+  margin-top: 4px;
   font-size: 11px;
 }
 .vv-result-grid .vv-result-card-body > div:first-child > div:last-child > span:first-child {
   padding: 2px 7px;
 }
 .vv-result-grid .vv-result-card-body > .mt-3 {
-  margin-top: 6px;
+  margin-top: 8px;
   padding: 5px 9px;
 }
 .vv-result-grid .vv-result-card-body > .mt-3 > div > p:first-child,
@@ -136,22 +150,23 @@
 }
 .vv-result-grid .vv-result-card-body > .mt-3 > div > p:last-child {
   margin-top: 0;
-  font-size: 14px;
+  font-size: 13.5px;
   line-height: 1.25;
 }
 .vv-result-grid .vv-result-card-body > .mt-2 {
-  margin-top: 3px;
+  margin-top: 5px;
   font-size: 11px;
 }
 .vv-result-grid .vv-result-card-body > .mt-4 {
-  margin-top: 5px;
+  margin-top: auto;
   border-top: 0;
-  padding-top: 0;
+  padding-top: 10px;
 }
 .vv-result-grid .vv-result-card-body > .mt-4 > div:first-child {
   gap: 6px;
 }
 .vv-result-grid .vv-result-card-body > .mt-4 button {
+  flex: 1 1 0;
   min-height: 32px;
   padding: 5px 9px;
   font-size: 12px;
@@ -161,12 +176,8 @@
     width: min(calc(100% - 40px), 1600px);
   }
   .vv-remote-explore-grid {
-    grid-template-columns: minmax(320px, 360px) minmax(0, 1fr);
     gap: 24px;
     padding-inline: 16px;
-  }
-  .vv-explore-filter-body {
-    padding: 22px;
   }
   .vv-explore-listings {
     padding-inline: 4px;

@@ -32,8 +32,23 @@ const dateExpired = (value) => { const d = new Date(value); return !Number.isNaN
 function GuestWall({ title }) {
   const nav = useNav()
   return (
-    <Screen title={title} back={false}>
-      <EmptyState icon={Lock} title="Log in to continue" body="Browsing is open to everyone. Sign in to order, book, request quotes and message vendors." action={<div className="flex gap-2"><Button onClick={() => openAuthDialog('signin')}>Log in</Button><Button variant="secondary" onClick={() => openAuthDialog('signup')}>Create account</Button></div>} />
+    <Screen title={title} back={false} headerless pad={false}>
+      <div className="vv-guest-wall-wrap">
+        <section className="vv-guest-wall" aria-labelledby="vv-guest-wall-heading">
+          <span className="vv-guest-wall-icon" aria-hidden="true"><Lock size={26} strokeWidth={1.9} /></span>
+          <p className="vv-profile-eyebrow">{title}</p>
+          <h1 id="vv-guest-wall-heading">Log in to continue</h1>
+          <p className="vv-guest-wall-body">Browsing is open to everyone. Sign in to order, book, request quotes and message vendors.</p>
+          <div className="vv-guest-wall-actions">
+            <Button onClick={() => openAuthDialog('signin')}>Log in</Button>
+            <Button variant="secondary" onClick={() => openAuthDialog('signup')}>Create account</Button>
+          </div>
+          <div className="vv-guest-wall-links">
+            <button type="button" onClick={() => nav.go('c_explore')}>Explore marketplace</button>
+            <button type="button" onClick={() => nav.go('c_categories')}>Browse categories</button>
+          </div>
+        </section>
+      </div>
     </Screen>
   )
 }
@@ -50,7 +65,7 @@ export function RfqNew({ params = {} }) {
   const nav = useNav()
   const { me, vendor, vendors, rfqs, setRfqs, notify, toast, locale } = useApp()
   const targetVendor = params.vendorId ? vendor(params.vendorId) : null
-  const [f, setF] = useState({ cat: params.cat || '', kind: 'service', title: params.title ? `Bulk quote: ${params.title}` : '', scope: '', quantity: '', budget: '', timeline: '', deadline: dateAfterISO(7), city: locale.city || 'Jaipur', answers: {} })
+  const [f, setF] = useState({ cat: params.cat || '', kind: 'service', title: params.title ? `Bulk quote: ${params.title}` : '', scope: '', quantity: '', budget: '', timeline: '', deadline: dateAfterISO(7), city: locale.city || '', answers: {} })
   const [gx, setGx] = useState({ dest: locale.countryName || 'India', inco: '', target: '', samples: false })
   const [files, setFiles] = useState([])
   const [errs, setErrs] = useState({})
