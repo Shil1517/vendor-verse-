@@ -44,7 +44,7 @@ const C = (n, s = 'soon', extra = {}) => ({ n, s, ...extra })
 const REST = {
   'Andhra Pradesh': ['Visakhapatnam', 'Vijayawada'], 'Arunachal Pradesh': ['Itanagar'], 'Assam': ['Guwahati'], 'Bihar': ['Patna'], 'Chhattisgarh': ['Raipur'], 'Goa': ['Panaji'],
   'Gujarat': ['Ahmedabad', 'Surat', 'Vadodara'], 'Haryana': ['Faridabad', 'Ambala'], 'Himachal Pradesh': ['Shimla'], 'Jharkhand': ['Ranchi'], 'Kerala': ['Kochi', 'Thiruvananthapuram'],
-  'Madhya Pradesh': ['Bhopal', 'Indore'], 'Manipur': ['Imphal'], 'Meghalaya': ['Shillong'], 'Mizoram': ['Aizawl'], 'Nagaland': ['Kohima'], 'Odisha': ['Bhubaneswar'], 'Punjab': ['Ludhiana', 'Amritsar'],
+  'Madhya Pradesh': ['Bhopal', 'Indore', 'Jabalpur'], 'Manipur': ['Imphal'], 'Meghalaya': ['Shillong'], 'Mizoram': ['Aizawl'], 'Nagaland': ['Kohima'], 'Odisha': ['Bhubaneswar'], 'Punjab': ['Ludhiana', 'Amritsar'],
   'Sikkim': ['Gangtok'], 'Tamil Nadu': ['Chennai', 'Coimbatore'], 'Telangana': ['Hyderabad'], 'Tripura': ['Agartala'], 'Uttarakhand': ['Dehradun'], 'West Bengal': ['Kolkata'],
   'Andaman & Nicobar Islands': ['Port Blair'], 'Chandigarh': ['Chandigarh'], 'Dadra & Nagar Haveli and Daman & Diu': ['Daman'], 'Jammu & Kashmir': ['Srinagar', 'Jammu'], 'Ladakh': ['Leh'],
   'Lakshadweep': ['Kavaratti'], 'Puducherry': ['Puducherry'],
@@ -88,7 +88,7 @@ export const GEO = (() => {
 export const country = (code) => GEO.find((c) => c.code === code) || GEO[0]
 
 /* ---------- Postal-code detection: pincode / ZIP / postcode → country, state, city ---------- */
-const IN_PIN = { 302: ['Jaipur', 'Rajasthan'], 303: ['Jaipur', 'Rajasthan'], 305: ['Ajmer', 'Rajasthan'], 332: ['Sikar', 'Rajasthan'], 342: ['Jodhpur', 'Rajasthan'], 324: ['Kota', 'Rajasthan'], 313: ['Udaipur', 'Rajasthan'],
+const IN_PIN = { 302: ['Jaipur', 'Rajasthan'], 303: ['Jaipur', 'Rajasthan'], 305: ['Ajmer', 'Rajasthan'], 332: ['Sikar', 'Rajasthan'], 342: ['Jodhpur', 'Rajasthan'], 324: ['Kota', 'Rajasthan'], 313: ['Udaipur', 'Rajasthan'], 482: ['Jabalpur', 'Madhya Pradesh'],
   110: ['Delhi NCR', 'Delhi NCR'], 122: ['Gurugram', 'Delhi NCR'], 201: ['Noida', 'Delhi NCR'], 400: ['Mumbai', 'Maharashtra'], 401: ['Mumbai', 'Maharashtra'], 411: ['Pune', 'Maharashtra'], 560: ['Bengaluru', 'Karnataka'], 226: ['Lucknow', 'Uttar Pradesh'] }
 const US_ZIP = { 900: ['Los Angeles', 'California'], 770: ['Houston', 'Texas'], 100: ['New York', 'New York'], 101: ['New York', 'New York'] }
 const GB_AREA = { SW: 'London', E: 'London', EC: 'London', W: 'London', N: 'London', SE: 'London', NW: 'London', WC: 'London', M: 'Manchester' }

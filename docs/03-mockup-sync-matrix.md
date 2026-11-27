@@ -218,6 +218,8 @@ The matrix statuses above measure screen coverage. With `VITE_API_BASE_URL`, web
 
 | Date & time (YYYY-MM-DD HH:MM, local) | Updated by | Change | Reason |
 |---|---|---|---|
+| 2026-11-27 11:21 | Amit | Modified: F-DSC-01, F-DSC-02 vendor directory (100 vendors per field), vendor-focused navbar search, and category vendor views | User request; seeded 100 approved vendors per field, updated the navbar search dropdown to suggest/recommend vendors, and wired category clicks to display vendors of that category. |
+| 2026-11-27 11:14 | Amit | Modified: F-DSC-01, F-DSC-02 web homepage and marketplace navbar search dropdown | User request; added NavbarProductSearch component to the marketplace header so clicking the navbar search shows suggested products and typing shows live product recommendations. |
 | 2026-11-25 16:24 | Amit | Modified: F-GEO-01, F-GEO-02, F-DSC-01 web location detection and pincode support | User request; removed Jaipur default, added automatic browser geolocation permission detection and reverse-geocoding, auto-detect-and-set for any pincode, and allowed setting any custom location across the website. |
 | 2026-11-25 16:11 | Amit | Modified: F-DSC-01 web home hero and section animations | User request; added staggered hero entrance, gold underline/sheen, SVG outline draw, floating cards & pointer parallax, interactive micro-interactions, and scroll-reveal cascades with reduced-motion support. |
 | 2026-11-24 11:57 | tanya sen | Modified: F-XCT-06 and F-DSC-01 change-log entries merged | Preserve both branch histories while resolving the documentation merge conflict. |

@@ -14,7 +14,12 @@ export function loadState(seed) {
     const savedRfqs = Array.isArray(parsed.rfqs) ? parsed.rfqs : []
     const savedRfqIds = new Set(savedRfqs.map((item) => item.id))
     const rfqs = [...savedRfqs, ...(seed.rfqs || []).filter((item) => !savedRfqIds.has(item.id))]
-    return { ...createSeedState(seed), ...parsed, rfqs, settings: { ...seed.settings, ...parsed.settings }, threads: { ...seed.threads, ...parsed.threads }, notifs: { ...seed.notifs, ...parsed.notifs }, prefs: { ...seed.prefs, ...parsed.prefs } }
+    const savedVendors = Array.isArray(parsed.vendors)
+      ? parsed.vendors.filter((item) => !/^v-[a-z]+-\d{3}$/.test(String(item.id || '')))
+      : []
+    const savedVendorIds = new Set(savedVendors.map((item) => item.id))
+    const vendors = [...savedVendors, ...(seed.vendors || []).filter((item) => !savedVendorIds.has(item.id))]
+    return { ...createSeedState(seed), ...parsed, vendors, rfqs, settings: { ...seed.settings, ...parsed.settings }, threads: { ...seed.threads, ...parsed.threads }, notifs: { ...seed.notifs, ...parsed.notifs }, prefs: { ...seed.prefs, ...parsed.prefs } }
   } catch {
     return createSeedState(seed)
   }

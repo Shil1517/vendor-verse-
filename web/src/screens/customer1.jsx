@@ -1,5 +1,5 @@
 ﻿import { publicRoleLabels } from '../vendorRoles.js'
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   Phone, MapPin, ChevronDown, Search, SlidersHorizontal, Package, CalendarCheck, FileText, Heart, Star, Minus, Plus, ShieldCheck,
   MessageCircle, GitCompare, Truck, Clock, CreditCard, Smartphone, Landmark, Banknote, Lock, CheckCircle2, XCircle, Loader2,
@@ -9,6 +9,7 @@ import { useApp } from '../store.jsx'
 import { useNav } from '../nav.jsx'
 import { findCity } from '../geo.js'
 import { CATS, INDUSTRIES, SORTED_INDUSTRIES, cat, calcPrice, BUSY_SLOTS, SLOTS, listing as findListing } from '../data.jsx'
+import { FIELD_CATEGORY_MAP, getPopularSubcategories, vendorMatchesSubcategory } from '../data/vendorSeed.js'
 import { searchIndustries } from '../../../packages/shared/taxonomy-search.js'
 import {
   Screen, Card, Section, Button, Thumb, Chips, Segmented, Sheet, Input, Select, Toggle, Badge, Rating, Banner, EmptyState,
@@ -54,7 +55,7 @@ export function CustomerHome() {
       <div className="bg-gradient-to-b from-brand-600 to-brand-700 px-4 pb-6 pt-3 text-white">
         <div className="flex items-center justify-between">
           <button onClick={() => nav.go('c_location')} className="flex items-center gap-1.5 rounded-full bg-white/15 py-1.5 pl-2.5 pr-2 text-[13px] font-semibold">
-            <MapPin size={15} />{locale.city ? `${locale.city}${locale.pincode ? ` ${locale.pincode}` : ''}` : 'Select location'}<ChevronDown size={15} />
+            <MapPin size={15} />{locale.city ? `${locale.city}${locale.pincode ? ` ${locale.pincode}` : ''}` : 'Jabalpur'}<ChevronDown size={15} />
           </button>
           <div className="[&_button]:text-white [&_button:hover]:bg-white/15 [&_span]:ring-brand-600"><NotifBell role="customer" /></div>
         </div>
@@ -392,25 +393,77 @@ export function Category({ params }) {
 
 /* ================= EXPLORE / SEARCH ================= */
 const DEFAULT_F = { min: '', max: '', stock: false, verified: false, city: 'Any', rating: 0, sort: 'relevance' }
-function CoverageFilter({ value, onChange, t, lang }) {
-  return <div><p className="mb-2 text-[13px] font-semibold text-ink-700">{lang === 'hi' ? 'खोज का दायरा' : 'Discovery coverage'}</p><div className="grid grid-cols-2 gap-2">{[['local', 'local', 'nearCity'], ['nationwide', 'nationwide', 'acrossCountry'], ['worldwide', 'worldwide', 'international'], ['remote', 'remote', 'anywhere']].map(([id, label, desc]) => <button key={id} onClick={() => onChange(id)} className={cx('rounded-xl border px-3 py-2.5 text-left transition', value === id ? 'border-brand-500 bg-brand-50 text-brand-800' : 'border-ink-200 bg-white text-ink-700')}><span className="block text-sm font-bold">{t(label)}</span><span className="block text-[11px] opacity-70">{t(desc)}</span></button>)}</div></div>
+const INITIAL_VENDOR_PAGE = 24
+
+function resolveGroupFilter(groupName) {
+  if (!groupName) return { cat: 'all', group: '' }
+  if (FIELD_CATEGORY_MAP[groupName]) return FIELD_CATEGORY_MAP[groupName]
+  const industry = INDUSTRIES.find((i) => i.name.toLowerCase() === groupName.toLowerCase())
+  if (industry) return { cat: industry.cat, group: '' }
+  const category = CATS.find((c) => c.name.toLowerCase() === groupName.toLowerCase())
+  if (category) return { cat: category.id, group: '' }
+  return { cat: 'all', group: '' }
 }
+
+function CoverageFilter({ value, onChange, t, lang }) {
+  const options = [
+    ['all', 'All markets', 'Local & global vendors'],
+    ['local', t('local'), t('nearCity')],
+    ['nationwide', t('nationwide'), t('acrossCountry')],
+    ['worldwide', t('worldwide'), t('international')],
+    ['remote', t('remote'), t('anywhere')],
+  ]
+  return <div><p className="mb-2 text-[13px] font-semibold text-ink-700">{lang === 'hi' ? 'खोज का दायरा' : 'Discovery coverage'}</p><div className="grid grid-cols-2 gap-2">{options.map(([id, label, desc]) => <button key={id} onClick={() => onChange(id)} className={cx('rounded-xl border px-3 py-2.5 text-left transition', value === id ? 'border-brand-500 bg-brand-50 text-brand-800' : 'border-ink-200 bg-white text-ink-700')}><span className="block text-sm font-bold">{label}</span><span className="block text-[11px] opacity-70">{desc}</span></button>)}</div></div>
+}
+
 export function Explore({ params = {}, supplierOnlyOverride, hideVendorMode = false }) {
   const nav = useNav()
   const { listings, vendors, compare, toggleCompare, me, setMe, locale, setLocale, lang, t } = useApp()
+  const initialGroup = resolveGroupFilter(params.group)
   const [q, setQ] = useState(params.q || '')
-  const [mode, setMode] = useState(params.mode || 'all')
-  const [c, setC] = useState(params.cat || 'all')
+  const [mode, setMode] = useState(params.mode || ((params.group || params.cat) ? 'vendors' : 'all'))
+  const [c, setC] = useState(params.cat || initialGroup.cat || 'all')
+  const [groupFilter, setGroupFilter] = useState(initialGroup.group || '')
+  const [groupLabel, setGroupLabel] = useState(params.group || '')
   const [f, setF] = useState(DEFAULT_F)
   const [draft, setDraft] = useState(DEFAULT_F)
-  const [coverage, setCoverage] = useState(params.coverage || locale.coverage || 'local')
+  const [coverage, setCoverage] = useState(params.coverage || 'all')
   const [subcategory, setSubcategory] = useState('all')
+  const [visibleVendorLimit, setVisibleVendorLimit] = useState(INITIAL_VENDOR_PAGE)
   const [open, setOpen] = useState(false)
-  const applied = [coverage !== 'local', f.min || f.max, f.stock, f.verified, f.city !== 'Any', f.rating > 0, f.sort !== 'relevance'].filter(Boolean).length
-  const match = (s) => s.toLowerCase().includes(q.toLowerCase())
+
+  useEffect(() => {
+    const resolved = resolveGroupFilter(params.group)
+    const nextGroup = params.group || ''
+    const nextCat = params.cat || resolved.cat || 'all'
+    const nextQ = params.q || ''
+    const subs = resolved.group
+      ? getPopularSubcategories(resolved.group)
+      : (nextGroup ? getPopularSubcategories(nextGroup) : (nextCat !== 'all' ? getPopularSubcategories(nextCat) : []))
+    const norm = (s) => String(s || '').toLowerCase().replace(/&/g, '').replace(/\s+/g, ' ').trim()
+    const matchedSub = nextQ ? (subs.find((s) => norm(s) === norm(nextQ)) || '') : ''
+    setQ(matchedSub ? '' : nextQ)
+    setMode(params.mode || ((params.group || params.cat) ? 'vendors' : 'all'))
+    setC(nextCat)
+    setGroupFilter(resolved.group || '')
+    setGroupLabel(nextGroup)
+    setCoverage(params.coverage || 'all')
+    setSubcategory(matchedSub || 'all')
+    setVisibleVendorLimit(INITIAL_VENDOR_PAGE)
+  }, [params.q, params.mode, params.cat, params.group, params.coverage])
+
+  const applied = [coverage !== 'all', f.min || f.max, f.stock, f.verified, f.city !== 'Any', f.rating > 0, f.sort !== 'relevance'].filter(Boolean).length
+  const match = (s) => String(s || '').toLowerCase().includes(q.toLowerCase())
+  const matchTokens = (text) => {
+    const trimmed = q.trim().toLowerCase()
+    if (!trimmed) return true
+    const hay = String(text || '').toLowerCase()
+    return trimmed.split(/\s+/).filter(Boolean).every((token) => hay.includes(token))
+  }
   const supplierOnly = supplierOnlyOverride ?? (me.role === 'vendor' && me.buyerMode)
   const isBusinessSupplier = (id) => ['v-me', 'v-global-2'].includes(id)
   const coverageMatch = (v) => {
+    if (coverage === 'all') return true
     const city = locale.city || ''
     const country = locale.countryName || 'India'
     const remote = v.remote || v.areas?.some((x) => String(x).toLowerCase() === 'remote')
@@ -444,35 +497,71 @@ export function Explore({ params = {}, supplierOnlyOverride, hideVendorMode = fa
 
   const vs = useMemo(() => {
     let r = visibleVendors(vendors).filter((v) => !supplierOnly || isBusinessSupplier(v.id)).filter(coverageMatch)
-    if (c !== 'all') r = r.filter((v) => v.cat === c)
-    if (q) r = r.filter((v) => match(v.name) || match(cat(v.cat).name) || match(v.city))
+    if (groupFilter === 'Manufacturing and supply') {
+      r = r.filter((v) => v.group === 'Manufacturing and supply')
+    } else if (groupFilter === 'Wholesale and industrial') {
+      r = r.filter((v) => v.cat === 'elec' && v.group !== 'Manufacturing and supply')
+    } else if (c !== 'all') {
+      r = r.filter((v) => v.cat === c && (groupFilter || v.group !== 'Manufacturing and supply'))
+    }
+    if (subcategory !== 'all') {
+      r = r.filter((v) => vendorMatchesSubcategory(v, subcategory))
+    }
+    if (q) {
+      r = r.filter((v) => matchTokens(`${v.name} ${cat(v.cat).name} ${v.group || ''} ${v.specialty || ''} ${v.vendorType || ''} ${v.city || ''} ${v.country || ''} ${(v.subs || []).join(' ')} ${(v.areas || []).join(' ')}`))
+    }
     if (f.verified) r = r.filter((v) => v.status === 'approved')
-    if (f.city !== 'Any') r = r.filter((v) => v.areas.includes(f.city))
+    if (f.city !== 'Any') r = r.filter((v) => v.areas?.includes(f.city) || v.city === f.city)
     if (f.rating) r = r.filter((v) => v.rating >= f.rating)
-    return r
-  }, [vendors, c, q, f, supplierOnly, coverage, locale.city, locale.countryName])
 
+    const cityLower = String(locale.city || '').trim().toLowerCase()
+    const countryLower = String(locale.countryName || '').trim().toLowerCase()
+    return [...r].sort((a, b) => {
+      if (f.sort === 'rating') return (b.rating || 0) - (a.rating || 0)
+      const aCity = cityLower && (a.city?.toLowerCase() === cityLower || a.areas?.some((x) => x.toLowerCase() === cityLower)) ? 1 : 0
+      const bCity = cityLower && (b.city?.toLowerCase() === cityLower || b.areas?.some((x) => x.toLowerCase() === cityLower)) ? 1 : 0
+      if (aCity !== bCity) return bCity - aCity
+      const aCountry = countryLower && (a.country || 'India').toLowerCase() === countryLower ? 1 : 0
+      const bCountry = countryLower && (b.country || 'India').toLowerCase() === countryLower ? 1 : 0
+      if (aCountry !== bCountry) return bCountry - aCountry
+      return (b.rating || 0) - (a.rating || 0) || (b.reviews || 0) - (a.reviews || 0)
+    })
+  }, [vendors, c, groupFilter, subcategory, q, f, supplierOnly, coverage, locale.city, locale.countryName])
+
+  const shownVendors = useMemo(() => vs.slice(0, visibleVendorLimit), [vs, visibleVendorLimit])
   const showVendors = mode === 'all' || mode === 'vendors'
   const showItems = mode !== 'vendors'
+  const activeFieldLabel = groupLabel || (c !== 'all' ? cat(c).name : '')
+  const popularSubcategories = useMemo(() => {
+    if (groupFilter) return getPopularSubcategories(groupFilter)
+    if (groupLabel) {
+      const fromSeed = getPopularSubcategories(groupLabel)
+      if (fromSeed.length) return fromSeed
+      const ind = INDUSTRIES.find((i) => i.name.toLowerCase() === groupLabel.toLowerCase())
+      if (ind?.subs?.length) return ind.subs
+    }
+    if (c !== 'all') return getPopularSubcategories(c).length ? getPopularSubcategories(c) : (cat(c)?.subs || [])
+    return []
+  }, [groupFilter, groupLabel, c])
   return (
     <Screen
       title="Explore"
       back={false}
       pad={false}
       overlay={
-        <Sheet open={open} onClose={() => setOpen(false)} title="Filters" footer={<div className="flex gap-2"><Button variant="secondary" className="flex-1" onClick={() => { setDraft(DEFAULT_F); setF(DEFAULT_F); setCoverage('local'); setC('all'); setSubcategory('all') }}>Reset</Button><Button className="flex-[2]" onClick={() => { setF(draft); if (draft.city !== 'Any') { const p = findCity(draft.city); if (p) setLocale({ ...locale, ...p, pincode: '' }) } setOpen(false) }}>Show results</Button></div>}>
+        <Sheet open={open} onClose={() => setOpen(false)} title="Filters" footer={<div className="flex gap-2"><Button variant="secondary" className="flex-1" onClick={() => { setDraft(DEFAULT_F); setF(DEFAULT_F); setCoverage('all'); setC('all'); setGroupFilter(''); setGroupLabel(''); setSubcategory('all') }}>Reset</Button><Button className="flex-[2]" onClick={() => { setF(draft); if (draft.city !== 'Any') { const p = findCity(draft.city); if (p) setLocale({ ...locale, ...p, pincode: '' }) } setOpen(false) }}>Show results</Button></div>}>
           <div>
             <CoverageFilter value={coverage} onChange={setCoverage} t={t} lang={lang} />
           </div>
           <div>
-            <Select label="Category" value={c} onChange={(e) => { setC(e.target.value); setSubcategory('all') }} options={[{ value: 'all', label: t('allCategories') }, ...CATS.map((x) => ({ value: x.id, label: lang === 'hi' ? x.hi : x.name }))]} />
+            <Select label="Category" value={c} onChange={(e) => { setC(e.target.value); setGroupFilter(''); setGroupLabel(''); setSubcategory('all') }} options={[{ value: 'all', label: t('allCategories') }, ...CATS.map((x) => ({ value: x.id, label: lang === 'hi' ? x.hi : x.name }))]} />
             <div className="mt-3"><Select label="Subcategory" value={subcategory} onChange={(e) => setSubcategory(e.target.value)} options={[{ value: 'all', label: 'All subcategories' }, ...(CATS.find((x) => x.id === c)?.subs || []).map((x) => ({ value: x, label: x }))]} /></div>
           </div>
           <div>
             <p className="mb-2 text-[13px] font-semibold text-ink-700">Price range (₹)</p>
             <div className="flex gap-3"><Input placeholder="Min" inputMode="numeric" value={draft.min} onChange={(e) => setDraft({ ...draft, min: e.target.value.replace(/\D/g, '') })} /><Input placeholder="Max" inputMode="numeric" value={draft.max} onChange={(e) => setDraft({ ...draft, max: e.target.value.replace(/\D/g, '') })} /></div>
           </div>
-          <Select label="Location" value={draft.city} onChange={(e) => setDraft({ ...draft, city: e.target.value })} options={['Any', ...(locale.city && !['Jaipur', 'Delhi NCR', 'Ajmer', 'Sikar'].includes(locale.city) ? [locale.city] : []), 'Jaipur', 'Delhi NCR', 'Ajmer', 'Sikar']} />
+          <Select label="Location" value={draft.city} onChange={(e) => setDraft({ ...draft, city: e.target.value })} options={['Any', ...(locale.city && !['Jabalpur', 'Bhopal', 'Indore', 'Jaipur', 'Delhi', 'Mumbai', 'Bengaluru', 'Pune'].includes(locale.city) ? [locale.city] : []), 'Jabalpur', 'Bhopal', 'Indore', 'Jaipur', 'Delhi', 'Mumbai', 'Bengaluru', 'Pune']} />
           <div><p className="mb-2 text-[13px] font-semibold text-ink-700">Minimum rating</p><Chips scroll={false} value={draft.rating} onChange={(v) => setDraft({ ...draft, rating: v })} options={[{ id: 0, label: 'Any' }, { id: 4, label: '4.0+' }, { id: 4.5, label: '4.5+' }, { id: 4.8, label: '4.8+' }]} /></div>
           <div><p className="mb-2 text-[13px] font-semibold text-ink-700">Sort by</p><Chips scroll={false} value={draft.sort} onChange={(v) => setDraft({ ...draft, sort: v })} options={[{ id: 'relevance', label: 'Relevance' }, { id: 'low', label: 'Price: low to high' }, { id: 'high', label: 'Price: high to low' }, { id: 'rating', label: 'Rating' }]} /></div>
           <Toggle label="Verified vendors only" desc="Hide vendors that are not Super Admin verified" on={draft.verified} onChange={(v) => setDraft({ ...draft, verified: v })} />
@@ -481,27 +570,51 @@ export function Explore({ params = {}, supplierOnlyOverride, hideVendorMode = fa
     >
       {supplierOnly && <div className="vv-supplier-banner border-b border-violet-100 bg-violet-50 px-4 py-3"><div className="flex items-center gap-3"><Package size={19} className="shrink-0 text-violet-700" /><div className="min-w-0 flex-1"><p className="text-sm font-bold text-violet-950">Business suppliers only</p><p className="mt-0.5 text-xs text-violet-800/80">Browse company supplier products, send bulk RFQs and create purchase orders.</p></div><button onClick={() => { setMe({ ...me, buyerMode: false }); nav.reset('v_dash') }} className="shrink-0 rounded-lg bg-white px-2.5 py-2 text-xs font-bold text-violet-800 ring-1 ring-violet-200">Exit buyer</button></div></div>}
       <div className="vv-explore-tools space-y-3 bg-white px-4 pb-3 pt-3 shadow-sm">
-        <CategoryHierarchy items={[
-          { label: 'Home', onClick: () => nav.go('c_home') },
-          { label: 'Categories', onClick: () => nav.go('c_categories') },
-          c !== 'all' ? { label: cat(c).name, onClick: subcategory !== 'all' ? () => setSubcategory('all') : undefined, current: subcategory === 'all' } : { label: 'All', current: true },
-          subcategory !== 'all' ? { label: subcategory, current: true } : null,
-        ]} />
-        <SearchBar value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search vendors, products, services" right={
+        <div className="vv-discovery-taxonomy-bar">
+          <CategoryHierarchy items={[
+            { label: 'Home', onClick: () => nav.go('c_home') },
+            { label: 'Categories', onClick: () => nav.go('c_categories') },
+            activeFieldLabel ? { label: activeFieldLabel, onClick: subcategory !== 'all' ? () => { setSubcategory('all'); setVisibleVendorLimit(INITIAL_VENDOR_PAGE) } : undefined, current: subcategory === 'all' } : { label: 'All', current: true },
+            subcategory !== 'all' ? { label: subcategory, current: true } : null,
+          ]} />
+          {popularSubcategories.length > 0 && (
+            <div className="vv-discovery-subchips" role="group" aria-label={`Popular subcategories in ${activeFieldLabel || 'category'}`}>
+              <span className="vv-discovery-subchips-label">Popular:</span>
+              {popularSubcategories.map((sub) => {
+                const active = subcategory === sub
+                return (
+                  <button
+                    key={sub}
+                    type="button"
+                    aria-pressed={active}
+                    className={cx('vv-discovery-subchip', active && 'is-active')}
+                    onClick={() => {
+                      setSubcategory((prev) => (prev === sub ? 'all' : sub))
+                      setVisibleVendorLimit(INITIAL_VENDOR_PAGE)
+                    }}
+                  >
+                    {sub}
+                  </button>
+                )
+              })}
+            </div>
+          )}
+        </div>
+        <SearchBar value={q} onChange={(e) => { setQ(e.target.value); setVisibleVendorLimit(INITIAL_VENDOR_PAGE) }} placeholder="Search vendors, specialties or cities" right={
           <button onClick={() => { setDraft(f); setOpen(true) }} className="relative grid size-11 shrink-0 place-items-center rounded-xl bg-ink-900 text-white" aria-label="Filters">
             <SlidersHorizontal size={19} />
             {applied > 0 && <span className="absolute -right-1 -top-1 grid size-5 place-items-center rounded-full bg-brand-500 text-[10px] font-bold ring-2 ring-white">{applied}</span>}
           </button>
         } />
-        <div className="vv-explore-modes"><Segmented value={mode} onChange={setMode} options={[{ id: 'all', label: 'All' }, { id: 'products', label: 'Products' }, { id: 'services', label: 'Services' }, ...(!hideVendorMode ? [{ id: 'vendors', label: 'Vendors' }] : [])]} /></div>
+        <div className="vv-explore-modes"><Segmented value={mode} onChange={setMode} options={[...(!hideVendorMode ? [{ id: 'vendors', label: 'Vendors' }] : []), { id: 'all', label: 'All' }, { id: 'products', label: 'Products' }, { id: 'services', label: 'Services' }]} /></div>
         <div className="vv-explore-categories" aria-label="Browse categories">
           <div className="flex min-w-0 gap-2 overflow-x-auto pb-1" role="tablist">
             <button
               type="button"
               role="tab"
-              aria-selected={c === 'all'}
-              onClick={() => { setC('all'); setSubcategory('all') }}
-              className={cx('shrink-0 text-sm font-bold', c === 'all' ? 'bg-ink-900 text-white' : 'bg-white text-ink-700')}
+              aria-selected={c === 'all' && !groupFilter}
+              onClick={() => { setC('all'); setGroupFilter(''); setGroupLabel(''); setSubcategory('all'); setVisibleVendorLimit(INITIAL_VENDOR_PAGE) }}
+              className={cx('shrink-0 text-sm font-bold', c === 'all' && !groupFilter ? 'bg-ink-900 text-white' : 'bg-white text-ink-700')}
             >
               {lang === 'hi' ? 'सभी श्रेणियां' : 'All categories'}
             </button>
@@ -510,9 +623,9 @@ export function Explore({ params = {}, supplierOnlyOverride, hideVendorMode = fa
                 key={category.id}
                 type="button"
                 role="tab"
-                aria-selected={c === category.id}
-                onClick={() => { setC(category.id); setSubcategory('all') }}
-                className={cx('shrink-0 text-sm font-bold', c === category.id ? 'bg-ink-900 text-white' : 'bg-white text-ink-700')}
+                aria-selected={c === category.id && groupFilter !== 'Manufacturing and supply'}
+                onClick={() => { setC(category.id); setGroupFilter(''); setGroupLabel(category.name); setSubcategory('all'); setMode('vendors'); setVisibleVendorLimit(INITIAL_VENDOR_PAGE) }}
+                className={cx('shrink-0 text-sm font-bold', c === category.id && groupFilter !== 'Manufacturing and supply' ? 'bg-ink-900 text-white' : 'bg-white text-ink-700')}
               >
                 {lang === 'hi' ? category.hi : category.name}
               </button>
@@ -522,11 +635,23 @@ export function Explore({ params = {}, supplierOnlyOverride, hideVendorMode = fa
       </div>
       <div className="vv-explore-results space-y-4 p-4">
         <div className="flex items-center justify-between text-xs text-ink-500">
-          <span>{(showItems ? items.length : 0) + (showVendors ? vs.length : 0)} results{q && <> for “<b className="text-ink-800">{q}</b>”</>}</span>
-          {(applied > 0 || c !== 'all' || q) && <button className="font-bold text-brand-700" onClick={() => { setF(DEFAULT_F); setC('all'); setQ(''); setCoverage('local') }}>{t('clearAll')}</button>}
+          <span>{mode === 'vendors' ? `${vs.length} vendors` : `${(showItems ? items.length : 0) + (showVendors ? vs.length : 0)} results`}{activeFieldLabel && <> in <b className="text-ink-800">{activeFieldLabel}</b></>}{q && <> for “<b className="text-ink-800">{q}</b>”</>}</span>
+          {(applied > 0 || c !== 'all' || groupFilter || q) && <button className="font-bold text-brand-700" onClick={() => { setF(DEFAULT_F); setC('all'); setGroupFilter(''); setGroupLabel(''); setSubcategory('all'); setQ(''); setCoverage('all'); setVisibleVendorLimit(INITIAL_VENDOR_PAGE) }}>{t('clearAll')}</button>}
         </div>
         {showVendors && vs.length > 0 && (
-          <Section title={mode === 'vendors' ? undefined : supplierOnly ? 'Business suppliers' : 'Vendors'}><div className="vv-explore-card-grid vv-explore-vendor-grid">{vs.map((v) => <VendorRow key={v.id} v={v} showProfileAction={hideVendorMode} />)}</div></Section>
+          <Section title={mode === 'vendors' ? `${activeFieldLabel ? `${activeFieldLabel} vendors` : 'Verified vendors'} (${vs.length})` : supplierOnly ? 'Business suppliers' : `Vendors (${vs.length})`}>
+            <div className="vv-explore-card-grid vv-explore-vendor-grid">{shownVendors.map((v) => <VendorRow key={v.id} v={v} showProfileAction={hideVendorMode} />)}</div>
+            {vs.length > shownVendors.length && (
+              <div className="mt-4 flex flex-wrap items-center justify-center gap-2.5">
+                <Button variant="secondary" onClick={() => setVisibleVendorLimit((n) => n + INITIAL_VENDOR_PAGE)}>
+                  Show more vendors ({shownVendors.length} of {vs.length})
+                </Button>
+                <Button variant="ghost" onClick={() => setVisibleVendorLimit(vs.length)}>
+                  Show all {vs.length}
+                </Button>
+              </div>
+            )}
+          </Section>
         )}
         {showItems && items.length > 0 && (
           <Section title={mode === 'all' ? 'Products & services' : undefined}>
@@ -644,7 +769,7 @@ export function VendorProfile({ params }) {
   const gate = useGate()
   const { vendors, listings, reviews, toggleSaved, saved } = useApp()
   const start = useStartChat()
-  const v = vendors.find((x) => x.id === (params.id || 'v-me'))
+  const v = vendors.find((x) => x.id === (params.id || 'v-me')) || vendors[0]
   const c = cat(v.cat)
   const [tab, setTab] = useState(params.tab || 'listings')
   const items = listings.filter((l) => l.vendorId === v.id && l.status === 'approved')
@@ -660,21 +785,21 @@ export function VendorProfile({ params }) {
         <div>
           <div className="flex flex-wrap items-center gap-2"><h1 className="text-xl font-extrabold tracking-tight">{v.name}</h1></div>
           <div className="mt-1.5 flex flex-wrap items-center gap-2"><VerifiedBadge id={v.id} />{v.rating > 0 && <Rating value={v.rating} count={v.reviews} size={14} />}</div>
-          <p className="mt-2 flex items-center gap-1 text-sm text-ink-500"><MapPin size={14} />{v.city} · serves {v.areas.join(', ')}</p>
-          <p className="mt-1 text-sm text-ink-600">{publicRoleLabels(v).join(' · ') || 'Roles pending verification'}</p>
+          <p className="mt-2 flex items-center gap-1 text-sm text-ink-500"><MapPin size={14} />{v.city} · serves {(v.areas || []).join(', ')}</p>
+          <p className="mt-1 text-sm text-ink-600">{v.specialty || v.group || publicRoleLabels(v).join(' · ') || 'Verified marketplace vendor'}</p>
         </div>
         {v.status !== 'approved' && <Banner tone="amber" title="Verification pending">This vendor has not been verified by VendorVerse yet. Documents are under review.</Banner>}
         <div className="grid grid-cols-3 gap-2">
           {[['Since', v.since], ['Branches', v.branches], ['Listings', items.length]].map(([a, b]) => <Card key={a} className="!p-3 text-center"><p className="text-lg font-extrabold">{b}</p><p className="text-[11px] text-ink-500">{a}</p></Card>)}
         </div>
         <div className="flex gap-2.5"><Button className="flex-1" icon={MessageCircle} onClick={msg}>Message</Button><Button variant="secondary" className="flex-1" icon={FileText} onClick={() => gate('Log in to request a quote') && nav.go('c_rfq_new', { cat: v.cat })}>Request quote</Button></div>
-        <Segmented value={tab} onChange={setTab} options={[{ id: 'listings', label: 'Listings', count: items.length }, { id: 'reviews', label: 'Reviews', count: rv.length }, { id: 'about', label: 'About' }]} />
-        {tab === 'listings' && <div className="space-y-2.5">{items.map((l) => <ListingCard key={l.id} l={l} showVendor={false} />)}{items.length === 0 && <EmptyState icon={Package} title="No listings yet" />}</div>}
+        <Segmented value={tab} onChange={setTab} options={[{ id: 'about', label: 'About' }, { id: 'listings', label: 'Listings', count: items.length }, { id: 'reviews', label: 'Reviews', count: rv.length }]} />
+        {tab === 'listings' && <div className="space-y-2.5">{items.map((l) => <ListingCard key={l.id} l={l} showVendor={false} />)}{items.length === 0 && <EmptyState icon={Package} title="Custom quotes & direct service" body={`Message ${v.name} or request a quote for ${v.specialty || c.name}.`} />}</div>}
         {tab === 'reviews' && <div className="space-y-2.5">{rv.map((r) => <Card key={r.id}><div className="flex justify-between"><p className="text-sm font-bold">{r.by}</p><Rating value={r.rating} /></div><p className="mt-1 text-[13px] text-ink-600">{r.text}</p>{r.reply && <p className="mt-2 rounded-lg bg-ink-50 p-2.5 text-xs text-ink-600"><b>Vendor reply:</b> {r.reply}</p>}<p className="mt-1.5 text-[11px] text-ink-400">{r.at}</p></Card>)}{rv.length === 0 && <EmptyState icon={Star} title="No reviews yet" body="Reviews appear after completed transactions." />}</div>}
         {tab === 'about' && (
           <div className="space-y-3">
-            <Card><KV rows={[['Category', c.name], ['Owner', v.owner], ['Established', v.since], ['Branches', v.branches], ['Service areas', v.areas.join(', ')], ['GSTIN', v.status === 'approved' ? v.gstin : 'Pending verification']]} /></Card>
-            <Card><p className="mb-2 text-sm font-bold">Verification</p>{v.docs.map((d) => <div key={d.name} className="flex items-center justify-between py-1.5 text-sm"><span className="text-ink-600">{d.name}</span><StatusBadge s={d.status} /></div>)}</Card>
+            <Card><KV rows={[['Category', v.group || c.name], ...(v.specialty ? [['Specialty', v.specialty]] : []), ['Owner', v.owner], ['Established', v.since], ['Branches', v.branches], ['Service areas', (v.areas || []).join(', ')], ['GSTIN', v.status === 'approved' ? v.gstin : 'Pending verification']]} /></Card>
+            <Card><p className="mb-2 text-sm font-bold">Verification</p>{(v.docs || []).map((d) => <div key={d.name} className="flex items-center justify-between py-1.5 text-sm"><span className="text-ink-600">{d.name}</span><StatusBadge s={d.status} /></div>)}</Card>
           </div>
         )}
       </div>
