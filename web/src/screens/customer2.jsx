@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import {
   Package, CalendarCheck, FileText, Truck, Phone, MessageCircle, Send, Paperclip, Plus, X, Star, Download, Receipt, RotateCcw, ShieldAlert,
   User, Heart, Globe, Bell, Lock, LogOut, ChevronRight, Check, GitCompare, CreditCard, HelpCircle, Smartphone, Trash2, CircleDollarSign,
-  Clock, Wallet, Store, BadgeCheck, TrendingDown, Zap, ImagePlus,
+  Clock, Wallet, Store, BadgeCheck, TrendingDown, Zap, ImagePlus, Pencil, Settings, ShieldCheck,
 } from 'lucide-react'
 import { Info, CheckCheck, UserRound } from 'lucide-react'
 import { P2Badge } from './blocks.jsx'
@@ -478,40 +478,113 @@ export function IssueDetail({ params }) {
 /* ================= PROFILE ================= */
 export function Profile() {
   const nav = useNav()
-  const { me, setMe, t, lang, setLang, saved, orders, toast } = useApp()
+  const { me, setMe, t, lang, setLang, saved, orders, locale, toast } = useApp()
   if (!me.loggedIn) return <GuestWall title={t('profile')} />
+  const remote = Boolean(authService.isRemote)
+  const displayName = me.name || ME_NAME
+  const accountMeta = [
+    me.phone || (remote ? 'Customer account' : '+91 98290 00001'),
+    locale?.city,
+  ].filter(Boolean).join(' · ')
+  const switchToVendor = async () => {
+    if (remote) {
+      const switched = await authService.switchMode?.('VENDOR')
+      if (switched && !switched.ok) { toast(switched.message, 'warn'); return }
+    }
+    setMe({ ...me, role: 'vendor', name: me.vendorName || me.name, buyerMode: false })
+    nav.reset('v_dash')
+  }
+  const logout = () => {
+    setMe({ role: 'customer', loggedIn: false, guest: true, vendorId: 'v-me', name: 'Guest' })
+    nav.reset('c_home')
+  }
   return (
     <Screen title={t('profile')} back={false} pad={false} headerClass="vv-profile-screen-header">
       <div className="vv-profile-page">
         <section className="vv-profile-hero">
-          <div className="vv-profile-hero-copy">
-            <p className="vv-profile-eyebrow">MY ACCOUNT</p>
-            <div className="vv-profile-identity">
-              <Avatar name={me.name || ME_NAME} size={40} />
-              <div className="min-w-0"><h1>{me.name || ME_NAME}</h1><p>{me.phone || (authService.isRemote ? 'Customer account' : '+91 98290 00001')}</p><Badge tone="teal" className="mt-2">Customer</Badge></div>
+          <div className="vv-profile-identity">
+            <Avatar name={displayName} size={44} />
+            <div className="min-w-0 flex-1">
+              <div className="vv-profile-name-row">
+                <h1 className="truncate">{displayName}</h1>
+                <Badge tone="teal">Customer</Badge>
+              </div>
+              <p className="truncate">{accountMeta}</p>
             </div>
           </div>
-          <Button size="sm" variant="secondary" onClick={() => nav.go('c_profile_edit')}>Edit profile</Button>
+          <Button size="sm" variant="secondary" icon={Pencil} aria-label="Edit profile" onClick={() => nav.go('c_profile_edit')}>Edit</Button>
         </section>
 
         <section className="vv-profile-section">
-          <div className="vv-profile-section-heading"><div><p className="vv-profile-eyebrow">YOUR MARKETPLACE</p><h2>Everything you’re working on</h2></div><button onClick={() => nav.go('c_dash')}>View dashboard <ChevronRight size={15} /></button></div>
+          <div className="vv-profile-section-heading">
+            <div><p className="vv-profile-eyebrow">YOUR ACCOUNT</p><h2>Quick access</h2></div>
+            <button type="button" onClick={() => nav.go('c_dash')}>View dashboard <ChevronRight size={15} /></button>
+          </div>
           <div className="vv-profile-actions">
-            <button className="vv-profile-action" onClick={() => nav.go('c_saved')}><span className="vv-profile-action-icon is-rose"><Heart size={20} /></span><span><b>Saved &amp; compare</b><small>{saved.length} saved item{saved.length === 1 ? '' : 's'}</small></span><ChevronRight size={18} /></button>
-            <button className="vv-profile-action" onClick={() => nav.go('c_activity')}><span className="vv-profile-action-icon is-violet"><FileText size={20} /></span><span><b>Quote requests</b><small>RFQs and quotations</small></span><ChevronRight size={18} /></button>
-            <button className="vv-profile-action" onClick={() => nav.go('c_orders')}><span className="vv-profile-action-icon is-gold"><Package size={20} /></span><span><b>Purchase orders</b><small>{orders.length} order{orders.length === 1 ? '' : 's'} to track</small></span><ChevronRight size={18} /></button>
-            <button className="vv-profile-action" onClick={() => nav.go('c_contract')}><span className="vv-profile-action-icon is-sky"><FileText size={20} /></span><span><b>Contracts</b><small>Terms and agreements</small></span><ChevronRight size={18} /></button>
+            <button type="button" className="vv-profile-action" onClick={() => nav.go('c_saved')}>
+              <span className="vv-profile-action-icon is-rose"><Heart size={19} /></span>
+              <span><b>Saved &amp; compare</b><small>{remote ? 'Saved vendors & compare' : `${saved.length} saved item${saved.length === 1 ? '' : 's'}`}</small></span>
+              <ChevronRight size={17} />
+            </button>
+            <button type="button" className="vv-profile-action" onClick={() => nav.go('c_orders')}>
+              <span className="vv-profile-action-icon is-gold"><Package size={19} /></span>
+              <span><b>Purchase orders</b><small>{remote ? 'Track orders & deliveries' : `${orders.length} order${orders.length === 1 ? '' : 's'} to track`}</small></span>
+              <ChevronRight size={17} />
+            </button>
           </div>
         </section>
 
         <div className="vv-profile-columns">
-          <section className="vv-profile-section vv-profile-card-section"><div className="vv-profile-section-heading"><div><p className="vv-profile-eyebrow">SUPPORT &amp; TRUST</p><h2>Need a hand?</h2></div></div><Group><ListRow icon={Star} tone="amber" title="Rate a vendor" subtitle="Share your experience" onClick={() => nav.go('c_review')} /><ListRow icon={ShieldAlert} tone="violet" title="Cases" subtitle="Report and track problems" onClick={() => nav.go('c_cases')} /><ListRow icon={Star} tone="amber" title="My reviews" subtitle="Your submitted feedback" onClick={() => nav.go('c_reviews')} last /></Group></section>
-          <section className="vv-profile-section vv-profile-card-section"><div className="vv-profile-section-heading"><div><p className="vv-profile-eyebrow">PREFERENCES</p><h2>Account settings</h2></div></div><Group><ListRow icon={Globe} tone="sky" title={t('language')} subtitle={lang === 'en' ? 'English' : 'हिन्दी'} onClick={() => { setLang(lang === 'en' ? 'hi' : 'en'); toast(lang === 'en' ? 'भाषा हिन्दी में बदली गई' : 'Language set to English') }} /><ListRow icon={Bell} tone="orange" title="Notifications" subtitle="Alerts and channels" onClick={() => nav.go('c_notif_prefs')} /><ListRow icon={Lock} tone="slate" title="Privacy & security" subtitle="Sessions, data and account controls" onClick={() => nav.go('c_sessions')} last /></Group></section>
+          <section className="vv-profile-section vv-profile-card-section">
+            <div className="vv-profile-section-heading"><div><p className="vv-profile-eyebrow">SUPPORT &amp; FEEDBACK</p><h2>Help &amp; reviews</h2></div></div>
+            <Group>
+              <ListRow icon={Star} tone="amber" title="My reviews" subtitle="Ratings and feedback you shared" onClick={() => nav.go('c_reviews')} />
+              <ListRow icon={ShieldAlert} tone="violet" title="Support cases" subtitle="Report issues and track status" onClick={() => nav.go('c_cases')} last />
+            </Group>
+          </section>
+          <section className="vv-profile-section vv-profile-card-section">
+            <div className="vv-profile-section-heading"><div><p className="vv-profile-eyebrow">PREFERENCES</p><h2>Settings &amp; privacy</h2></div></div>
+            <Group>
+              <ListRow
+                icon={Globe}
+                tone="sky"
+                title={t('language')}
+                subtitle={lang === 'en' ? 'English' : 'हिन्दी'}
+                right={<span className="vv-profile-lang-pill">{lang === 'en' ? 'EN' : 'हि'}</span>}
+                onClick={() => { setLang(lang === 'en' ? 'hi' : 'en'); toast(lang === 'en' ? 'भाषा हिन्दी में बदली गई' : 'Language set to English') }}
+              />
+              <ListRow icon={Settings} tone="orange" title="Account settings" subtitle="Notifications, sessions & data" onClick={() => nav.go('c_settings')} />
+              <ListRow icon={ShieldCheck} tone="slate" title="Account status" subtitle="Verification & standing" onClick={() => nav.go('acct_state')} last />
+            </Group>
+          </section>
         </div>
 
-        {me.hasVendorAccount ? <section className="vv-profile-vendor-callout"><div><p className="vv-profile-eyebrow">SELL ON VENDORVERSE</p><h2>Switch to your vendor workspace</h2><p>Manage {me.vendorName || 'your business'}, listings and supplier work.</p></div><Button onClick={() => { setMe({ ...me, role: 'vendor', name: me.vendorName || me.name, buyerMode: false }); nav.reset('v_dash') }}>Open workspace</Button></section> : <section className="vv-profile-vendor-callout"><div><p className="vv-profile-eyebrow">SELL ON VENDORVERSE</p><h2>Ready to sell?</h2><p>Create your vendor profile and start offering products or services.</p></div><Button onClick={() => nav.go('v_register')}>Become a vendor</Button></section>}
+        {me.hasVendorAccount ? (
+          <section className="vv-profile-vendor-callout">
+            <div>
+              <p className="vv-profile-eyebrow">SELL ON VENDORVERSE</p>
+              <h2>Switch to your vendor workspace</h2>
+              <p>Manage {me.vendorName || 'your business'}, listings and supplier work.</p>
+            </div>
+            <Button size="sm" onClick={switchToVendor}>Open workspace</Button>
+          </section>
+        ) : (
+          <section className="vv-profile-vendor-callout">
+            <div>
+              <p className="vv-profile-eyebrow">SELL ON VENDORVERSE</p>
+              <h2>Ready to sell?</h2>
+              <p>Create your vendor profile and start offering products or services.</p>
+            </div>
+            <Button size="sm" onClick={() => nav.go('v_register')}>Become a vendor</Button>
+          </section>
+        )}
 
-        <div className="vv-profile-footer-actions"><button onClick={() => nav.go('c_export')}>Your data</button><button onClick={() => nav.go('acct_state')}>Account status</button><button className="is-danger" onClick={() => nav.go('c_delete')}>Delete account</button><button className="vv-profile-logout" onClick={() => { setMe({ role: 'customer', loggedIn: false, guest: true, vendorId: 'v-me', name: 'Guest' }); nav.reset('c_home') }}><LogOut size={16} />{t('logout')}</button></div>
+        <div className="vv-profile-footer-actions">
+          <button type="button" className="vv-profile-logout" onClick={logout}>
+            <LogOut size={15} />
+            <span>{t('logout')}</span>
+          </button>
+        </div>
         <p className="vv-profile-version">VendorVerse v1.0 · ADRSTECHNO PRIVATE LIMITED</p>
       </div>
     </Screen>

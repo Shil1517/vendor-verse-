@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { ArrowLeft, ArrowUpRight, ChevronDown, ChevronRight, Globe2, MessageCircle, Send, ShieldCheck, Store } from 'lucide-react'
+import { ArrowLeft, ArrowUpRight, ChevronDown, ChevronRight, Globe2, MessageCircle, Search, Send, ShieldCheck, Store, X } from 'lucide-react'
 import { Banner, Button, EmptyState, Screen } from '../ui.jsx'
 import { useApp } from '../store.jsx'
 import { useNav } from '../nav.jsx'
@@ -108,9 +108,31 @@ export function RemoteVendorProfile({ params = {} }) {
 }
 
 export function RemoteMessages() {
+  const nav = useNav()
   const { me } = useApp()
-  const state = useLoad(() => authService.listConversations(), [me.role])
-  if (!me.loggedIn) return <Screen title="Messages"><EmptyState icon={MessageCircle} title="Sign in to see messages" action={<Button onClick={() => openAuthDialog('signin')}>Sign in</Button>} /></Screen>
+  const state = useLoad(() => (me.loggedIn ? authService.listConversations() : Promise.resolve({ ok: true, conversations: [] })), [me.loggedIn, me.role])
+  if (!me.loggedIn) {
+    return (
+      <Screen title="Messages" back={false} headerless pad={false}>
+        <div className="vv-guest-wall-wrap">
+          <section className="vv-guest-wall" aria-labelledby="vv-messages-guest-heading">
+            <span className="vv-guest-wall-icon" aria-hidden="true"><MessageCircle size={26} strokeWidth={1.9} /></span>
+            <p className="vv-profile-eyebrow">Messages</p>
+            <h1 id="vv-messages-guest-heading">Sign in to see messages</h1>
+            <p className="vv-guest-wall-body">Browsing is open to everyone. Sign in to message vendors, share files and keep track of quotes.</p>
+            <div className="vv-guest-wall-actions">
+              <Button onClick={() => openAuthDialog('signin')}>Sign in</Button>
+              <Button variant="secondary" onClick={() => openAuthDialog('signup')}>Create account</Button>
+            </div>
+            <div className="vv-guest-wall-links">
+              <button type="button" onClick={() => nav.go('c_explore')}>Explore marketplace</button>
+              <button type="button" onClick={() => nav.go('c_categories')}>Browse categories</button>
+            </div>
+          </section>
+        </div>
+      </Screen>
+    )
+  }
   if (state.loading && !state.data) return <Screen title="Messages" back={false}><Loading /></Screen>
   if (state.error) return <Screen title="Messages" back={false}><ErrorBox message={state.error} onRetry={state.reload} /></Screen>
   if (!state.data?.conversations?.length) return <Screen title="Messages" back={false}><EmptyState icon={MessageCircle} title="No conversations yet" body="Open a vendor profile to start one." /></Screen>
@@ -127,6 +149,7 @@ export function RemoteChat({ params = {}, initialConversations }) {
   const inbox = useLoad(() => authService.listConversations(), [me.role])
   const conversations = inbox.data?.conversations || initialConversations || []
   const [message, setMessage] = useState('')
+  const [threadQuery, setThreadQuery] = useState('')
   const [busy, setBusy] = useState(false)
   const [failure, setFailure] = useState('')
   const [contactScope, setContactScope] = useState('phone')
@@ -171,6 +194,10 @@ export function RemoteChat({ params = {}, initialConversations }) {
   const isVendor = c?.viewerRole === 'vendor' || me.role === 'vendor'
   const headName = isVendor ? (c?.customerName || selectedThread?.customerName) : (c?.vendorName || selectedThread?.vendorName)
   const conversationName = (thread) => isVendor ? (thread.customerName || thread.vendorName || 'Customer') : (thread.vendorName || 'Vendor')
+  const normalizedThreadQuery = threadQuery.trim().toLowerCase()
+  const filteredConversations = normalizedThreadQuery
+    ? conversations.filter((thread) => conversationName(thread).toLowerCase().includes(normalizedThreadQuery))
+    : conversations
   const openThread = (threadId) => {
     setFailure('')
     setMessage('')
@@ -189,10 +216,28 @@ export function RemoteChat({ params = {}, initialConversations }) {
     <div className="vv-conversation-workspace">
       <aside className="vv-conversation-list" aria-label={isVendor ? 'Customer conversations' : 'Vendor conversations'}>
         <div className="vv-conversation-list-heading"><h2>{isVendor ? 'Customers' : 'Vendors'}</h2><span>{conversations.length}</span></div>
+        <div className="vv-conversation-search">
+          <label className="vv-conversation-search-box">
+            <Search size={15} aria-hidden="true" />
+            <input
+              type="search"
+              value={threadQuery}
+              onChange={(event) => setThreadQuery(event.target.value)}
+              placeholder={isVendor ? 'Search customers…' : 'Search vendors…'}
+              aria-label={isVendor ? 'Search customer conversations' : 'Search vendor conversations'}
+            />
+            {threadQuery && (
+              <button type="button" aria-label="Clear search" onClick={() => setThreadQuery('')}>
+                <X size={13} aria-hidden="true" />
+              </button>
+            )}
+          </label>
+        </div>
         {inbox.loading && conversations.length === 0 && <p className="vv-conversation-list-note">Loading conversations…</p>}
         {inbox.error && <div className="vv-conversation-list-note"><ErrorBox message={inbox.error} onRetry={inbox.reload} /></div>}
         {!inbox.loading && conversations.length === 0 && <p className="vv-conversation-list-note">Your conversations will appear here.</p>}
-        <div className="vv-conversation-list-items">{conversations.map((thread) => <button type="button" key={thread.id} aria-current={thread.id === selectedId ? 'page' : undefined} className={`vv-conversation-item${thread.id === selectedId ? ' is-selected' : ''}`} onClick={() => openThread(thread.id)}>
+        {!inbox.loading && conversations.length > 0 && filteredConversations.length === 0 && <p className="vv-conversation-list-note">No conversations match “{threadQuery.trim()}”.</p>}
+        <div className="vv-conversation-list-items">{filteredConversations.map((thread) => <button type="button" key={thread.id} aria-current={thread.id === selectedId ? 'page' : undefined} className={`vv-conversation-item${thread.id === selectedId ? ' is-selected' : ''}`} onClick={() => openThread(thread.id)}>
           <span className="vv-conversation-avatar" aria-hidden="true">{conversationName(thread).trim().charAt(0).toUpperCase()}</span>
           <span className="vv-conversation-item-copy"><strong>{conversationName(thread)}</strong><small>{thread.lastMessageAt ? `Last message ${fmtWhen(thread.lastMessageAt)}` : 'Start the conversation'}</small></span>
           <ChevronRight size={17} className="vv-conversation-item-chev" aria-hidden="true" />

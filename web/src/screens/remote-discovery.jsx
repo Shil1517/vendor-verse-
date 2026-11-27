@@ -189,10 +189,10 @@ function VendorActions({ vendorId, listingId, compact = false }) {
     {failure && <p role="alert" className="mt-1.5 text-xs text-red-700">{failure}</p>}
   </div>
 
-  return <div className="mt-4 border-t border-ink-100 pt-4">
-    <div className="flex flex-wrap gap-2.5">
-      <button type="button" onClick={() => nav.go('c_vendor', { id: vendorId, listingId })} className="inline-flex min-h-10 flex-1 items-center justify-center rounded-xl border border-ink-200 bg-white px-4 py-2 text-sm font-semibold text-ink-800 transition hover:border-brand-600 hover:bg-brand-50 hover:text-brand-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600 sm:flex-none">View profile</button>
-      <button type="button" disabled={busy} onClick={message} className="inline-flex min-h-10 flex-1 items-center justify-center gap-2 rounded-xl bg-brand-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600 disabled:cursor-wait disabled:opacity-60 sm:flex-none"><MessageCircle size={16} aria-hidden="true" />{busy ? 'Opening…' : 'Message'}</button>
+  return <div className="vv-result-card-actions">
+    <div className="vv-vendor-directory-actions">
+      <button type="button" onClick={() => nav.go('c_vendor', { id: vendorId, listingId })} className="vv-vendor-btn-secondary">View profile</button>
+      <button type="button" disabled={busy} onClick={message} className="vv-vendor-btn-primary"><MessageCircle size={15} aria-hidden="true" />{busy ? 'Opening…' : 'Message'}</button>
     </div>
     {failure && <p role="alert" className="mt-2 text-sm text-red-700">{failure}</p>}
   </div>
@@ -205,34 +205,33 @@ function ResultCard({ listing: l, sample = false, onClick }) {
   const image = RESULT_IMAGES[l.categoryName] || (l.listingType === 'product' ? '/category-images/hardware-building-materials.jpg' : '/hero-home-services.svg')
 
   return (
-    <Card className="group overflow-hidden p-0">
+    <Card className="vv-result-card group overflow-hidden p-0">
       <div className="vv-result-card-layout">
         <button type="button" disabled={!onClick} onClick={onClick} aria-label={`Open ${l.title}`} className="vv-result-card-image relative overflow-hidden rounded-2xl bg-ink-100 text-left">
           <img src={image} alt="" loading="lazy" className="absolute inset-0 size-full object-cover transition duration-300 group-hover:scale-105" />
           <div className="absolute inset-0 bg-gradient-to-t from-ink-900/35 to-transparent" />
-          <span className="absolute bottom-3 left-3 rounded-full bg-white/90 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-ink-700 backdrop-blur-sm">{kind}</span>
+          <span className="absolute bottom-3 left-3 rounded-full bg-white/95 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-[#4f3812] backdrop-blur-sm">{kind}</span>
         </button>
-        <div className="vv-result-card-body p-4 md:p-5">
+        <div className="vv-result-card-body">
           <div className="min-w-0">
             <div className="flex flex-wrap items-start justify-between gap-2">
-              <button type="button" disabled={!onClick} onClick={onClick} className="min-w-0 text-left text-base font-bold leading-snug text-ink-900 transition hover:text-brand-700 md:text-lg">{l.title}</button>
+              <button type="button" disabled={!onClick} onClick={onClick} className="vv-result-card-title min-w-0 text-left">{l.title}</button>
               <div className="flex shrink-0 gap-1.5">{l.instantBooking && <Badge tone="teal"><Zap size={11} /> Instant</Badge>}{sample && <Badge tone="gray">Sample</Badge>}</div>
             </div>
-            <p className="mt-1 text-sm font-semibold text-ink-600">{l.vendor.name}</p>
-            <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-ink-500">
-              <span className="rounded-full bg-ink-50 px-2 py-1 font-semibold text-ink-600">{l.categoryName}</span>
-              {location && <span className="inline-flex items-center gap-1"><MapPin size={12} />{location}</span>}
+            <p className="vv-result-card-vendor">{l.vendor.name}</p>
+            <div className="vv-result-card-meta">
+              <span className="vv-result-card-cat">{l.categoryName}</span>
+              {location && <span className="vv-result-card-place"><MapPin size={12} />{location}</span>}
             </div>
           </div>
-        <div className="mt-3 flex flex-wrap items-end justify-between gap-3 rounded-2xl bg-ink-50/80 px-3.5 py-2.5 ring-1 ring-inset ring-ink-100">
-          <div>
-            <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-ink-400">Starting range</p>
-            <p className="mt-1 text-base font-extrabold tracking-tight text-ink-900 md:text-lg">{priceLabel(l.price)}</p>
+          <div className="vv-result-card-price-box">
+            <div>
+              <p className="vv-result-card-price-label">Starting range</p>
+              <p className="vv-result-card-price-val">{priceLabel(l.price)}</p>
+            </div>
           </div>
-          <span className="rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-ink-600 ring-1 ring-ink-200">{kind}</span>
-        </div>
-        {matched && <p className="mt-2 text-xs font-medium text-ink-500">{matched}</p>}
-        {!sample && <VendorActions vendorId={l.vendor.id} listingId={l.id} />}
+          {matched && <p className="vv-result-card-match">{matched}</p>}
+          {!sample && <VendorActions vendorId={l.vendor.id} listingId={l.id} />}
         </div>
       </div>
     </Card>
@@ -302,6 +301,13 @@ function VendorCard({ vendor, sample }) {
 }
 
 /** `supplierOnly` (vendor Supplier shop): only vendors holding the chosen role (F-DSC-04), and never the seed-data samples. */
+const EXPLORE_MODES = [
+  { id: 'vendors', label: 'Vendors' },
+  { id: 'all', label: 'All' },
+  { id: 'products', label: 'Products' },
+  { id: 'services', label: 'Services' },
+]
+
 export function RemoteExplore({ params = {}, supplierOnly = false }) {
   const nav = useNav()
   const app = useApp()
@@ -311,10 +317,11 @@ export function RemoteExplore({ params = {}, supplierOnly = false }) {
   const [categoryId, setCategoryId] = useState('all')
   const [categoryName, setCategoryName] = useState('')
   const [selectedSub, setSelectedSub] = useState('')
+  const [mode, setMode] = useState(() => (['vendors', 'all', 'products', 'services'].includes(params.mode) ? params.mode : 'vendors'))
   const [state, setState] = useState({ loading: true, error: '', items: [], nextCursor: null, marketLive: true })
   const [visibleVendorLimit, setVisibleVendorLimit] = useState(24)
   const country = locale.country || 'IN'
-  const type = params.mode === 'vendors' ? 'vendor' : 'all'
+  const type = mode === 'vendors' ? 'vendor' : mode === 'products' ? 'product' : mode === 'services' ? 'service' : 'all'
 
   const popularSubcategories = useMemo(() => {
     const activeGroup = group || categoryName
@@ -341,6 +348,7 @@ export function RemoteExplore({ params = {}, supplierOnly = false }) {
     setCategoryId('all')
     setCategoryName('')
     setSelectedSub(matchedSub)
+    setMode(['vendors', 'all', 'products', 'services'].includes(params.mode) ? params.mode : 'vendors')
     setVisibleVendorLimit(24)
   }, [params.group, params.q, params.mode])
 
@@ -386,9 +394,10 @@ export function RemoteExplore({ params = {}, supplierOnly = false }) {
   }
   const resultListings = useMemo(() => {
     const base = useSamples ? sampleItems : visibleItems
-    if (!selectedSub) return base
-    return base.filter((l) => subMatchesText(`${l.categoryName || ''} ${l.title || ''} ${l.group || ''}`))
-  }, [useSamples, sampleItems, visibleItems, selectedSub])
+    const byType = type === 'product' || type === 'service' ? base.filter((l) => l.listingType === type) : base
+    if (!selectedSub) return byType
+    return byType.filter((l) => subMatchesText(`${l.categoryName || ''} ${l.title || ''} ${l.group || ''}`))
+  }, [useSamples, sampleItems, visibleItems, selectedSub, type])
   const listingVendors = useMemo(() => {
     const base = vendorsFromListings(resultListings).map((v) => ({ ...v, sample: useSamples }))
     if (!selectedSub) return base
@@ -432,8 +441,25 @@ export function RemoteExplore({ params = {}, supplierOnly = false }) {
   }, [type, supplierOnly, state.loading, state.marketLive, listingVendors, sampleDirectoryVendors])
   const shownVendors = useMemo(() => vendorItems.slice(0, visibleVendorLimit), [vendorItems, visibleVendorLimit])
   const showListings = type !== 'vendor'
-  const showVendors = type === 'vendor' || (useSamples && vendorItems.length > 0)
-  const resultCount = (showListings ? resultListings.length : 0) + (showVendors ? vendorItems.length : 0)
+  const showVendors = type === 'vendor'
+  const resultCount = showVendors ? vendorItems.length : resultListings.length
+  const modeTitle = type === 'vendor'
+    ? (group ? `${group} vendors` : 'Vendors')
+    : type === 'product'
+      ? 'Products'
+      : type === 'service'
+        ? 'Services'
+        : 'Products & services'
+  const hasActiveFilter = Boolean(q.trim() || group || categoryName || selectedSub)
+  const clearAllFilters = () => {
+    setQ('')
+    setGroup('')
+    setCategoryId('all')
+    setCategoryName('')
+    setSelectedSub('')
+    setVisibleVendorLimit(24)
+    nav.go('c_explore', { mode })
+  }
   const hierarchy = [
     group && { label: group, onClick: selectedSub ? () => { setSelectedSub(''); setVisibleVendorLimit(24) } : undefined },
     categoryName && { label: categoryName, onClick: selectedSub ? () => { setSelectedSub(''); setVisibleVendorLimit(24) } : undefined },
@@ -493,7 +519,45 @@ export function RemoteExplore({ params = {}, supplierOnly = false }) {
           </div>
         )}
         <UniversalPanel q={q} country={country} cityId={cityId} signedIn={Boolean(app.me?.loggedIn)} suppressLoading={isInitialLoading} onCategory={(category) => { setCategoryId(category.id); setCategoryName(category.name) }} />
-        <p className="pt-1 text-[13px] font-bold uppercase tracking-wide text-ink-500">{type === 'vendor' ? 'Vendors' : type === 'product' ? 'Products' : type === 'service' ? 'Services' : 'Products and services'}{locale.city ? ` · ${locale.city}${locale.pincode ? ` ${locale.pincode}` : ''}` : ''}{resultCount > 0 && ` (${resultCount})`}</p>
+        <div className="vv-explore-results-head">
+          <div className="vv-explore-results-title">
+            <p className="vv-explore-results-kicker">
+              {locale.city ? `${locale.city}${locale.pincode ? ` ${locale.pincode}` : ''}` : 'Marketplace directory'}
+              {q.trim() ? ` · Matching “${q.trim()}”` : ''}
+            </p>
+            <div className="vv-explore-results-title-row">
+              <h1>{modeTitle}</h1>
+              {resultCount > 0 && <span className="vv-explore-results-count">{resultCount}</span>}
+              {hasActiveFilter && (
+                <button type="button" className="vv-explore-clear-btn" onClick={clearAllFilters}>
+                  Clear filters
+                </button>
+              )}
+            </div>
+          </div>
+          {!supplierOnly && (
+            <div className="vv-explore-mode-tabs" role="tablist" aria-label="Search view">
+              {EXPLORE_MODES.map((item) => {
+                const active = mode === item.id
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    role="tab"
+                    aria-selected={active}
+                    className={cx('vv-explore-mode-tab', active && 'is-active')}
+                    onClick={() => {
+                      setMode(item.id)
+                      setVisibleVendorLimit(24)
+                    }}
+                  >
+                    {item.label}
+                  </button>
+                )
+              })}
+            </div>
+          )}
+        </div>
         {!useSamples && state.error && <ErrorBox message={state.error} onRetry={() => search()} />}
         {!state.error && !state.loading && !state.marketLive && (
           <Banner tone="amber" title="Not live in this area yet">VendorVerse is not open for search in {locale.city || 'this area'} yet, so nothing is shown. Nothing here is hidden from you.</Banner>
